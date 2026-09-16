@@ -15,19 +15,6 @@
       },
       "noun": "the euro-dollar rate"
     },
-    "debt": {
-      "adapter": "treasury",
-      "provider": "US Treasury Fiscal Data",
-      "label": "US public debt",
-      "ref": "Debt to the Penny, total public debt outstanding",
-      "cadence": "business-daily",
-      "ttlMs": 259200000,
-      "span": 2000000000000,
-      "params": {
-        "field": "tot_pub_debt_out_amt"
-      },
-      "noun": "US public debt"
-    },
     "quake": {
       "adapter": "usgs",
       "provider": "USGS",
@@ -479,7 +466,7 @@
           "weight": 0.75
         },
         {
-          "driver": "debt",
+          "driver": "fx",
           "weight": 0.25
         }
       ],
@@ -568,7 +555,7 @@
           "weight": 0.75
         },
         {
-          "driver": "debt",
+          "driver": "tide",
           "weight": 0.25
         }
       ],
@@ -663,7 +650,7 @@
           "weight": 0.75
         },
         {
-          "driver": "debt",
+          "driver": "quake",
           "weight": 0.25
         }
       ],

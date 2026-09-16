@@ -44,8 +44,6 @@ function fixtureFetch(fail: (url: string) => boolean = () => false) {
     if (fail(url)) throw new Error('HTTP 503')
     if (url.includes('api.frankfurter.dev/v1/latest')) return loadFixture(adapters['frankfurter']!.fixtures.latest)
     if (url.includes('api.frankfurter.dev/v1/')) return loadFixture(adapters['frankfurter']!.fixtures.range)
-    if (url.includes('fiscaldata') && url.includes('sort=-record_date')) return loadFixture(adapters['treasury']!.fixtures.latest)
-    if (url.includes('fiscaldata')) return loadFixture(adapters['treasury']!.fixtures.range)
     // The archive host contains the forecast host as a substring; test it first.
     if (url.includes('archive-api.open-meteo.com')) return loadFixture(adapters['open-meteo']!.fixtures.range)
     if (url.includes('api.open-meteo.com')) return loadFixture(adapters['open-meteo']!.fixtures.latest)
@@ -108,9 +106,9 @@ describe('refresh on fixtures', () => {
     }
     const second = await refresh(deps({ kv: mem.kv, loadFixture: changedLoad }))
     const pairs = second.mutations.map(m => `${m.entity}.${m.metric}`).sort()
-    // The three fx-exposed companies, every numeric comps metric each.
+    // The four fx-exposed companies, every numeric comps metric each.
     expect(pairs).toEqual(
-      ['ou-tokyo', 'drift-lagos', 'seasonal-berlin']
+      ['ou-tokyo', 'ou-london', 'drift-lagos', 'seasonal-berlin']
         .flatMap(id => ['level', 'change', 'multiple'].map(m => `${id}.${m}`))
         .sort(),
     )
@@ -120,7 +118,7 @@ describe('refresh on fixtures', () => {
       expect(m.at).toBe(NOW.toISOString())
     }
     const stored = JSON.parse(mem.store.get(KEYS.snapshot)!) as StoredSnapshot
-    expect(stored.mutations).toHaveLength(9)
+    expect(stored.mutations).toHaveLength(12)
     // Stale outranks agent-updated: the fixture rule wins on the status.
     expect(stored.entities['ou-tokyo']!.metrics['level']!.status).toBe('stale')
     expect(stored.entities['ou-tokyo']!.metrics['level']!.prev).toBeDefined()
@@ -143,12 +141,12 @@ describe('refresh live (fixtures standing in for the network)', () => {
     expect(first.requests).toBeLessThanOrEqual(45)
     const statuses = new Set(Object.values(first.snapshot.entities).flatMap(e => Object.values(e.metrics).map(f => f.status)))
     expect(statuses).toEqual(new Set(['current']))
-    // 24 latest requests plus 21 backfill chunks fit the budget of 45, so
-    // three drivers wait; the second run reaches them.
+    // 23 latest requests plus 22 backfill chunks fit the budget of 45, so
+    // one driver waits; the second run reaches it.
     const written = () => Object.keys(config.drivers).filter(id => mem.store.has(KEYS.history(id))).length
-    expect(written()).toBe(21)
+    expect(written()).toBe(22)
     await refresh(live)
-    expect(written()).toBe(24)
+    expect(written()).toBe(23)
   })
 
   it('one failing adapter: its figures stale, phase waiting, an interruption record, no throw', async () => {
@@ -186,13 +184,13 @@ describe('refresh live (fixtures standing in for the network)', () => {
     const live = () => deps({ kv: mem.kv, fixturesOnly: false, fetchText: fixtureFetch() })
     const first = await refresh(live())
     const writesAfterFirst = mem.writes
-    // 24 latest + one chunk per driver on the first run, capped at 45.
+    // 23 latest + one chunk per driver on the first run, capped at 45.
     expect(first.requests).toBe(45)
     const second = await refresh(live())
-    // Second run: 24 latest, trailing not yet due, backfill continues for
+    // Second run: 23 latest, trailing not yet due, backfill continues for
     // the drivers the first run's budget did not reach.
     expect(second.requests).toBeLessThanOrEqual(45)
-    expect(second.requests).toBeGreaterThanOrEqual(24)
+    expect(second.requests).toBeGreaterThanOrEqual(23)
     // Three writes (agent reading, snapshot, agent done) per run plus any history.
     expect(mem.writes - writesAfterFirst).toBeGreaterThanOrEqual(3)
   })

@@ -9,8 +9,8 @@ exports[`descriptions and about paragraphs > match the reviewed set (M2 acceptan
     "name": "Anchor Kaze",
   },
   {
-    "about": "Keel London is a district energy company headquartered in London, founded 1988. It runs the heat networks under three London boroughs. Its results track London temperature and, to a lesser degree, US public debt.",
-    "description": "Keel London is a mean-reverting series (θ = 0.08, μ = 100, σ = 1.2, seed 1102) exposed 75% to London temperature (Open-Meteo, hourly) and 25% to US public debt (US Treasury Fiscal Data, business-daily). Its slowest input is US public debt, so figures go stale after 3 d.",
+    "about": "Keel London is a district energy company headquartered in London, founded 1988. It runs the heat networks under three London boroughs. Its results track London temperature and, to a lesser degree, the euro-dollar rate.",
+    "description": "Keel London is a mean-reverting series (θ = 0.08, μ = 100, σ = 1.2, seed 1102) exposed 75% to London temperature (Open-Meteo, hourly) and 25% to EUR/USD (Frankfurter, business-daily). Its slowest input is EUR/USD, so figures go stale after 3 d.",
     "id": "ou-london",
     "name": "Keel London",
   },
@@ -33,8 +33,8 @@ exports[`descriptions and about paragraphs > match the reviewed set (M2 acceptan
     "name": "Leeward Harmattan",
   },
   {
-    "about": "Windward Sydney is a renewable energy company headquartered in Sydney, founded 2009. It operates wind farms across New South Wales. Its results track Sydney temperature and, to a lesser degree, US public debt.",
-    "description": "Windward Sydney is a random walk with drift (μ = 0.03 per step, σ = 1.3, seed 1203) exposed 75% to Sydney temperature (Open-Meteo, hourly) and 25% to US public debt (US Treasury Fiscal Data, business-daily). Its slowest input is US public debt, so figures go stale after 3 d.",
+    "about": "Windward Sydney is a renewable energy company headquartered in Sydney, founded 2009. It operates wind farms across New South Wales. Its results track Sydney temperature and, to a lesser degree, the tide at The Battery.",
+    "description": "Windward Sydney is a random walk with drift (μ = 0.03 per step, σ = 1.3, seed 1203) exposed 75% to Sydney temperature (Open-Meteo, hourly) and 25% to Battery water level (NOAA CO-OPS, minutes). Its slowest input is Sydney temperature, so figures go stale after 2 h.",
     "id": "drift-sydney",
     "name": "Windward Sydney",
   },
@@ -57,8 +57,8 @@ exports[`descriptions and about paragraphs > match the reviewed set (M2 acceptan
     "name": "Harvest Nebel",
   },
   {
-    "about": "Flint Baram is a heat-pump manufacturing company headquartered in Seoul, founded 1979. It makes heat pumps and rooftop chillers for apartment towers. Its results track Seoul temperature and, to a lesser degree, US public debt.",
-    "description": "Flint Baram is a jump-diffusion series (λ = 0.03 per step, jump size 5, σ = 0.8, seed 1401) exposed 75% to Seoul temperature (Open-Meteo, hourly) and 25% to US public debt (US Treasury Fiscal Data, business-daily). Its slowest input is US public debt, so figures go stale after 3 d.",
+    "about": "Flint Baram is a heat-pump manufacturing company headquartered in Seoul, founded 1979. It makes heat pumps and rooftop chillers for apartment towers. Its results track Seoul temperature and, to a lesser degree, global seismic activity.",
+    "description": "Flint Baram is a jump-diffusion series (λ = 0.03 per step, jump size 5, σ = 0.8, seed 1401) exposed 75% to Seoul temperature (Open-Meteo, hourly) and 25% to M2.5+ quakes, 24 h (USGS, minutes). Its slowest input is Seoul temperature, so figures go stale after 2 h.",
     "id": "jump-seoul",
     "name": "Flint Baram",
   },

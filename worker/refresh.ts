@@ -13,7 +13,8 @@
 // published limits with margin: at most 45 subrequests a run (limit 50),
 // three KV writes a run (agent reading, the snapshot, agent done) plus the
 // history writes that only happen on the daily trailing fetch or a backfill
-// chunk (limit 1,000 writes a day, 96 runs a day, so about 300 plus history), and small responses so a run's CPU stays in the low milliseconds
+// chunk (limit 1,000 writes a day, 96 runs a day, so about 300 plus history),
+// and small responses so a run's CPU stays in the low milliseconds
 // (limit 10 ms). If the account is on the paid plan none of this binds,
 // and it costs nothing to keep. decisions/2026-09-16-chunked-backfill.md.
 

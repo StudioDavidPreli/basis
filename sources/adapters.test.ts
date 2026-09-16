@@ -35,17 +35,6 @@ describe('adapters', () => {
     expect(a.latestUrl(p)).toBe('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD')
   })
 
-  it('treasury: the field as a number and record_date as asOf', async () => {
-    const a = adapters['treasury']!
-    const p = paramsFor('treasury')
-    const latest = a.parseLatest(await load(a.fixtures.latest), p)
-    expect(latest.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(latest.value).toBeGreaterThan(3e13)
-    const range = a.parseRange(await load(a.fixtures.range), p)
-    expect(range.length).toBeGreaterThan(200)
-    expect(range[0]![0] < range[range.length - 1]![0]).toBe(true)
-  })
-
   it('open-meteo: current temperature with a Z appended, daily means with nulls dropped', async () => {
     const a = adapters['open-meteo']!
     const p = paramsFor('open-meteo')
