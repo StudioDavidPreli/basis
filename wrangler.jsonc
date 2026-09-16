@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "basis",
+  "main": ".open-next/worker.js",
+  // OpenNext needs nodejs_compat and a compatibility date at or after
+  // 2024-09-23 (decisions/2026-09-16-cloudflare-not-vercel.md).
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  // KV ids are placeholders until `wrangler kv namespace create` runs against
+  // David's account. `wrangler dev` simulates both locally regardless of id;
+  // `wrangler deploy` refuses a placeholder, which is the right refusal.
+  "kv_namespaces": [
+    { "binding": "NEXT_INC_CACHE_KV", "id": "REPLACE_AFTER_WRANGLER_LOGIN" },
+    { "binding": "BASIS_KV", "id": "REPLACE_AFTER_WRANGLER_LOGIN" }
+  ]
+}

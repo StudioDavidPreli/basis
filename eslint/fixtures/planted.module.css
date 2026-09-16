@@ -1,0 +1,13 @@
+/* Expected: 5 errors. */
+.a {
+  transition: opacity 200ms ease; /* 1: time, 2: keyword */
+}
+.b {
+  transition-duration: 0.3s; /* 3 */
+}
+.c {
+  animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite; /* 4: time, 5: curve */
+}
+.d {
+  transition: opacity var(--cadence-duration-base) var(--cadence-ease-standard);
+}

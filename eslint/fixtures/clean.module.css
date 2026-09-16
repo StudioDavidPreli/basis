@@ -1,0 +1,17 @@
+/* Expected: 0 errors. */
+.row {
+  transition: background-color var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+.figure {
+  transition-property: color;
+  transition-duration: var(--cadence-duration-slower);
+  transition-timing-function: var(--cadence-ease-exit);
+  transition-delay: var(--cadence-delay-none);
+}
+.shimmer {
+  animation: shimmer var(--cadence-duration-slower) var(--cadence-ease-linear) infinite;
+}
+.static {
+  color: red;
+  width: 200px;
+}

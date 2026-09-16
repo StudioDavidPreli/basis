@@ -1,0 +1,61 @@
+/* Basis's own visual language starts here. Cadence supplies motion only
+   (cadence.css, imported in layout.tsx); colors, type, spacing, and the
+   series palette are Basis's, WCAG AA in both themes. M1 carries the
+   minimum: two theme surfaces, a type stack, tabular numerals, and the
+   reduced-motion override for the ?reduce=1 case. */
+
+:root {
+  color-scheme: light dark;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #fbfaf7;
+  --color-surface: #ffffff;
+  --color-text: #1b1a17;
+  --color-text-muted: #5c5a54;
+  --color-line: #d8d5cd;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #15161a;
+  --color-surface: #1d1f24;
+  --color-text: #ecebe6;
+  --color-text-muted: #a8a69f;
+  --color-line: #33363e;
+}
+
+/* The package's media block handles prefers-reduced-motion. This mirrors the
+   same resolution for the attribute the inline script sets, so ?reduce=1
+   flattens CSS timing exactly as the OS preference would. Same values, same
+   omissions: easing, scale, spring, and the scalar stay as authored. */
+[data-reduce-motion='1'] {
+  --cadence-duration-fast: 10ms;
+  --cadence-duration-base: 10ms;
+  --cadence-duration-slow: 10ms;
+  --cadence-duration-slower: 10ms;
+  --cadence-delay-none: 0ms;
+  --cadence-delay-short: 0ms;
+  --cadence-delay-medium: 0ms;
+  --cadence-delay-long: 0ms;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
