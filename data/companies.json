@@ -9,7 +9,10 @@
       "cadence": "business-daily",
       "ttlMs": 259200000,
       "span": 0.1,
-      "params": { "base": "EUR", "symbol": "USD" }
+      "params": {
+        "base": "EUR",
+        "symbol": "USD"
+      }
     },
     "debt": {
       "adapter": "treasury",
@@ -19,7 +22,9 @@
       "cadence": "business-daily",
       "ttlMs": 259200000,
       "span": 2000000000000,
-      "params": { "field": "tot_pub_debt_out_amt" }
+      "params": {
+        "field": "tot_pub_debt_out_amt"
+      }
     },
     "quake": {
       "adapter": "usgs",
@@ -29,7 +34,9 @@
       "cadence": "minutes",
       "ttlMs": 1800000,
       "span": 40,
-      "params": { "minMagnitude": 2.5 }
+      "params": {
+        "minMagnitude": 2.5
+      }
     },
     "tide": {
       "adapter": "noaa-coops",
@@ -39,87 +46,749 @@
       "cadence": "minutes",
       "ttlMs": 1800000,
       "span": 2,
-      "params": { "station": "8518750", "datum": "MLLW" }
+      "params": {
+        "station": "8518750",
+        "datum": "MLLW"
+      }
     },
-    "temp-brooklyn":  { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Brooklyn temperature",   "ref": "2 m air temperature at Brooklyn",   "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": 40.68,  "longitude": -73.94 } },
-    "temp-reykjavik": { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Reykjavík temperature",  "ref": "2 m air temperature at Reykjavík",  "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": 64.15,  "longitude": -21.94 } },
-    "temp-cairo":     { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Cairo temperature",      "ref": "2 m air temperature at Cairo",      "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": 30.04,  "longitude": 31.24 } },
-    "temp-singapore": { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Singapore temperature",  "ref": "2 m air temperature at Singapore",  "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": 1.35,   "longitude": 103.82 } },
-    "temp-nairobi":   { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Nairobi temperature",    "ref": "2 m air temperature at Nairobi",    "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": -1.29,  "longitude": 36.82 } },
-    "temp-sao-paulo": { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "São Paulo temperature",  "ref": "2 m air temperature at São Paulo",  "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": -23.55, "longitude": -46.63 } },
-    "temp-perth":     { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Perth temperature",      "ref": "2 m air temperature at Perth",      "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": -31.95, "longitude": 115.86 } },
-    "temp-anchorage": { "adapter": "open-meteo", "provider": "Open-Meteo", "label": "Anchorage temperature",  "ref": "2 m air temperature at Anchorage",  "cadence": "hourly", "ttlMs": 7200000, "span": 30, "params": { "latitude": 61.22,  "longitude": -149.9 } }
-  },
-
-  "lexicon": {
-    "process": {
-      "ou":       ["Anchor",   "Keel",    "Plumb"],
-      "drift":    ["Meridian", "Leeward", "Windward"],
-      "seasonal": ["Solstice", "Equinox", "Harvest"],
-      "jump":     ["Flint",    "Spark",   "Ember"]
+    "temp-tokyo": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Tokyo",
+      "label": "Tokyo temperature",
+      "ref": "2 m air temperature at Tokyo",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 35.68,
+        "longitude": 139.69
+      }
     },
-    "driver": {
-      "fx":    ["Franc",   "Florin", "Ducat",   "Guilder"],
-      "tide":  ["Battery", "Harbor", "Mooring", "Wharf"],
-      "quake": ["Richter", "Tremor", "Seismic", "Fault"]
+    "temp-london": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "London",
+      "label": "London temperature",
+      "ref": "2 m air temperature at London",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 51.51,
+        "longitude": -0.13
+      }
+    },
+    "temp-mumbai": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Mumbai",
+      "label": "Mumbai temperature",
+      "ref": "2 m air temperature at Mumbai",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 19.08,
+        "longitude": 72.88
+      }
+    },
+    "temp-bogota": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Bogotá",
+      "label": "Bogotá temperature",
+      "ref": "2 m air temperature at Bogotá",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 4.71,
+        "longitude": -74.07
+      }
+    },
+    "temp-lagos": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Lagos",
+      "label": "Lagos temperature",
+      "ref": "2 m air temperature at Lagos",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 6.52,
+        "longitude": 3.38
+      }
+    },
+    "temp-sydney": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Sydney",
+      "label": "Sydney temperature",
+      "ref": "2 m air temperature at Sydney",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": -33.87,
+        "longitude": 151.21
+      }
+    },
+    "temp-toronto": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Toronto",
+      "label": "Toronto temperature",
+      "ref": "2 m air temperature at Toronto",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 43.65,
+        "longitude": -79.38
+      }
+    },
+    "temp-santiago": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Santiago",
+      "label": "Santiago temperature",
+      "ref": "2 m air temperature at Santiago",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": -33.45,
+        "longitude": -70.67
+      }
+    },
+    "temp-berlin": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Berlin",
+      "label": "Berlin temperature",
+      "ref": "2 m air temperature at Berlin",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 52.52,
+        "longitude": 13.41
+      }
+    },
+    "temp-seoul": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Seoul",
+      "label": "Seoul temperature",
+      "ref": "2 m air temperature at Seoul",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 37.57,
+        "longitude": 126.98
+      }
+    },
+    "temp-johannesburg": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Johannesburg",
+      "label": "Johannesburg temperature",
+      "ref": "2 m air temperature at Johannesburg",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": -26.2,
+        "longitude": 28.05
+      }
+    },
+    "temp-dubai": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Dubai",
+      "label": "Dubai temperature",
+      "ref": "2 m air temperature at Dubai",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 25.2,
+        "longitude": 55.27
+      }
+    },
+    "temp-brooklyn": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Brooklyn",
+      "label": "Brooklyn temperature",
+      "ref": "2 m air temperature at Brooklyn",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 40.68,
+        "longitude": -73.94
+      }
+    },
+    "temp-reykjavik": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Reykjavík",
+      "label": "Reykjavík temperature",
+      "ref": "2 m air temperature at Reykjavík",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 64.15,
+        "longitude": -21.94
+      }
+    },
+    "temp-cairo": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Cairo",
+      "label": "Cairo temperature",
+      "ref": "2 m air temperature at Cairo",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 30.04,
+        "longitude": 31.24
+      }
+    },
+    "temp-singapore": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Singapore",
+      "label": "Singapore temperature",
+      "ref": "2 m air temperature at Singapore",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 1.35,
+        "longitude": 103.82
+      }
+    },
+    "temp-nairobi": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Nairobi",
+      "label": "Nairobi temperature",
+      "ref": "2 m air temperature at Nairobi",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": -1.29,
+        "longitude": 36.82
+      }
+    },
+    "temp-sao-paulo": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "São Paulo",
+      "label": "São Paulo temperature",
+      "ref": "2 m air temperature at São Paulo",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": -23.55,
+        "longitude": -46.63
+      }
+    },
+    "temp-perth": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Perth",
+      "label": "Perth temperature",
+      "ref": "2 m air temperature at Perth",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": -31.95,
+        "longitude": 115.86
+      }
+    },
+    "temp-anchorage": {
+      "adapter": "open-meteo",
+      "provider": "Open-Meteo",
+      "place": "Anchorage",
+      "label": "Anchorage temperature",
+      "ref": "2 m air temperature at Anchorage",
+      "cadence": "hourly",
+      "ttlMs": 7200000,
+      "span": 30,
+      "params": {
+        "latitude": 61.22,
+        "longitude": -149.9
+      }
     }
   },
-
-  "mixes": [
-    { "id": "fx-led",    "exposures": [{ "driver": "fx",    "weight": 0.65 }, { "driver": "debt",          "weight": 0.35 }] },
-    { "id": "tide-led",  "exposures": [{ "driver": "tide",  "weight": 0.60 }, { "driver": "temp-brooklyn", "weight": 0.40 }] },
-    { "id": "quake-led", "exposures": [{ "driver": "quake", "weight": 0.55 }, { "driver": "debt",          "weight": 0.45 }] }
-  ],
-
+  "lexicon": {
+    "process": {
+      "ou": [
+        "Anchor",
+        "Keel",
+        "Plumb"
+      ],
+      "drift": [
+        "Meridian",
+        "Leeward",
+        "Windward"
+      ],
+      "seasonal": [
+        "Solstice",
+        "Equinox",
+        "Harvest"
+      ],
+      "jump": [
+        "Flint",
+        "Spark",
+        "Ember"
+      ],
+      "_rule": "the nth company of a family, in file order, takes the nth word; the second token is the dominant driver's place"
+    }
+  },
   "datasets": {
     "comps": {
       "label": "Comparables",
       "entities": "companies",
       "columns": [
-        { "key": "level",    "label": "Level",     "format": "number",   "derive": "level" },
-        { "key": "change",   "label": "Δ 1d",      "format": "bps",      "derive": "deltaBps" },
-        { "key": "multiple", "label": "EV/EBITDA", "format": "multiple", "derive": "ratio", "divisor": 8 }
+        {
+          "key": "level",
+          "label": "Level",
+          "format": "number",
+          "derive": "level"
+        },
+        {
+          "key": "change",
+          "label": "Δ 1d",
+          "format": "bps",
+          "derive": "deltaBps"
+        },
+        {
+          "key": "multiple",
+          "label": "EV/EBITDA",
+          "format": "multiple",
+          "derive": "ratio",
+          "divisor": 8
+        }
       ]
     },
     "regions": {
       "label": "Regions",
       "entities": "regions",
       "columns": [
-        { "key": "index",  "label": "Index",  "format": "number",  "derive": "level" },
-        { "key": "change", "label": "Δ 1d",   "format": "bps",     "derive": "deltaBps" },
-        { "key": "driver", "label": "Driver", "format": "celsius", "derive": "driver" }
+        {
+          "key": "index",
+          "label": "Index",
+          "format": "number",
+          "derive": "level"
+        },
+        {
+          "key": "change",
+          "label": "Δ 1d",
+          "format": "bps",
+          "derive": "deltaBps"
+        },
+        {
+          "key": "driver",
+          "label": "Driver",
+          "format": "celsius",
+          "derive": "driver"
+        }
       ]
     }
   },
-
-  "base": { "level": 100 },
-
+  "base": {
+    "level": 100
+  },
   "companies": [
-    { "id": "ou-fx",          "process": { "family": "ou",       "theta": 0.05, "mu": 100, "sigma": 1.5, "seed": 1101 }, "mix": "fx-led" },
-    { "id": "ou-tide",        "process": { "family": "ou",       "theta": 0.08, "mu": 100, "sigma": 1.2, "seed": 1102 }, "mix": "tide-led" },
-    { "id": "ou-quake",       "process": { "family": "ou",       "theta": 0.03, "mu": 100, "sigma": 1.8, "seed": 1103 }, "mix": "quake-led" },
-
-    { "id": "drift-fx",       "process": { "family": "drift",    "mu": 0.02,  "sigma": 1.0, "seed": 1201 }, "mix": "fx-led" },
-    { "id": "drift-tide",     "process": { "family": "drift",    "mu": -0.01, "sigma": 0.9, "seed": 1202 }, "mix": "tide-led" },
-    { "id": "drift-quake",    "process": { "family": "drift",    "mu": 0.03,  "sigma": 1.3, "seed": 1203 }, "mix": "quake-led" },
-
-    { "id": "seasonal-fx",    "process": { "family": "seasonal", "amplitude": 8,  "period": 365, "phase": 0.57, "sigma": 0.8, "seed": 1301 }, "mix": "fx-led" },
-    { "id": "seasonal-tide",  "process": { "family": "seasonal", "amplitude": 6,  "period": 365, "phase": 0.25, "sigma": 0.7, "seed": 1302 }, "mix": "tide-led" },
-    { "id": "seasonal-quake", "process": { "family": "seasonal", "amplitude": 10, "period": 365, "phase": 0.80, "sigma": 0.9, "seed": 1303 }, "mix": "quake-led" },
-
-    { "id": "jump-fx",        "process": { "family": "jump",     "lambda": 0.03, "jumpSize": 5, "sigma": 0.8, "seed": 1401 }, "mix": "fx-led" },
-    { "id": "jump-tide",      "process": { "family": "jump",     "lambda": 0.05, "jumpSize": 3, "sigma": 0.7, "seed": 1402 }, "mix": "tide-led" },
-    { "id": "jump-quake",     "process": { "family": "jump",     "lambda": 0.02, "jumpSize": 8, "sigma": 1.0, "seed": 1403 }, "mix": "quake-led" }
+    {
+      "id": "ou-tokyo",
+      "process": {
+        "family": "ou",
+        "theta": 0.05,
+        "mu": 100,
+        "sigma": 1.5,
+        "seed": 1101
+      },
+      "exposures": [
+        {
+          "driver": "temp-tokyo",
+          "weight": 0.75
+        },
+        {
+          "driver": "fx",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "ou-london",
+      "process": {
+        "family": "ou",
+        "theta": 0.08,
+        "mu": 100,
+        "sigma": 1.2,
+        "seed": 1102
+      },
+      "exposures": [
+        {
+          "driver": "temp-london",
+          "weight": 0.75
+        },
+        {
+          "driver": "debt",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "ou-mumbai",
+      "process": {
+        "family": "ou",
+        "theta": 0.03,
+        "mu": 100,
+        "sigma": 1.8,
+        "seed": 1103
+      },
+      "exposures": [
+        {
+          "driver": "temp-mumbai",
+          "weight": 0.75
+        },
+        {
+          "driver": "quake",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "drift-bogota",
+      "process": {
+        "family": "drift",
+        "mu": 0.02,
+        "sigma": 1.0,
+        "seed": 1201
+      },
+      "exposures": [
+        {
+          "driver": "temp-bogota",
+          "weight": 0.75
+        },
+        {
+          "driver": "tide",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "drift-lagos",
+      "process": {
+        "family": "drift",
+        "mu": -0.01,
+        "sigma": 0.9,
+        "seed": 1202
+      },
+      "exposures": [
+        {
+          "driver": "temp-lagos",
+          "weight": 0.75
+        },
+        {
+          "driver": "fx",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "drift-sydney",
+      "process": {
+        "family": "drift",
+        "mu": 0.03,
+        "sigma": 1.3,
+        "seed": 1203
+      },
+      "exposures": [
+        {
+          "driver": "temp-sydney",
+          "weight": 0.75
+        },
+        {
+          "driver": "debt",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "seasonal-toronto",
+      "process": {
+        "family": "seasonal",
+        "amplitude": 8,
+        "period": 365,
+        "phase": 0.57,
+        "sigma": 0.8,
+        "seed": 1301
+      },
+      "exposures": [
+        {
+          "driver": "temp-toronto",
+          "weight": 0.75
+        },
+        {
+          "driver": "quake",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "seasonal-santiago",
+      "process": {
+        "family": "seasonal",
+        "amplitude": 6,
+        "period": 365,
+        "phase": 0.25,
+        "sigma": 0.7,
+        "seed": 1302
+      },
+      "exposures": [
+        {
+          "driver": "temp-santiago",
+          "weight": 0.75
+        },
+        {
+          "driver": "tide",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "seasonal-berlin",
+      "process": {
+        "family": "seasonal",
+        "amplitude": 10,
+        "period": 365,
+        "phase": 0.8,
+        "sigma": 0.9,
+        "seed": 1303
+      },
+      "exposures": [
+        {
+          "driver": "temp-berlin",
+          "weight": 0.75
+        },
+        {
+          "driver": "fx",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "jump-seoul",
+      "process": {
+        "family": "jump",
+        "lambda": 0.03,
+        "jumpSize": 5,
+        "sigma": 0.8,
+        "seed": 1401
+      },
+      "exposures": [
+        {
+          "driver": "temp-seoul",
+          "weight": 0.75
+        },
+        {
+          "driver": "debt",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "jump-johannesburg",
+      "process": {
+        "family": "jump",
+        "lambda": 0.05,
+        "jumpSize": 3,
+        "sigma": 0.7,
+        "seed": 1402
+      },
+      "exposures": [
+        {
+          "driver": "temp-johannesburg",
+          "weight": 0.75
+        },
+        {
+          "driver": "quake",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "jump-dubai",
+      "process": {
+        "family": "jump",
+        "lambda": 0.02,
+        "jumpSize": 8,
+        "sigma": 1.0,
+        "seed": 1403
+      },
+      "exposures": [
+        {
+          "driver": "temp-dubai",
+          "weight": 0.75
+        },
+        {
+          "driver": "tide",
+          "weight": 0.25
+        }
+      ]
+    }
   ],
-
   "regions": [
-    { "id": "brooklyn",  "place": "Brooklyn",  "driver": "temp-brooklyn",  "process": { "family": "seasonal", "amplitude": 12, "period": 365, "phase": 0.57, "sigma": 0.6, "seed": 2101 } },
-    { "id": "reykjavik", "place": "Reykjavík", "driver": "temp-reykjavik", "process": { "family": "seasonal", "amplitude": 6,  "period": 365, "phase": 0.57, "sigma": 0.8, "seed": 2102 } },
-    { "id": "cairo",     "place": "Cairo",     "driver": "temp-cairo",     "process": { "family": "seasonal", "amplitude": 9,  "period": 365, "phase": 0.57, "sigma": 0.4, "seed": 2103 } },
-    { "id": "singapore", "place": "Singapore", "driver": "temp-singapore", "process": { "family": "seasonal", "amplitude": 1,  "period": 365, "phase": 0.40, "sigma": 0.5, "seed": 2104 } },
-    { "id": "nairobi",   "place": "Nairobi",   "driver": "temp-nairobi",   "process": { "family": "seasonal", "amplitude": 2,  "period": 365, "phase": 0.15, "sigma": 0.5, "seed": 2105 } },
-    { "id": "sao-paulo", "place": "São Paulo", "driver": "temp-sao-paulo", "process": { "family": "seasonal", "amplitude": 5,  "period": 365, "phase": 0.07, "sigma": 0.7, "seed": 2106 } },
-    { "id": "perth",     "place": "Perth",     "driver": "temp-perth",     "process": { "family": "seasonal", "amplitude": 8,  "period": 365, "phase": 0.07, "sigma": 0.6, "seed": 2107 } },
-    { "id": "anchorage", "place": "Anchorage", "driver": "temp-anchorage", "process": { "family": "seasonal", "amplitude": 14, "period": 365, "phase": 0.57, "sigma": 0.9, "seed": 2108 } }
+    {
+      "id": "brooklyn",
+      "exposures": [
+        {
+          "driver": "temp-brooklyn",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 12,
+        "period": 365,
+        "phase": 0.57,
+        "sigma": 0.6,
+        "seed": 2101
+      }
+    },
+    {
+      "id": "reykjavik",
+      "exposures": [
+        {
+          "driver": "temp-reykjavik",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 6,
+        "period": 365,
+        "phase": 0.57,
+        "sigma": 0.8,
+        "seed": 2102
+      }
+    },
+    {
+      "id": "cairo",
+      "exposures": [
+        {
+          "driver": "temp-cairo",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 9,
+        "period": 365,
+        "phase": 0.57,
+        "sigma": 0.4,
+        "seed": 2103
+      }
+    },
+    {
+      "id": "singapore",
+      "exposures": [
+        {
+          "driver": "temp-singapore",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 1,
+        "period": 365,
+        "phase": 0.4,
+        "sigma": 0.5,
+        "seed": 2104
+      }
+    },
+    {
+      "id": "nairobi",
+      "exposures": [
+        {
+          "driver": "temp-nairobi",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 2,
+        "period": 365,
+        "phase": 0.15,
+        "sigma": 0.5,
+        "seed": 2105
+      }
+    },
+    {
+      "id": "sao-paulo",
+      "exposures": [
+        {
+          "driver": "temp-sao-paulo",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 5,
+        "period": 365,
+        "phase": 0.07,
+        "sigma": 0.7,
+        "seed": 2106
+      }
+    },
+    {
+      "id": "perth",
+      "exposures": [
+        {
+          "driver": "temp-perth",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 8,
+        "period": 365,
+        "phase": 0.07,
+        "sigma": 0.6,
+        "seed": 2107
+      }
+    },
+    {
+      "id": "anchorage",
+      "exposures": [
+        {
+          "driver": "temp-anchorage",
+          "weight": 1
+        }
+      ],
+      "process": {
+        "family": "seasonal",
+        "amplitude": 14,
+        "period": 365,
+        "phase": 0.57,
+        "sigma": 0.9,
+        "seed": 2108
+      }
+    }
   ]
 }
