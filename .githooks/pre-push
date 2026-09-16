@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# The pre-push gate, inherited from Cadence (its record: pre-push-gate-2026-09-15).
+# A push to main is a deploy here (Cloudflare's Git integration), so this is
+# the last thing standing between a change and the live site. It runs lint,
+# the unit suite, and the full e2e suite on built output through the Worker
+# runtime, and refuses the push on any failure.
+#
+# Why a hook and not a habit: a hand-picked subset of specs is reasonable every
+# time and wrong often enough. The full suite runs or the push does not.
+#
+# The gate needs port 8787 free. Playwright builds and starts its own server
+# there (reuseExistingServer is off, see playwright.config.ts); a stale server
+# on the port would either fail the start or be silently reused with an old
+# build. This refuses rather than kills: the server may be yours.
+#
+# Escape hatch: git push --no-verify. Use it knowingly.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if lsof -nP -iTCP:8787 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "pre-push: something is listening on 8787. Stop it (a preview? an earlier e2e run's workerd?) and push again." >&2
+  lsof -nP -iTCP:8787 -sTCP:LISTEN | tail -n +2 >&2
+  exit 1
+fi
+
+echo "pre-push: lint"
+npm run lint --silent
+echo "pre-push: typecheck"
+npx tsc --noEmit
+echo "pre-push: unit"
+npx vitest run --reporter=dot 2>&1 | tail -4
+echo "pre-push: e2e on built output"
+status=0
+# The full Playwright output goes to a log so a failure list is never cut
+# off; the terminal gets the summary. (Cadence's six-line tail once hid the
+# failing test names behind "2 did not run".)
+log=".wrangler/pre-push-e2e.log"
+mkdir -p .wrangler
+npx playwright test --reporter=line >"$log" 2>&1 || status=$?
+tail -n 12 "$log"
+
+# wrangler's workerd can outlive the npm process Playwright stopped. It is ours
+# by construction (the port was free above), so it goes.
+pids=$(lsof -nP -tiTCP:8787 -sTCP:LISTEN 2>/dev/null || true)
+if [ -n "$pids" ]; then kill $pids 2>/dev/null || true; fi
+
+if [ "$status" -ne 0 ]; then
+  echo "pre-push: e2e failed; the push is refused. Full log: $log. Fix, or git push --no-verify if you mean it." >&2
+  exit "$status"
+fi
+echo "pre-push: clean"
