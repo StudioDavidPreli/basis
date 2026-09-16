@@ -12,7 +12,8 @@
       "params": {
         "base": "EUR",
         "symbol": "USD"
-      }
+      },
+      "noun": "the euro-dollar rate"
     },
     "debt": {
       "adapter": "treasury",
@@ -24,7 +25,8 @@
       "span": 2000000000000,
       "params": {
         "field": "tot_pub_debt_out_amt"
-      }
+      },
+      "noun": "US public debt"
     },
     "quake": {
       "adapter": "usgs",
@@ -36,7 +38,8 @@
       "span": 40,
       "params": {
         "minMagnitude": 2.5
-      }
+      },
+      "noun": "global seismic activity"
     },
     "tide": {
       "adapter": "noaa-coops",
@@ -49,7 +52,8 @@
       "params": {
         "station": "8518750",
         "datum": "MLLW"
-      }
+      },
+      "noun": "the tide at The Battery"
     },
     "temp-tokyo": {
       "adapter": "open-meteo",
@@ -63,7 +67,9 @@
       "params": {
         "latitude": 35.68,
         "longitude": 139.69
-      }
+      },
+      "nameToken": "Kaze",
+      "nameTokenGloss": "Japanese 風, wind"
     },
     "temp-london": {
       "adapter": "open-meteo",
@@ -91,7 +97,9 @@
       "params": {
         "latitude": 19.08,
         "longitude": 72.88
-      }
+      },
+      "nameToken": "Varsha",
+      "nameTokenGloss": "Hindi and Marathi वर्षा, rain"
     },
     "temp-bogota": {
       "adapter": "open-meteo",
@@ -105,7 +113,9 @@
       "params": {
         "latitude": 4.71,
         "longitude": -74.07
-      }
+      },
+      "nameToken": "Páramo",
+      "nameTokenGloss": "Spanish, the high Andean moorland above the city"
     },
     "temp-lagos": {
       "adapter": "open-meteo",
@@ -119,7 +129,9 @@
       "params": {
         "latitude": 6.52,
         "longitude": 3.38
-      }
+      },
+      "nameToken": "Harmattan",
+      "nameTokenGloss": "the dry dust-bearing wind off the Sahara, West African usage"
     },
     "temp-sydney": {
       "adapter": "open-meteo",
@@ -161,7 +173,9 @@
       "params": {
         "latitude": -33.45,
         "longitude": -70.67
-      }
+      },
+      "nameToken": "Cordillera",
+      "nameTokenGloss": "Spanish, mountain range; the Andes above the city"
     },
     "temp-berlin": {
       "adapter": "open-meteo",
@@ -175,7 +189,9 @@
       "params": {
         "latitude": 52.52,
         "longitude": 13.41
-      }
+      },
+      "nameToken": "Nebel",
+      "nameTokenGloss": "German, fog"
     },
     "temp-seoul": {
       "adapter": "open-meteo",
@@ -189,7 +205,9 @@
       "params": {
         "latitude": 37.57,
         "longitude": 126.98
-      }
+      },
+      "nameToken": "Baram",
+      "nameTokenGloss": "Korean 바람, wind"
     },
     "temp-johannesburg": {
       "adapter": "open-meteo",
@@ -203,7 +221,9 @@
       "params": {
         "latitude": -26.2,
         "longitude": 28.05
-      }
+      },
+      "nameToken": "Highveld",
+      "nameTokenGloss": "Afrikaans and South African English, the high plateau the city stands on"
     },
     "temp-dubai": {
       "adapter": "open-meteo",
@@ -217,7 +237,9 @@
       "params": {
         "latitude": 25.2,
         "longitude": 55.27
-      }
+      },
+      "nameToken": "Shamal",
+      "nameTokenGloss": "Arabic شمال, north; the Gulf's north wind"
     },
     "temp-brooklyn": {
       "adapter": "open-meteo",
@@ -354,7 +376,7 @@
         "Spark",
         "Ember"
       ],
-      "_rule": "the nth company of a family, in file order, takes the nth word; the second token is the dominant driver's place"
+      "_rule": "the nth company of a family, in file order, takes the nth word; the second token is the dominant driver's nameToken, or its place when no nameToken is set"
     }
   },
   "datasets": {
@@ -362,6 +384,13 @@
       "label": "Comparables",
       "entities": "companies",
       "columns": [
+        {
+          "key": "industry",
+          "label": "Industry",
+          "format": "text",
+          "derive": "field",
+          "field": "industry"
+        },
         {
           "key": "level",
           "label": "Level",
@@ -430,7 +459,10 @@
           "driver": "fx",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Reinsurance",
+      "founded": 1962,
+      "activity": "underwrites typhoon and flood cover for Pacific shipping lines"
     },
     {
       "id": "ou-london",
@@ -450,7 +482,10 @@
           "driver": "debt",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "District energy",
+      "founded": 1988,
+      "activity": "runs the heat networks under three London boroughs"
     },
     {
       "id": "ou-mumbai",
@@ -467,10 +502,13 @@
           "weight": 0.75
         },
         {
-          "driver": "quake",
+          "driver": "tide",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Water infrastructure",
+      "founded": 1974,
+      "activity": "builds and maintains monsoon drainage and flood barriers along the Konkan coast"
     },
     {
       "id": "drift-bogota",
@@ -486,10 +524,13 @@
           "weight": 0.75
         },
         {
-          "driver": "tide",
+          "driver": "quake",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Cold-chain logistics",
+      "founded": 1991,
+      "activity": "flies cut flowers from the savanna to three continents"
     },
     {
       "id": "drift-lagos",
@@ -508,7 +549,10 @@
           "driver": "fx",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Commodities trading",
+      "founded": 2003,
+      "activity": "trades cocoa and palm oil out of Apapa port"
     },
     {
       "id": "drift-sydney",
@@ -527,7 +571,10 @@
           "driver": "debt",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Renewable energy",
+      "founded": 2009,
+      "activity": "operates wind farms across New South Wales"
     },
     {
       "id": "seasonal-toronto",
@@ -548,7 +595,10 @@
           "driver": "quake",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Construction materials",
+      "founded": 1955,
+      "activity": "pours concrete and lays asphalt through a six-month season"
     },
     {
       "id": "seasonal-santiago",
@@ -569,7 +619,10 @@
           "driver": "tide",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Copper mining",
+      "founded": 1968,
+      "activity": "runs two open-pit mines in the Atacama and a smelter on the coast"
     },
     {
       "id": "seasonal-berlin",
@@ -590,7 +643,10 @@
           "driver": "fx",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Grain trading",
+      "founded": 1921,
+      "activity": "buys wheat and rye across Brandenburg and sells it forward"
     },
     {
       "id": "jump-seoul",
@@ -610,7 +666,10 @@
           "driver": "debt",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Heat-pump manufacturing",
+      "founded": 1979,
+      "activity": "makes heat pumps and rooftop chillers for apartment towers"
     },
     {
       "id": "jump-johannesburg",
@@ -630,7 +689,10 @@
           "driver": "quake",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Gold mining",
+      "founded": 1893,
+      "activity": "works deep shafts on the Witwatersrand"
     },
     {
       "id": "jump-dubai",
@@ -650,7 +712,10 @@
           "driver": "tide",
           "weight": 0.25
         }
-      ]
+      ],
+      "industry": "Desalination",
+      "founded": 1998,
+      "activity": "turns Gulf seawater into a third of the city's supply"
     }
   ],
   "regions": [
@@ -790,5 +855,10 @@
         "seed": 2108
       }
     }
-  ]
+  ],
+  "about": {
+    "company": "{name} is a {industry} company headquartered in {place}, founded {founded}. It {activity}. Its results track {place} temperature and, to a lesser degree, {macroNoun}.",
+    "region": "{place} is a region series. Its index tracks {place} temperature alone.",
+    "_rules": "{industry} is rendered with its first letter lowercased, so an industry never begins with a proper noun or an acronym; {macroNoun} is the macro driver's `noun`, its prose form"
+  }
 }
