@@ -1,0 +1,126 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`descriptions and about paragraphs > match the reviewed set (M2 acceptance) 1`] = `
+[
+  {
+    "about": "Anchor Kaze is a reinsurance company headquartered in Tokyo, founded 1962. It underwrites typhoon and flood cover for Pacific shipping lines. Its results track Tokyo temperature and, to a lesser degree, the euro-dollar rate.",
+    "description": "Anchor Kaze is a mean-reverting series (θ = 0.05, μ = 100, σ = 1.5, seed 1101) exposed 75% to Tokyo temperature (Open-Meteo, hourly) and 25% to EUR/USD (Frankfurter, business-daily). Its slowest input is EUR/USD, so figures go stale after 3 d.",
+    "id": "ou-tokyo",
+    "name": "Anchor Kaze",
+  },
+  {
+    "about": "Keel London is a district energy company headquartered in London, founded 1988. It runs the heat networks under three London boroughs. Its results track London temperature and, to a lesser degree, US public debt.",
+    "description": "Keel London is a mean-reverting series (θ = 0.08, μ = 100, σ = 1.2, seed 1102) exposed 75% to London temperature (Open-Meteo, hourly) and 25% to US public debt (US Treasury Fiscal Data, business-daily). Its slowest input is US public debt, so figures go stale after 3 d.",
+    "id": "ou-london",
+    "name": "Keel London",
+  },
+  {
+    "about": "Plumb Varsha is a water infrastructure company headquartered in Mumbai, founded 1974. It builds and maintains monsoon drainage and flood barriers along the Konkan coast. Its results track Mumbai temperature and, to a lesser degree, the tide at The Battery.",
+    "description": "Plumb Varsha is a mean-reverting series (θ = 0.03, μ = 100, σ = 1.8, seed 1103) exposed 75% to Mumbai temperature (Open-Meteo, hourly) and 25% to Battery water level (NOAA CO-OPS, minutes). Its slowest input is Mumbai temperature, so figures go stale after 2 h.",
+    "id": "ou-mumbai",
+    "name": "Plumb Varsha",
+  },
+  {
+    "about": "Meridian Páramo is a cold-chain logistics company headquartered in Bogotá, founded 1991. It flies cut flowers from the savanna to three continents. Its results track Bogotá temperature and, to a lesser degree, global seismic activity.",
+    "description": "Meridian Páramo is a random walk with drift (μ = 0.02 per step, σ = 1, seed 1201) exposed 75% to Bogotá temperature (Open-Meteo, hourly) and 25% to M2.5+ quakes, 24 h (USGS, minutes). Its slowest input is Bogotá temperature, so figures go stale after 2 h.",
+    "id": "drift-bogota",
+    "name": "Meridian Páramo",
+  },
+  {
+    "about": "Leeward Harmattan is a commodities trading company headquartered in Lagos, founded 2003. It trades cocoa and palm oil out of Apapa port. Its results track Lagos temperature and, to a lesser degree, the euro-dollar rate.",
+    "description": "Leeward Harmattan is a random walk with drift (μ = -0.01 per step, σ = 0.9, seed 1202) exposed 75% to Lagos temperature (Open-Meteo, hourly) and 25% to EUR/USD (Frankfurter, business-daily). Its slowest input is EUR/USD, so figures go stale after 3 d.",
+    "id": "drift-lagos",
+    "name": "Leeward Harmattan",
+  },
+  {
+    "about": "Windward Sydney is a renewable energy company headquartered in Sydney, founded 2009. It operates wind farms across New South Wales. Its results track Sydney temperature and, to a lesser degree, US public debt.",
+    "description": "Windward Sydney is a random walk with drift (μ = 0.03 per step, σ = 1.3, seed 1203) exposed 75% to Sydney temperature (Open-Meteo, hourly) and 25% to US public debt (US Treasury Fiscal Data, business-daily). Its slowest input is US public debt, so figures go stale after 3 d.",
+    "id": "drift-sydney",
+    "name": "Windward Sydney",
+  },
+  {
+    "about": "Solstice Toronto is a construction materials company headquartered in Toronto, founded 1955. It pours concrete and lays asphalt through a six-month season. Its results track Toronto temperature and, to a lesser degree, global seismic activity.",
+    "description": "Solstice Toronto is a seasonal series (amplitude 8, period 365 days, phase 0.57, σ = 0.8, seed 1301) exposed 75% to Toronto temperature (Open-Meteo, hourly) and 25% to M2.5+ quakes, 24 h (USGS, minutes). Its slowest input is Toronto temperature, so figures go stale after 2 h.",
+    "id": "seasonal-toronto",
+    "name": "Solstice Toronto",
+  },
+  {
+    "about": "Equinox Cordillera is a copper mining company headquartered in Santiago, founded 1968. It runs two open-pit mines in the Atacama and a smelter on the coast. Its results track Santiago temperature and, to a lesser degree, the tide at The Battery.",
+    "description": "Equinox Cordillera is a seasonal series (amplitude 6, period 365 days, phase 0.25, σ = 0.7, seed 1302) exposed 75% to Santiago temperature (Open-Meteo, hourly) and 25% to Battery water level (NOAA CO-OPS, minutes). Its slowest input is Santiago temperature, so figures go stale after 2 h.",
+    "id": "seasonal-santiago",
+    "name": "Equinox Cordillera",
+  },
+  {
+    "about": "Harvest Nebel is a grain trading company headquartered in Berlin, founded 1921. It buys wheat and rye across Brandenburg and sells it forward. Its results track Berlin temperature and, to a lesser degree, the euro-dollar rate.",
+    "description": "Harvest Nebel is a seasonal series (amplitude 10, period 365 days, phase 0.8, σ = 0.9, seed 1303) exposed 75% to Berlin temperature (Open-Meteo, hourly) and 25% to EUR/USD (Frankfurter, business-daily). Its slowest input is EUR/USD, so figures go stale after 3 d.",
+    "id": "seasonal-berlin",
+    "name": "Harvest Nebel",
+  },
+  {
+    "about": "Flint Baram is a heat-pump manufacturing company headquartered in Seoul, founded 1979. It makes heat pumps and rooftop chillers for apartment towers. Its results track Seoul temperature and, to a lesser degree, US public debt.",
+    "description": "Flint Baram is a jump-diffusion series (λ = 0.03 per step, jump size 5, σ = 0.8, seed 1401) exposed 75% to Seoul temperature (Open-Meteo, hourly) and 25% to US public debt (US Treasury Fiscal Data, business-daily). Its slowest input is US public debt, so figures go stale after 3 d.",
+    "id": "jump-seoul",
+    "name": "Flint Baram",
+  },
+  {
+    "about": "Spark Highveld is a gold mining company headquartered in Johannesburg, founded 1893. It works deep shafts on the Witwatersrand. Its results track Johannesburg temperature and, to a lesser degree, global seismic activity.",
+    "description": "Spark Highveld is a jump-diffusion series (λ = 0.05 per step, jump size 3, σ = 0.7, seed 1402) exposed 75% to Johannesburg temperature (Open-Meteo, hourly) and 25% to M2.5+ quakes, 24 h (USGS, minutes). Its slowest input is Johannesburg temperature, so figures go stale after 2 h.",
+    "id": "jump-johannesburg",
+    "name": "Spark Highveld",
+  },
+  {
+    "about": "Ember Shamal is a desalination company headquartered in Dubai, founded 1998. It turns Gulf seawater into a third of the city's supply. Its results track Dubai temperature and, to a lesser degree, the tide at The Battery.",
+    "description": "Ember Shamal is a jump-diffusion series (λ = 0.02 per step, jump size 8, σ = 1, seed 1403) exposed 75% to Dubai temperature (Open-Meteo, hourly) and 25% to Battery water level (NOAA CO-OPS, minutes). Its slowest input is Dubai temperature, so figures go stale after 2 h.",
+    "id": "jump-dubai",
+    "name": "Ember Shamal",
+  },
+  {
+    "about": "Brooklyn is a region series. Its index tracks Brooklyn temperature alone.",
+    "description": "Brooklyn is a seasonal series (amplitude 12, period 365 days, phase 0.57, σ = 0.6, seed 2101) exposed 100% to Brooklyn temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "brooklyn",
+    "name": "Brooklyn",
+  },
+  {
+    "about": "Reykjavík is a region series. Its index tracks Reykjavík temperature alone.",
+    "description": "Reykjavík is a seasonal series (amplitude 6, period 365 days, phase 0.57, σ = 0.8, seed 2102) exposed 100% to Reykjavík temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "reykjavik",
+    "name": "Reykjavík",
+  },
+  {
+    "about": "Cairo is a region series. Its index tracks Cairo temperature alone.",
+    "description": "Cairo is a seasonal series (amplitude 9, period 365 days, phase 0.57, σ = 0.4, seed 2103) exposed 100% to Cairo temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "cairo",
+    "name": "Cairo",
+  },
+  {
+    "about": "Singapore is a region series. Its index tracks Singapore temperature alone.",
+    "description": "Singapore is a seasonal series (amplitude 1, period 365 days, phase 0.4, σ = 0.5, seed 2104) exposed 100% to Singapore temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "singapore",
+    "name": "Singapore",
+  },
+  {
+    "about": "Nairobi is a region series. Its index tracks Nairobi temperature alone.",
+    "description": "Nairobi is a seasonal series (amplitude 2, period 365 days, phase 0.15, σ = 0.5, seed 2105) exposed 100% to Nairobi temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "nairobi",
+    "name": "Nairobi",
+  },
+  {
+    "about": "São Paulo is a region series. Its index tracks São Paulo temperature alone.",
+    "description": "São Paulo is a seasonal series (amplitude 5, period 365 days, phase 0.07, σ = 0.7, seed 2106) exposed 100% to São Paulo temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "sao-paulo",
+    "name": "São Paulo",
+  },
+  {
+    "about": "Perth is a region series. Its index tracks Perth temperature alone.",
+    "description": "Perth is a seasonal series (amplitude 8, period 365 days, phase 0.07, σ = 0.6, seed 2107) exposed 100% to Perth temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "perth",
+    "name": "Perth",
+  },
+  {
+    "about": "Anchorage is a region series. Its index tracks Anchorage temperature alone.",
+    "description": "Anchorage is a seasonal series (amplitude 14, period 365 days, phase 0.57, σ = 0.9, seed 2108) exposed 100% to Anchorage temperature (Open-Meteo, hourly). Figures go stale after 2 h.",
+    "id": "anchorage",
+    "name": "Anchorage",
+  },
+]
+`;
