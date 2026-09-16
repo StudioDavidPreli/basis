@@ -1,0 +1,73 @@
+/* The drawer is the second column of the layout's grid (app/globals.css,
+   .frame): a right sheet at full height that scrolls on its own, sticky
+   under the viewport like the margin. Every UA dialog style is replaced:
+   the element is in flow, not absolutely placed; the paper is Basis's. */
+.drawer {
+  position: sticky;
+  top: 0;
+  inset-inline: auto;
+  align-self: start;
+  width: min(30rem, 42vw);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: var(--hairline) solid var(--rule);
+  background: var(--paper);
+  background-image: var(--grain);
+  color: var(--ink);
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 3; /* above the sticky table header */
+}
+
+.panel {
+  min-height: 100%;
+  padding: var(--space-4) var(--space-6) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kind {
+  margin: 0;
+  color: var(--muted);
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.close {
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  /* Full width on a narrow viewport (docs/spec.md, narrow viewports). */
+  .drawer {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    border-left: 0;
+    z-index: 5;
+  }
+}

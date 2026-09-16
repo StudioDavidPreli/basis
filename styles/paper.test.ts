@@ -20,6 +20,14 @@ export function contrast(a: string, b: string): number {
 }
 
 const css = readFileSync(path.resolve(__dirname, 'paper.css'), 'utf8')
+const tableCss = readFileSync(path.resolve(__dirname, '../components/data-table.module.css'), 'utf8')
+
+// color-mix(in srgb, a w%, b): component-wise on the encoded values, as the
+// browser does it.
+function mix(a: string, b: string, weight: number): string {
+  const ch = (i: number) => Math.round(parseInt(a.slice(i, i + 2), 16) * weight + parseInt(b.slice(i, i + 2), 16) * (1 - weight))
+  return `#${[1, 3, 5].map(i => ch(i).toString(16).padStart(2, '0')).join('')}`
+}
 const stocks: Record<string, Record<string, string>> = config.stocks
 
 describe('paper stocks', () => {
@@ -40,6 +48,17 @@ describe('paper stocks', () => {
       expect(contrast(s['muted']!, s['paper']!), `${name} muted`).toBeGreaterThanOrEqual(4.5)
       expect(contrast(s['muted']!, s['band']!), `${name} muted on band`).toBeGreaterThanOrEqual(4.5)
       expect(contrast(s['accent']!, s['paper']!), `${name} accent`).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('muted text clears AA on the row hover tint, band mixed with rule', () => {
+    const m = tableCss.match(/color-mix\(in srgb, var\(--band\) (\d+)%, var\(--rule\)\)/)
+    expect(m, 'the hover tint in data-table.module.css').not.toBeNull()
+    const weight = Number(m![1]) / 100
+    for (const [name, s] of Object.entries(stocks)) {
+      const hover = mix(s['band']!, s['rule']!, weight)
+      expect(contrast(s['muted']!, hover), `${name} muted on hover ${hover}`).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(s['ink']!, hover), `${name} ink on hover ${hover}`).toBeGreaterThanOrEqual(7)
     }
   })
 })

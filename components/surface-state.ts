@@ -1,10 +1,13 @@
 // The one reducer (docs/spec.md, "State"). Table and chart read it; neither
 // calls the other. Pure and tested; the component that holds it is
-// surface.tsx. URL mirroring of range, dataset, metric, and sort is M5.
+// surface.tsx. Range, dataset, metric, and sort mirror to the URL through
+// the codec in surface-url.ts.
 
 export type SortDir = 'asc' | 'desc'
 export type Sort = { key: string; dir: SortDir } | null
 export type Range = '1M' | '3M' | '1Y' | '5Y' | 'Max'
+export const RANGES: Range[] = ['1M', '3M', '1Y', '5Y', 'Max']
+export const DEFAULT_RANGE: Range = '1Y'
 
 export type SurfaceState = {
   dataset: string
@@ -32,7 +35,7 @@ export type SurfaceAction =
   | { type: 'range'; range: Range }
 
 export function initialState(dataset: string, metric: string): SurfaceState {
-  return { dataset, sort: null, selection: [], hoveredId: null, metric, range: '1Y', anchorId: null }
+  return { dataset, sort: null, selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, anchorId: null }
 }
 
 export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState {

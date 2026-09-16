@@ -6,6 +6,8 @@
 
 import { config as defaultConfig, dominantDriver } from './config'
 import type { CompanyConfig, Config, DriverConfig, ProcessConfig, RegionConfig } from './config'
+import type { Mutation } from './types'
+import { formatValue } from './format'
 
 // ── Names ───────────────────────────────────────────────────────────────
 
@@ -22,6 +24,32 @@ export function companyName(company: CompanyConfig, config: Config = defaultConf
 
 export function regionName(region: RegionConfig, config: Config = defaultConfig): string {
   return config.drivers[dominantDriver(region.exposures)]!.place!
+}
+
+export function entityName(id: string, config: Config = defaultConfig): string {
+  const c = config.companies.find(x => x.id === id)
+  if (c) return companyName(c, config)
+  const r = config.regions.find(x => x.id === id)
+  return r ? regionName(r, config) : id
+}
+
+// The dataset an entity belongs to, by id; companies and regions never
+// share an id.
+export function datasetOf(id: string, config: Config = defaultConfig): string {
+  const entry = Object.entries(config.datasets).find(([, d]) =>
+    (d.entities === 'companies' ? config.companies : config.regions).some(e => e.id === id),
+  )
+  return entry ? entry[0] : Object.keys(config.datasets)[0]!
+}
+
+// The spec's mutation sentence, read by the live region and the drawer.
+export function mutationSentence(m: Mutation, config: Config = defaultConfig): string {
+  const dataset = datasetOf(m.entity, config)
+  const column = config.datasets[dataset]!.columns.find(c => c.key === m.metric)
+  const label = column?.label ?? m.metric
+  const fmt = (v: number) => formatValue(column?.format ?? 'number', v, { parentheses: dataset === 'comps' })
+  const providers = [...new Set(m.sources.map(s => s.provider))].join(' and ')
+  return `${label} for ${entityName(m.entity, config)} updated to ${fmt(m.value)} from ${fmt(m.prev)}, source ${providers}`
 }
 
 // ── Series descriptions ─────────────────────────────────────────────────

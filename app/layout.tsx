@@ -21,7 +21,11 @@ export const metadata: Metadata = {
     'A sourced-data surface: simulated companies, real public drivers, provenance on every figure.',
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+// `drawer` is the parallel slot app/@drawer: nothing on the sheet, the
+// entity drawer once a row's link is followed. Both are columns of one
+// grid (.frame in globals.css), so the sheet narrows beside the drawer
+// through the layout and never a backdrop.
+export default function RootLayout({ children, drawer }: { children: ReactNode; drawer: ReactNode }) {
   return (
     <html lang="en" className={`${mono.variable} ${sans.variable} ${dot.variable}`}>
       <body>
@@ -29,7 +33,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             data-reduce-motion so the first paint and the hydration both see
             the same attributes. See app/theme-script.ts. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {children}
+        <div className="frame">
+          {children}
+          {drawer}
+        </div>
       </body>
     </html>
   )

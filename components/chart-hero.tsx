@@ -2,7 +2,7 @@
 
 import type { ColumnConfig } from '@/lib/config'
 import type { AgentPhase } from '@/worker/refresh'
-import { CHART_CAP, type Range } from './surface-state'
+import { CHART_CAP, RANGES, type Range } from './surface-state'
 import type { Row } from './data-table'
 import { Marker } from './marker'
 import styles from './chart-hero.module.css'
@@ -14,8 +14,6 @@ import styles from './chart-hero.module.css'
 //
 // The selection is not capped; the chart is. The first CHART_CAP selected
 // rows are charted, the rest wait, and the legend says so.
-
-const RANGES: Range[] = ['1M', '3M', '1Y', '5Y', 'Max']
 
 const PHASE_LABEL: Record<AgentPhase, string> = {
   idle: 'Agent idle',

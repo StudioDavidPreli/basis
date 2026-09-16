@@ -56,6 +56,23 @@ body {
   box-sizing: border-box;
 }
 
+/* The layout's grid: the page, and beside it the drawer slot. The second
+   column is the drawer's own width when one is open and nothing when the
+   slot renders null, so the sheet narrows beside the drawer through the
+   layout (docs/spec.md, "Drawer"). */
+.frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  min-height: 100dvh;
+}
+
+@media (max-width: 900px) {
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 a {
   color: inherit;
 }

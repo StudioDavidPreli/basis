@@ -1,0 +1,73 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.body p {
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--hairline) solid var(--rule);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+}
+
+.figures {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.figure dt {
+  color: var(--ink);
+}
+
+.value {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.inputs,
+.changes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.input,
+.change {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.changes .change::before {
+  content: '○ ';
+  color: var(--muted);
+}

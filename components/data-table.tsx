@@ -9,6 +9,7 @@
 // (decisions/2026-09-16-row-reorder-not-spring.md).
 
 import { useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { LayoutGroup, motion } from 'framer-motion'
 import type { ColumnConfig } from '@/lib/config'
 import type { FigureValue } from '@/lib/types'
@@ -22,6 +23,7 @@ import styles from './data-table.module.css'
 export type Row = {
   id: string
   name: string
+  href: string // the row's own page; a client navigation opens the drawer
   colors: { light: string; dark: string }
   marker: string
   cells: Record<string, FigureValue | string | undefined>
@@ -130,8 +132,13 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   </td>
                   <th scope="row" className={styles.name}>
                     <span className={styles.nameInner}>
-                      <Marker shape={row.marker} colors={row.colors} />
-                      <span className="type-label">{row.name}</span>
+                      {/* A real link: click or Enter opens the drawer through
+                          the router with no handler, and the drawer finds the
+                          row to return focus to by data-entity-link. */}
+                      <Link href={row.href} className={styles.nameLink} data-entity-link={id}>
+                        <Marker shape={row.marker} colors={row.colors} />
+                        <span className="type-label">{row.name}</span>
+                      </Link>
                       <span className={styles.leader} aria-hidden="true" />
                     </span>
                   </th>

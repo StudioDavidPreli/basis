@@ -1,0 +1,203 @@
+import { test, expect, type Page } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+
+// M5 acceptance on the Worker runtime, fixtures mode: a deep link renders
+// the same state server-side with no hydration error; the back button
+// closes the drawer; focus returns to the originating row. Plus what the
+// spec adds: the sheet stays live behind the non-modal drawer, another
+// name click switches the entity, a hard load renders a full page.
+
+test.beforeEach(async ({ request }) => {
+  await request.post('/api/refresh')
+})
+
+function collectErrors(page: Page): string[] {
+  const errors: string[] = []
+  page.on('console', m => {
+    if (m.type() === 'error') errors.push(m.text())
+  })
+  page.on('pageerror', e => errors.push(e.message))
+  return errors
+}
+
+test.describe('URL state', () => {
+  test('a deep link renders its state on the server and hydrates without error', async ({ page, request }) => {
+    const url = '/?dataset=regions&sort=change&dir=desc&range=5Y'
+    // The HTML itself carries the state: no client render decided it.
+    const html = await (await request.get(url)).text()
+    expect(html).toContain('aria-sort="descending"')
+    expect(html).toContain('Brooklyn')
+    expect(html).not.toContain('Anchor Kaze')
+
+    const errors = collectErrors(page)
+    await page.goto(url)
+    await expect(page.locator('tbody tr')).toHaveCount(8)
+    await expect(page.getByRole('columnheader', { name: /Δ 1d/ })).toHaveAttribute('aria-sort', 'descending')
+    await expect(page.getByRole('button', { name: 'Regions' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '5Y' })).toHaveAttribute('aria-pressed', 'true')
+    // Sorted descending by change: the first row is not the file's first.
+    await expect(page).toHaveURL(url)
+    expect(errors).toEqual([])
+  })
+
+  test('the sheet mirrors sort, dataset, metric, and range to the URL with defaults omitted', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await expect(page).toHaveURL('/?sort=level')
+    await page.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await expect(page).toHaveURL('/?sort=level&dir=desc')
+    await page.getByRole('group', { name: 'Metric' }).getByRole('button', { name: 'Δ 1d' }).click()
+    await expect(page).toHaveURL('/?sort=level&dir=desc&metric=change')
+    // A new dataset drops the sort, and its own default metric is bare.
+    await page.getByRole('button', { name: 'Regions' }).click()
+    await expect(page).toHaveURL('/?dataset=regions')
+    await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: 'Max' }).click()
+    await expect(page).toHaveURL('/?dataset=regions&range=Max')
+    await page.getByRole('button', { name: 'Comparables' }).click()
+    await expect(page).toHaveURL('/?range=Max')
+    // Nothing above added history: one back leaves the sheet.
+    expect(await page.evaluate(() => history.length)).toBeLessThanOrEqual(2)
+  })
+})
+
+test.describe('the drawer', () => {
+  test('opens from the name link, focuses the heading, and Escape returns focus to the link', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/')
+    const link = page.getByRole('link', { name: /Anchor Kaze/ })
+    await link.click()
+    const dialog = page.getByRole('dialog', { name: /Anchor Kaze/ })
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL('/company/ou-tokyo')
+    await expect(dialog.getByRole('heading', { level: 2, name: /Anchor Kaze/ })).toBeFocused()
+    await expect(dialog).toContainText('Anchor Kaze is a reinsurance company')
+    await expect(dialog).toContainText('mean-reverting series')
+    await expect(dialog.getByRole('heading', { name: 'Figures' })).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Inputs' })).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Recent changes' })).toBeVisible()
+    await expect(dialog.getByRole('link', { name: /open the request/ }).first()).toHaveAttribute('href', /open-meteo/)
+    // Non-modal: no backdrop, the element is in flow beside the sheet.
+    expect(await dialog.evaluate(el => (el as HTMLDialogElement).open && !el.matches(':modal'))).toBe(true)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL('/')
+    await expect(link).toBeFocused()
+    expect(errors).toEqual([])
+  })
+
+  test('the back button closes it and returns focus to the row', async ({ page }) => {
+    await page.goto('/')
+    const link = page.getByRole('link', { name: /Anchor Kaze/ })
+    await link.click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await page.goBack()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL('/')
+    await expect(link).toBeFocused()
+  })
+
+  test('Enter on the link opens it, and the close control closes it', async ({ page }) => {
+    await page.goto('/')
+    const link = page.getByRole('link', { name: /Anchor Kaze/ })
+    await link.focus()
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog', { name: /Anchor Kaze/ })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close Anchor Kaze' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL('/')
+    await expect(link).toBeFocused()
+  })
+
+  test('the sheet stays live behind it: rows select and sort, and the URL mirrors once back returns', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
+    await expect(page.getByRole('checkbox', { name: 'Chart Anchor Kaze' })).toBeChecked()
+    await expect(page.getByRole('list', { name: 'Selected rows' })).toContainText('Anchor Kaze')
+    await page.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await expect(page.getByRole('columnheader', { name: /Level/ })).toHaveAttribute('aria-sort', 'ascending')
+    // The drawer's URL is left alone while it is open.
+    await expect(page).toHaveURL('/company/ou-tokyo')
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await page.goBack()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL('/?sort=level')
+    await expect(page.getByRole('checkbox', { name: 'Chart Anchor Kaze' })).toBeChecked()
+  })
+
+  test('another name click switches the entity in place, and back steps through them', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    const second = page.locator('tbody tr').nth(1).getByRole('link')
+    const secondName = (await second.textContent())!.trim()
+    await second.click()
+    await expect(page.locator('dialog')).toHaveCount(1)
+    await expect(page.getByRole('dialog', { name: secondName })).toBeVisible()
+    await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toBeFocused()
+    await expect(page).not.toHaveURL('/company/ou-tokyo')
+    await page.goBack()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await page.goBack()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: /Anchor Kaze/ })).toBeFocused()
+  })
+
+  test('a provenance dialog inside the drawer takes Escape first', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    const drawer = page.getByRole('dialog', { name: /Anchor Kaze/ })
+    await drawer.getByRole('button', { name: /^Level for/ }).click()
+    const provenance = page.getByRole('dialog', { name: 'Provenance' })
+    await expect(provenance).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(provenance).toHaveCount(0)
+    await expect(drawer).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+
+  test('a region opens the same way and passes axe with the drawer open', async ({ page }) => {
+    await page.goto('/?dataset=regions')
+    await page.getByRole('link', { name: /Brooklyn/ }).click()
+    const dialog = page.getByRole('dialog', { name: /Brooklyn/ })
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL('/region/brooklyn')
+    await expect(dialog).toContainText('Brooklyn is a region series')
+    await expect(dialog).toContainText('Region · Regions')
+    await page.screenshot({ path: 'test-results/drawer-region.png' })
+    const results = await new AxeBuilder({ page }).analyze()
+    expect(results.violations).toEqual([])
+  })
+})
+
+test.describe('the full page', () => {
+  test('a hard load of a company renders a page, not a dialog, and passes axe', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/company/ou-tokyo')
+    await expect(page.getByRole('heading', { level: 1, name: /Anchor Kaze/ })).toBeVisible()
+    await expect(page.locator('dialog')).toHaveCount(0)
+    await expect(page.locator('tbody tr')).toHaveCount(0)
+    await expect(page.getByText('Anchor Kaze is a reinsurance company')).toBeVisible()
+    await expect(page.getByRole('link', { name: /Basis/ })).toHaveAttribute('href', '/')
+    await expect(page).toHaveTitle(/Anchor Kaze/)
+    await page.screenshot({ path: 'test-results/company-page.png' })
+    const results = await new AxeBuilder({ page }).analyze()
+    expect(results.violations).toEqual([])
+    expect(errors).toEqual([])
+  })
+
+  test('a hard load of a region renders its page', async ({ page }) => {
+    await page.goto('/region/brooklyn')
+    await expect(page.getByRole('heading', { level: 1, name: /Brooklyn/ })).toBeVisible()
+    await expect(page.getByText('Brooklyn is a region series')).toBeVisible()
+  })
+
+  test('an unknown id, or the wrong kind, is a 404', async ({ request }) => {
+    expect((await request.get('/company/nope')).status()).toBe(404)
+    expect((await request.get('/region/ou-tokyo')).status()).toBe(404)
+    expect((await request.get('/company/brooklyn')).status()).toBe(404)
+  })
+})
