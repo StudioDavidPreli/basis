@@ -11,11 +11,11 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
-  // KV ids are placeholders until `wrangler kv namespace create` runs against
-  // David's account. `wrangler dev` simulates both locally regardless of id;
-  // `wrangler deploy` refuses a placeholder, which is the right refusal.
+  // Both namespaces were created in the dashboard on 2026-09-16
+  // (decisions/2026-09-16-deploy-through-git-integration.md): no wrangler
+  // login on this machine. `wrangler dev` simulates both locally.
   "kv_namespaces": [
-    { "binding": "NEXT_INC_CACHE_KV", "id": "REPLACE_AFTER_WRANGLER_LOGIN" },
-    { "binding": "BASIS_KV", "id": "REPLACE_AFTER_WRANGLER_LOGIN" }
+    { "binding": "NEXT_INC_CACHE_KV", "id": "c58750ed89574e19a8e95c4c2e25d9a1" },
+    { "binding": "BASIS_KV", "id": "ba3e7f2f671748069c9b3a5bbd268e0f" }
   ]
 }
