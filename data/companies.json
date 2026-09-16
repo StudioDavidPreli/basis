@@ -449,7 +449,10 @@
       ],
       "industry": "Reinsurance",
       "founded": 1962,
-      "activity": "underwrites typhoon and flood cover for Pacific shipping lines"
+      "activity": "underwrites typhoon and flood cover for Pacific shipping lines",
+      "color": "#b44434",
+      "marker": "circle",
+      "colorDark": "#e1442d"
     },
     {
       "id": "ou-london",
@@ -472,7 +475,10 @@
       ],
       "industry": "District energy",
       "founded": 1988,
-      "activity": "runs the heat networks under three London boroughs"
+      "activity": "runs the heat networks under three London boroughs",
+      "color": "#6b6d20",
+      "marker": "square",
+      "colorDark": "#c4c91d"
     },
     {
       "id": "ou-mumbai",
@@ -495,7 +501,10 @@
       ],
       "industry": "Water infrastructure",
       "founded": 1974,
-      "activity": "builds and maintains monsoon drainage and flood barriers along the Konkan coast"
+      "activity": "builds and maintains monsoon drainage and flood barriers along the Konkan coast",
+      "color": "#297722",
+      "marker": "triangle",
+      "colorDark": "#2bc91d"
     },
     {
       "id": "drift-bogota",
@@ -517,7 +526,10 @@
       ],
       "industry": "Cold-chain logistics",
       "founded": 1991,
-      "activity": "flies cut flowers from the savanna to three continents"
+      "activity": "flies cut flowers from the savanna to three continents",
+      "color": "#227566",
+      "marker": "diamond",
+      "colorDark": "#1dc9aa"
     },
     {
       "id": "drift-lagos",
@@ -539,7 +551,10 @@
       ],
       "industry": "Commodities trading",
       "founded": 2003,
-      "activity": "trades cocoa and palm oil out of Apapa port"
+      "activity": "trades cocoa and palm oil out of Apapa port",
+      "color": "#1350ec",
+      "marker": "cross",
+      "colorDark": "#5679d5"
     },
     {
       "id": "drift-sydney",
@@ -561,7 +576,10 @@
       ],
       "industry": "Renewable energy",
       "founded": 2009,
-      "activity": "operates wind farms across New South Wales"
+      "activity": "operates wind farms across New South Wales",
+      "color": "#9a13ec",
+      "marker": "plus",
+      "colorDark": "#a75ad6"
     },
     {
       "id": "seasonal-toronto",
@@ -585,7 +603,10 @@
       ],
       "industry": "Construction materials",
       "founded": 1955,
-      "activity": "pours concrete and lays asphalt through a six-month season"
+      "activity": "pours concrete and lays asphalt through a six-month season",
+      "color": "#b83574",
+      "marker": "star",
+      "colorDark": "#e23286"
     },
     {
       "id": "seasonal-santiago",
@@ -609,7 +630,10 @@
       ],
       "industry": "Copper mining",
       "founded": 1968,
-      "activity": "runs two open-pit mines in the Atacama and a smelter on the coast"
+      "activity": "runs two open-pit mines in the Atacama and a smelter on the coast",
+      "color": "#985a2c",
+      "marker": "ring",
+      "colorDark": "#c9661d"
     },
     {
       "id": "seasonal-berlin",
@@ -633,7 +657,10 @@
       ],
       "industry": "Grain trading",
       "founded": 1921,
-      "activity": "buys wheat and rye across Brandenburg and sells it forward"
+      "activity": "buys wheat and rye across Brandenburg and sells it forward",
+      "color": "#577121",
+      "marker": "circle",
+      "colorDark": "#91c91d"
     },
     {
       "id": "jump-seoul",
@@ -656,7 +683,10 @@
       ],
       "industry": "Heat-pump manufacturing",
       "founded": 1979,
-      "activity": "makes heat pumps and rooftop chillers for apartment towers"
+      "activity": "makes heat pumps and rooftop chillers for apartment towers",
+      "color": "#227735",
+      "marker": "square",
+      "colorDark": "#1dc943"
     },
     {
       "id": "jump-johannesburg",
@@ -679,7 +709,10 @@
       ],
       "industry": "Gold mining",
       "founded": 1893,
-      "activity": "works deep shafts on the Witwatersrand"
+      "activity": "works deep shafts on the Witwatersrand",
+      "color": "#24727d",
+      "marker": "triangle",
+      "colorDark": "#1db4c9"
     },
     {
       "id": "jump-dubai",
@@ -702,7 +735,10 @@
       ],
       "industry": "Desalination",
       "founded": 1998,
-      "activity": "turns Gulf seawater into a third of the city's supply"
+      "activity": "turns Gulf seawater into a third of the city's supply",
+      "color": "#1713ec",
+      "marker": "diamond",
+      "colorDark": "#7270db"
     }
   ],
   "regions": [
@@ -721,7 +757,10 @@
         "phase": 0.57,
         "sigma": 0.6,
         "seed": 2101
-      }
+      },
+      "color": "#7e6525",
+      "marker": "cross",
+      "colorDark": "#c9981d"
     },
     {
       "id": "reykjavik",
@@ -738,7 +777,10 @@
         "phase": 0.57,
         "sigma": 0.8,
         "seed": 2102
-      }
+      },
+      "color": "#417522",
+      "marker": "plus",
+      "colorDark": "#5dc91d"
     },
     {
       "id": "cairo",
@@ -755,7 +797,10 @@
         "phase": 0.57,
         "sigma": 0.4,
         "seed": 2103
-      }
+      },
+      "color": "#22774e",
+      "marker": "star",
+      "colorDark": "#1dc976"
     },
     {
       "id": "singapore",
@@ -772,7 +817,10 @@
         "phase": 0.4,
         "sigma": 0.5,
         "seed": 2104
-      }
+      },
+      "color": "#2d6e9c",
+      "marker": "ring",
+      "colorDark": "#1d81c9"
     },
     {
       "id": "nairobi",
@@ -789,7 +837,10 @@
         "phase": 0.15,
         "sigma": 0.5,
         "seed": 2105
-      }
+      },
+      "color": "#5813ec",
+      "marker": "circle",
+      "colorDark": "#8c68d9"
     },
     {
       "id": "sao-paulo",
@@ -806,7 +857,10 @@
         "phase": 0.07,
         "sigma": 0.7,
         "seed": 2106
-      }
+      },
+      "color": "#b23496",
+      "marker": "square",
+      "colorDark": "#df22b5"
     },
     {
       "id": "perth",
@@ -823,7 +877,10 @@
         "phase": 0.07,
         "sigma": 0.6,
         "seed": 2107
-      }
+      },
+      "color": "#bc374e",
+      "marker": "triangle",
+      "colorDark": "#e33d5a"
     },
     {
       "id": "anchorage",
@@ -840,12 +897,33 @@
         "phase": 0.57,
         "sigma": 0.9,
         "seed": 2108
-      }
+      },
+      "color": "#a834b2",
+      "marker": "diamond",
+      "colorDark": "#d124e0"
     }
   ],
   "about": {
     "company": "{name} is a {industry} company headquartered in {place}, founded {founded}. It {activity}. Its results track {place} temperature and, to a lesser degree, {macroNoun}.",
     "region": "{place} is a region series. Its index tracks {place} temperature alone.",
     "_rules": "{industry} is rendered with its first letter lowercased, so an industry never begins with a proper noun or an acronym; {macroNoun} is the macro driver's `noun`, its prose form"
+  },
+  "stocks": {
+    "passbook": {
+      "paper": "#d3e3c6",
+      "band": "#bfd6b0",
+      "ink": "#16351f",
+      "muted": "#3b5a44",
+      "rule": "#8fae86",
+      "accent": "#25508f"
+    },
+    "operate": {
+      "paper": "#15221b",
+      "band": "#1d2c24",
+      "ink": "#e4ecdc",
+      "muted": "#a9b9a3",
+      "rule": "#3d5245",
+      "accent": "#9cc2ff"
+    }
   }
 }

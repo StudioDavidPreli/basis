@@ -9,7 +9,11 @@ import { defineConfig, devices } from '@playwright/test'
 // server on the port would pass the suite against output it never compiled.
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  // One worker, in order. The server holds one KV, and the suite writes to
+  // it (every refresh, every ?fail= run): parallel tests overwrote each
+  // other's snapshots between a POST and the page load that read it.
+  fullyParallel: false,
+  workers: 1,
   retries: 1,
   use: {
     baseURL: 'http://localhost:8787',

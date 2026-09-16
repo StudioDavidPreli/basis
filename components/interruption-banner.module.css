@@ -1,0 +1,28 @@
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--band);
+  color: var(--ink);
+}
+
+.text {
+  margin: 0;
+}
+
+.lead {
+  font-weight: 500;
+}
+
+.retry {
+  flex: none;
+  color: var(--ink);
+}
+
+.retry:disabled {
+  color: var(--muted);
+}

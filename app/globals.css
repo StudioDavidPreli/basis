@@ -1,31 +1,20 @@
-/* Basis's own visual language starts here. Cadence supplies motion only
-   (cadence.css, imported in layout.tsx); colors, type, spacing, and the
-   series palette are Basis's, WCAG AA in both themes. M1 carries the
-   minimum: two theme surfaces, a type stack, tabular numerals, and the
-   reduced-motion override for the ?reduce=1 case. */
+/* Basis's own visual language: paper, ink, figures. The stocks and textures
+   are in styles/paper.css, the type roles in styles/type.css. Cadence
+   supplies motion only (cadence.css, imported in layout.tsx). */
+
+@import '../styles/paper.css';
+@import '../styles/type.css';
 
 :root {
-  color-scheme: light dark;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-}
-
-[data-theme='light'] {
-  color-scheme: light;
-  --color-bg: #fbfaf7;
-  --color-surface: #ffffff;
-  --color-text: #1b1a17;
-  --color-text-muted: #5c5a54;
-  --color-line: #d8d5cd;
-}
-
-[data-theme='dark'] {
-  color-scheme: dark;
-  --color-bg: #15161a;
-  --color-surface: #1d1f24;
-  --color-text: #ecebe6;
-  --color-text-muted: #a8a69f;
-  --color-line: #33363e;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --margin-w: 3rem; /* the left margin column */
+  --radius: 4px;
+  --hairline: 0.5px;
 }
 
 /* The package's media block handles prefers-reduced-motion. This mirrors the
@@ -47,15 +36,53 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--paper);
+  background-image: var(--grain);
+  color: var(--ink);
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+  transition: background-color var(--cadence-duration-base) var(--cadence-ease-standard),
+    color var(--cadence-duration-base) var(--cadence-ease-standard);
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Screen-reader-only, for the live region and hidden labels. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

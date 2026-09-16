@@ -4,6 +4,7 @@ import path from 'node:path'
 import { refresh, runRefresh, KEYS, type RefreshDeps, type StoredSnapshot } from './refresh'
 import { config } from '@/lib/config'
 import { adapters } from '@/sources'
+import { fixtureFetchFor } from './fixtureFetch'
 
 // M3 acceptance, on fixtures only: a run writes a snapshot; a second run
 // with one changed fixture value yields exactly the expected mutations; a
@@ -36,24 +37,7 @@ function memoryKv() {
 
 const loadFixture = (name: string) => readFile(path.join(FIXTURES, name), 'utf8')
 
-// "Live" fetch that answers every adapter URL with its fixture text, so the
-// live code path runs without a network. Matched by host and shape rather
-// than exact params: every city hits the same Open-Meteo endpoints.
-function fixtureFetch(fail: (url: string) => boolean = () => false) {
-  return async (url: string) => {
-    if (fail(url)) throw new Error('HTTP 503')
-    if (url.includes('api.frankfurter.dev/v1/latest')) return loadFixture(adapters['frankfurter']!.fixtures.latest)
-    if (url.includes('api.frankfurter.dev/v1/')) return loadFixture(adapters['frankfurter']!.fixtures.range)
-    // The archive host contains the forecast host as a substring; test it first.
-    if (url.includes('archive-api.open-meteo.com')) return loadFixture(adapters['open-meteo']!.fixtures.range)
-    if (url.includes('api.open-meteo.com')) return loadFixture(adapters['open-meteo']!.fixtures.latest)
-    if (url.includes('earthquake.usgs.gov/earthquakes/feed')) return loadFixture(adapters['usgs']!.fixtures.latest)
-    if (url.includes('earthquake.usgs.gov/fdsnws')) return loadFixture(adapters['usgs']!.fixtures.range)
-    if (url.includes('tidesandcurrents') && url.includes('date=latest')) return loadFixture(adapters['noaa-coops']!.fixtures.latest)
-    if (url.includes('tidesandcurrents')) return loadFixture(adapters['noaa-coops']!.fixtures.range)
-    throw new Error(`unexpected url ${url}`)
-  }
-}
+const fixtureFetch = (fail: (url: string) => boolean = () => false) => fixtureFetchFor(adapters, loadFixture, (_id, url) => fail(url))
 
 function deps(partial: Partial<RefreshDeps> = {}): RefreshDeps {
   return {

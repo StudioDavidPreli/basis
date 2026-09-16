@@ -1,0 +1,22 @@
+.margin {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  border-right: var(--hairline) solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) 0;
+  color: var(--muted);
+}
+
+.label,
+.date {
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+
+.label {
+  transform: rotate(180deg);
+}

@@ -6,10 +6,9 @@ import AxeBuilder from '@axe-core/playwright'
 // are on <html> before anything else runs.
 
 test.describe('the empty page', () => {
-  test('serves hello and passes axe', async ({ page }) => {
+  test('serves the sheet and passes axe', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Basis')
-    await expect(page.getByText('hello')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Basis')
     const results = await new AxeBuilder({ page }).analyze()
     expect(results.violations).toEqual([])
   })
@@ -19,7 +18,7 @@ test.describe('the empty page', () => {
     await page.goto('/')
     const html = page.locator('html')
     await expect(html).toHaveAttribute('data-reduce-motion', '1')
-    await expect(html).toHaveAttribute('data-theme', 'dark')
+    await expect(html).toHaveAttribute('data-theme', 'operate')
     // The attribute path flattens the CSS tokens exactly as the media block does.
     const base = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--cadence-duration-base').trim(),

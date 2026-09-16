@@ -1,0 +1,66 @@
+/* The two paper stocks (decisions/2026-09-16-passbook-visual-language.md).
+   Values mirror data/companies.json `stocks`; styles/paper.test.ts fails if
+   they drift. Every color role here is Basis's own. Motion still comes only
+   from --cadence-*.
+
+   Roles:
+     --paper   the sheet
+     --band    the alternating tint band, the passbook's rhythm
+     --ink     text and figures            (10:1 / 13.8:1 on paper)
+     --muted   secondary text              (5.7:1 / 8:1)
+     --rule    hairlines and pinstripes    (decorative, under 3:1 on purpose)
+     --accent  the stock's second ink: fresh-ink marks, the active tab, the
+               agent mark. 5.9:1 / 9:1 on paper. */
+
+/* The light stock (id `passbook`, kept for the attribute and the tests):
+   the sage green of the Operate reference, dark green ink, blue second
+   ink (David, 2026-09-16, after the dark stock went deep green). */
+[data-theme='passbook'] {
+  color-scheme: light;
+  --paper: #d3e3c6;
+  --band: #bfd6b0;
+  --ink: #16351f;
+  --muted: #3b5a44;
+  --rule: #8fae86;
+  --accent: #25508f;
+  --grain-seed: 7;
+}
+
+/* Operate is the dark stock (David, 2026-09-16): deep green paper, pale
+   ink, a light blue second ink. The OS dark preference picks it. */
+[data-theme='operate'] {
+  color-scheme: dark;
+  --paper: #15221b;
+  --band: #1d2c24;
+  --ink: #e4ecdc;
+  --muted: #a9b9a3;
+  --rule: #3d5245;
+  --accent: #9cc2ff;
+  --grain-seed: 11;
+}
+
+/* An entity's fixed color has two values, one per stock, both in the
+   config. The element carries both as custom properties (--entity-light,
+   --entity-dark) and the `entity` class picks one into --entity-color ON
+   THAT ELEMENT: a custom property resolves where it is declared, so
+   declaring the pick on the root, where the per-entity values do not
+   exist, resolved to nothing. */
+.entity {
+  --entity-color: var(--entity-light);
+}
+[data-theme='operate'] .entity {
+  --entity-color: var(--entity-dark);
+}
+
+/* Grain: an SVG turbulence filter rendered by the browser into a 240px tile
+   and repeated. No image file; the renderer draws it from noise each paint.
+   The tile is a data URI so it ships inside the stylesheet. Alpha is the
+   only channel it touches, at 9%, so it sits under every contrast ratio
+   above (ink on the darkest grain pixel is still over 9:1). */
+:root {
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.09 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  /* Pinstripes: the ledger's dotted vertical rules, one every 28px, a dot
+     every 5px down. Drawn from a radial gradient, tiled. */
+  --pinstripes: radial-gradient(circle at 50% 50%, var(--rule) 0.55px, transparent 0.95px);
+  --pinstripe-size: 28px 5px;
+}

@@ -36,7 +36,13 @@ export type ProcessFamily = ProcessConfig['family']
 
 export type Exposure = { driver: string; weight: number }
 
-export type CompanyConfig = {
+export type EntityStyle = {
+  color: string // fixed per entity on the light stock, 3:1 on paper and band (styles/paper.test.ts)
+  colorDark: string // the same hue lifted for the dark stock
+  marker: string // the second cue beside color
+}
+
+export type CompanyConfig = EntityStyle & {
   id: string
   process: ProcessConfig
   exposures: Exposure[]
@@ -45,11 +51,13 @@ export type CompanyConfig = {
   activity: string
 }
 
-export type RegionConfig = {
+export type RegionConfig = EntityStyle & {
   id: string
   process: ProcessConfig
   exposures: Exposure[]
 }
+
+export type Stock = { paper: string; band: string; ink: string; muted: string; rule: string; accent: string }
 
 export type ColumnConfig = {
   key: string
@@ -75,6 +83,7 @@ export type Config = {
   companies: CompanyConfig[]
   regions: RegionConfig[]
   about: { company: string; region: string }
+  stocks: Record<string, Stock>
 }
 
 const FAMILIES: ProcessFamily[] = ['ou', 'drift', 'seasonal', 'jump']
