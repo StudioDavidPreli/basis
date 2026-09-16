@@ -11,6 +11,7 @@ export type Source = {
   asOf: string // ISO date or timestamp from the provider, not from us
   cadence: Cadence
   ttlMs: number
+  fixture?: true // served from the recorded fixture, never live; status rules read it
 }
 
 export type FigureStatus = 'current' | 'stale' | 'refreshing' | 'agent-updated' | 'unverified'

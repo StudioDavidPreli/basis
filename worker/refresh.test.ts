@@ -1,0 +1,221 @@
+import { describe, it, expect } from 'vitest'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { refresh, runRefresh, KEYS, type RefreshDeps, type StoredSnapshot } from './refresh'
+import { config } from '@/lib/config'
+import { adapters } from '@/sources'
+
+// M3 acceptance, on fixtures only: a run writes a snapshot; a second run
+// with one changed fixture value yields exactly the expected mutations; a
+// failing adapter yields stale statuses and phase waiting, never a throw.
+// The clock is fixed to a minute after the fixtures were recorded so every
+// TTL holds in the "live" cases.
+
+const NOW = new Date('2026-09-16T16:30:00Z')
+const FIXTURES = path.resolve(__dirname, '../public/fixtures')
+
+function memoryKv() {
+  const store = new Map<string, string>()
+  let writes = 0
+  return {
+    store,
+    get writes() {
+      return writes
+    },
+    kv: {
+      async get(key: string) {
+        return store.get(key) ?? null
+      },
+      async put(key: string, value: string) {
+        writes += 1
+        store.set(key, value)
+      },
+    },
+  }
+}
+
+const loadFixture = (name: string) => readFile(path.join(FIXTURES, name), 'utf8')
+
+// "Live" fetch that answers every adapter URL with its fixture text, so the
+// live code path runs without a network. Matched by host and shape rather
+// than exact params: every city hits the same Open-Meteo endpoints.
+function fixtureFetch(fail: (url: string) => boolean = () => false) {
+  return async (url: string) => {
+    if (fail(url)) throw new Error('HTTP 503')
+    if (url.includes('api.frankfurter.dev/v1/latest')) return loadFixture(adapters['frankfurter']!.fixtures.latest)
+    if (url.includes('api.frankfurter.dev/v1/')) return loadFixture(adapters['frankfurter']!.fixtures.range)
+    if (url.includes('fiscaldata') && url.includes('sort=-record_date')) return loadFixture(adapters['treasury']!.fixtures.latest)
+    if (url.includes('fiscaldata')) return loadFixture(adapters['treasury']!.fixtures.range)
+    // The archive host contains the forecast host as a substring; test it first.
+    if (url.includes('archive-api.open-meteo.com')) return loadFixture(adapters['open-meteo']!.fixtures.range)
+    if (url.includes('api.open-meteo.com')) return loadFixture(adapters['open-meteo']!.fixtures.latest)
+    if (url.includes('earthquake.usgs.gov/earthquakes/feed')) return loadFixture(adapters['usgs']!.fixtures.latest)
+    if (url.includes('earthquake.usgs.gov/fdsnws')) return loadFixture(adapters['usgs']!.fixtures.range)
+    if (url.includes('tidesandcurrents') && url.includes('date=latest')) return loadFixture(adapters['noaa-coops']!.fixtures.latest)
+    if (url.includes('tidesandcurrents')) return loadFixture(adapters['noaa-coops']!.fixtures.range)
+    throw new Error(`unexpected url ${url}`)
+  }
+}
+
+function deps(partial: Partial<RefreshDeps> = {}): RefreshDeps {
+  return {
+    kv: memoryKv().kv,
+    fetchText: async url => {
+      throw new Error(`network call in fixtures-only mode: ${url}`)
+    },
+    loadFixture,
+    now: () => NOW,
+    fixturesOnly: true,
+    config,
+    ...partial,
+  }
+}
+
+describe('refresh on fixtures', () => {
+  it('writes a snapshot with every entity, every figure stale, phase done, no network', async () => {
+    const mem = memoryKv()
+    const result = await refresh(deps({ kv: mem.kv }))
+    expect(result.phase).toBe('done')
+    expect(result.requests).toBe(0)
+    expect(Object.keys(result.snapshot.entities)).toHaveLength(20)
+    const stored = JSON.parse(mem.store.get(KEYS.snapshot)!) as StoredSnapshot
+    expect(stored.at).toBe(NOW.toISOString())
+    for (const [id, entity] of Object.entries(stored.entities)) {
+      const keys = Object.keys(entity.metrics)
+      expect(keys, id).toEqual(id.includes('-') && !config.regions.some(r => r.id === id) ? ['level', 'change', 'multiple'] : ['index', 'change', 'driver'])
+      for (const figure of Object.values(entity.metrics)) {
+        expect(figure.status).toBe('stale')
+        expect(Array.isArray(figure.source)).toBe(true)
+        for (const s of figure.source as Array<{ fixture?: true; url?: string }>) {
+          expect(s.fixture).toBe(true)
+          expect(s.url).toMatch(/^https:\/\//)
+        }
+      }
+    }
+    // A company level starts near base scaled by today's readings; sanity.
+    expect(stored.entities['ou-tokyo']!.metrics['level']!.value).toBeGreaterThan(50)
+    expect(stored.entities['ou-tokyo']!.metrics['level']!.value).toBeLessThan(200)
+  })
+
+  it('a second run with one changed fixture value yields exactly the expected mutations', async () => {
+    const mem = memoryKv()
+    const first = deps({ kv: mem.kv })
+    await refresh(first)
+    const changedLoad = async (name: string) => {
+      const text = await loadFixture(name)
+      if (name === adapters['frankfurter']!.fixtures.latest) return text.replace('1.1537', '1.2537')
+      return text
+    }
+    const second = await refresh(deps({ kv: mem.kv, loadFixture: changedLoad }))
+    const pairs = second.mutations.map(m => `${m.entity}.${m.metric}`).sort()
+    // The three fx-exposed companies, every numeric comps metric each.
+    expect(pairs).toEqual(
+      ['ou-tokyo', 'drift-lagos', 'seasonal-berlin']
+        .flatMap(id => ['level', 'change', 'multiple'].map(m => `${id}.${m}`))
+        .sort(),
+    )
+    for (const m of second.mutations) {
+      expect(m.prev).not.toBe(m.value)
+      expect(m.sources.map(s => s.provider)).toContain('Frankfurter')
+      expect(m.at).toBe(NOW.toISOString())
+    }
+    const stored = JSON.parse(mem.store.get(KEYS.snapshot)!) as StoredSnapshot
+    expect(stored.mutations).toHaveLength(9)
+    // Stale outranks agent-updated: the fixture rule wins on the status.
+    expect(stored.entities['ou-tokyo']!.metrics['level']!.status).toBe('stale')
+    expect(stored.entities['ou-tokyo']!.metrics['level']!.prev).toBeDefined()
+  })
+
+  it('is deterministic: the same fixtures twice write identical entities', async () => {
+    const a = await refresh(deps())
+    const b = await refresh(deps())
+    expect(a.snapshot.entities).toEqual(b.snapshot.entities)
+  })
+})
+
+describe('refresh live (fixtures standing in for the network)', () => {
+  it('marks figures current and agent-updated when every source answers', async () => {
+    const mem = memoryKv()
+    const live = deps({ kv: mem.kv, fixturesOnly: false, fetchText: fixtureFetch() })
+    const first = await refresh(live)
+    expect(first.phase).toBe('done')
+    expect(first.snapshot.agent.interruption).toBeNull()
+    expect(first.requests).toBeLessThanOrEqual(45)
+    const statuses = new Set(Object.values(first.snapshot.entities).flatMap(e => Object.values(e.metrics).map(f => f.status)))
+    expect(statuses).toEqual(new Set(['current']))
+    // 24 latest requests plus 21 backfill chunks fit the budget of 45, so
+    // three drivers wait; the second run reaches them.
+    const written = () => Object.keys(config.drivers).filter(id => mem.store.has(KEYS.history(id))).length
+    expect(written()).toBe(21)
+    await refresh(live)
+    expect(written()).toBe(24)
+  })
+
+  it('one failing adapter: its figures stale, phase waiting, an interruption record, no throw', async () => {
+    const mem = memoryKv()
+    const fetchText = fixtureFetch(url => url.includes('tidesandcurrents'))
+    const result = await refresh(deps({ kv: mem.kv, fixturesOnly: false, fetchText }))
+    expect(result.phase).toBe('waiting')
+    const i = result.snapshot.agent.interruption!
+    expect(i.level).toBe('source')
+    expect(i.providers).toEqual(['NOAA CO-OPS'])
+    expect(i.failures[0]!.error).toContain('503')
+    // Tide-exposed companies stale, the rest current.
+    const tideExposed = config.companies.filter(c => c.exposures.some(e => e.driver === 'tide')).map(c => c.id)
+    for (const [id, e] of Object.entries(result.snapshot.entities)) {
+      const expected = tideExposed.includes(id) ? 'stale' : 'current'
+      for (const f of Object.values(e.metrics)) expect(f.status, id).toBe(expected)
+    }
+  })
+
+  it('every adapter failing: the board still renders from fixtures, all stale, level all', async () => {
+    const mem = memoryKv()
+    const fetchText = async () => {
+      throw new Error('ECONNRESET')
+    }
+    const result = await refresh(deps({ kv: mem.kv, fixturesOnly: false, fetchText }))
+    expect(result.phase).toBe('waiting')
+    expect(result.snapshot.agent.interruption!.level).toBe('all')
+    expect(Object.keys(result.snapshot.entities)).toHaveLength(20)
+    const statuses = new Set(Object.values(result.snapshot.entities).flatMap(e => Object.values(e.metrics).map(f => f.status)))
+    expect(statuses).toEqual(new Set(['stale']))
+  })
+
+  it('stays inside the request budget and writes history only when it changes', async () => {
+    const mem = memoryKv()
+    const live = () => deps({ kv: mem.kv, fixturesOnly: false, fetchText: fixtureFetch() })
+    const first = await refresh(live())
+    const writesAfterFirst = mem.writes
+    // 24 latest + one chunk per driver on the first run, capped at 45.
+    expect(first.requests).toBe(45)
+    const second = await refresh(live())
+    // Second run: 24 latest, trailing not yet due, backfill continues for
+    // the drivers the first run's budget did not reach.
+    expect(second.requests).toBeLessThanOrEqual(45)
+    expect(second.requests).toBeGreaterThanOrEqual(24)
+    // Three writes (agent reading, snapshot, agent done) per run plus any history.
+    expect(mem.writes - writesAfterFirst).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('runRefresh', () => {
+  it('a throwing handler writes phase error and nothing else', async () => {
+    const mem = memoryKv()
+    await refresh(deps({ kv: mem.kv }))
+    const before = mem.store.get(KEYS.snapshot)
+    const result = await runRefresh(
+      deps({
+        kv: mem.kv,
+        loadFixture: async () => {
+          throw new Error('disk gone')
+        },
+      }),
+    )
+    expect(result.phase).toBe('error')
+    expect(mem.store.get(KEYS.snapshot)).toBe(before)
+    const agent = JSON.parse(mem.store.get(KEYS.agent)!)
+    expect(agent.phase).toBe('error')
+    expect(agent.interruption.level).toBe('handler')
+    expect(agent.error).toContain('disk gone')
+  })
+})
