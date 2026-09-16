@@ -123,10 +123,16 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
-| Drawer open / close | — | `spring` | `none` |
+| Drawer open | — | `spring` | `none` |
+| Drawer close | instant (the route unmounts) | — | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
+
+The drawer is an intercepting route, so Next unmounts it the moment history
+moves: it springs in and disappears at once. No exit is faked by delaying the
+navigation, because the back button, the primary close path, could not be
+animated either and history would lie for the others.
 
 Rive artboards (`AgentPresence`, logos) hold their own timing inside the state
 machine; Basis pushes only view-model values. The `reduced` boolean in the
