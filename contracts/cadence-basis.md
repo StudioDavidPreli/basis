@@ -132,9 +132,9 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
-| Drawer open | — | `springDamped` | `none` |
-| Ledger shift beside the drawer (no reorder) | — | `springDamped` (layout) | `none` |
-| Drawer close | — | `springDamped` (exit, kept mounted until done) | `none` |
+| Drawer open | — | `springDamped`, on the drawer column's width | `none` |
+| Drawer close | — | `springDamped`, the width back to zero, kept mounted until done | `none` |
+| Sheet resize beside the drawer | — | follows the column: one layout, one spring | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
@@ -142,15 +142,17 @@ adding a row, in its own commit.
 
 The drawer is an intercepting route, so Next removes it from the tree the
 moment history moves, on every close path: Escape, the close control, and
-the back button alike. The drawer shell holds the removed drawer through an
-`AnimatePresence` boundary, so the panel slides out on `springDamped` and the
-element is unmounted when the exit completes; history itself moves at once
-and stays honest. The drawer sits in the layout's right gutter, so on a
-viewport wide enough it touches nothing; when the sheet must give it room,
-the ledger's rows shift on the same `springDamped` (every row keeping its
-index moves as one; the `short` stagger is for a reorder only), so the two
-move together. (The raw spring read as too springy; damping it, not removing
-it, and an instant close read as no exit at all, David, 2026-09-16.)
+the back button alike. A DrawerExit in the root layout, which outlives the
+slot, holds the removed element in its grid column and runs the close on it;
+history itself moves at once and stays honest. What animates on open and
+close is the drawer column's width, zero to the drawer's width and back, on
+`springDamped`: the sheet beside it is the same layout, so the header, the
+chart, the ledger, and the footnotes resize on the same curve with nothing
+animated separately. The panel keeps its full width inside and the dialog
+clips it, so nothing in the drawer rewraps. The ledger's `short` stagger is
+for a reorder only. (The raw spring read as too springy; damping it, not
+removing it; an instant close read as no exit; a translated panel over an
+instant reflow read as a seam. David, 2026-09-16.)
 Switching the entity while the drawer is open does not reopen it: the text
 scrambles per character into the new text over `slower`, with the glyph
 clock on `delays.short`; under reduced motion both flatten and the text
