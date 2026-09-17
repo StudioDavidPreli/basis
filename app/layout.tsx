@@ -7,6 +7,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, DotGothic16 } from 'next/font/google'
 import 'cadence-tokens/dist/standard/cadence.css'
 import './globals.css'
 import { themeScript } from './theme-script'
+import { DrawerExit } from '@/components/drawer-exit'
 
 // Three families, as CSS variables the type roles read (styles/type.css).
 // next/font self-hosts them at build, so no request leaves the page for a
@@ -33,9 +34,10 @@ export default function RootLayout({ children, drawer }: { children: ReactNode; 
             data-reduce-motion so the first paint and the hydration both see
             the same attributes. See app/theme-script.ts. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <div className="frame">
+        <div id="frame" className="frame">
           {children}
           {drawer}
+          <DrawerExit />
         </div>
       </body>
     </html>

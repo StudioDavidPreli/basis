@@ -3,7 +3,7 @@
 // The persistent half of the drawer (docs/spec.md, "Drawer";
 // decisions/2026-09-16-drawer-non-modal-dialog.md): a non-modal <dialog>,
 // open through the `open` attribute (the declarative show(), never
-// showModal()), as the second column of the layout's grid. It mounts once
+// showModal()), in the right gutter of the layout's grid. It mounts once
 // in the slot's layout and stays across entity switches, because Next
 // remounts the [id] segment beneath it on every param change. So: the
 // panel comes in once, on the critically damped Cadence spring, the same
@@ -11,9 +11,10 @@
 // it room; a switch changes the content in place.
 //
 // Escape here goes through router.back(), the same path as the back
-// button. Focus return on close is the content's job (drawer.tsx), whose
-// unmount can tell a close from a switch by whether this dialog is still
-// in the document.
+// button. On every close path Next removes the drawer from the tree at
+// once, this shell included; the exit is DrawerExit's, in the root layout,
+// which outlives the slot (contract, "Drawer close"). Focus return on
+// close is the content's job (drawer.tsx).
 
 import { useRef, type ReactNode } from 'react'
 import { useRouter, useSelectedLayoutSegments } from 'next/navigation'

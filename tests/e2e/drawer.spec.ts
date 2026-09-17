@@ -79,8 +79,10 @@ test.describe('the drawer', () => {
     // Non-modal: no backdrop, the element is in flow beside the sheet.
     expect(await dialog.evaluate(el => (el as HTMLDialogElement).open && !el.matches(':modal'))).toBe(true)
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog')).toHaveCount(0)
+    // History moves at once; the drawer stays for its exit, then goes.
     await expect(page).toHaveURL('/')
+    expect(await page.locator('dialog').count()).toBe(1)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(link).toBeFocused()
     expect(errors).toEqual([])
   })
