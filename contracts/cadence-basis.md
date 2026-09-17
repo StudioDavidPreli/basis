@@ -70,6 +70,7 @@ type MotionTokens = {
   easings: typeof easings       // unchanged
   scale: typeof scale           // unchanged
   spring: Transition            // Cadence spring, or { duration: 0.01 } under reduced motion
+  springDamped: Transition      // the same spring critically damped, same reduced-motion branch
   transitions: typeof transitions  // REBUILT from the fields above, never the module's
   reducedMotion: boolean
 }
@@ -81,6 +82,14 @@ responsibility (a spring has no duration to flatten): when `reducedMotion` is
 true the hook returns `spring = { duration: 0.01 }` and every consumer of
 `spring` goes through the hook, never the module. 10 ms, not 0, so
 `onAnimationComplete` still fires.
+
+`springDamped` is the Cadence spring with its damping raised to critical,
+`2·√(stiffness · mass)`, so it settles with no overshoot. Every number in it
+is the token's own; the relation is physics, not a tuned value. Cadence has
+one spring and Basis cannot re-tune it, so a use that needs the spring's
+motion without its bounce (the drawer) takes this derived one. If Cadence
+grows a damped spring token, this field reads it instead. Under reduced
+motion it takes the same 10 ms branch as `spring`.
 
 `transitions` is the same trap one level up. The module evaluates
 `transitions.enter = { duration: durations.base, ... }` at load, so the object
@@ -123,7 +132,8 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
-| Drawer open | `slow` | `standard` | `none` |
+| Drawer open | — | `springDamped` | `none` |
+| Ledger shift beside the drawer (no reorder) | — | `springDamped` (layout) | `none` |
 | Drawer close | instant (the route unmounts) | — | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
@@ -131,10 +141,12 @@ adding a row, in its own commit.
 | Theme switch crossfade | `base` | `standard` | `none` |
 
 The drawer is an intercepting route, so Next unmounts it the moment history
-moves: it slides in on `slow` / `standard`, the same pair the ledger's rows
-shift on beside it, so the two move as one, and disappears at once. (The
-spring was tried and read as too springy; Cadence has one spring and Basis
-cannot re-damp it, so the drawer takes the timed pair, David, 2026-09-16.)
+moves: it comes in on `springDamped` and disappears at once. The drawer sits
+in the layout's right gutter, so on a viewport wide enough it touches nothing;
+when the sheet must give it room, the ledger's rows shift on the same
+`springDamped` (every row keeping its index moves as one; the `short` stagger
+is for a reorder only), so the two move together. (The raw spring read as too
+springy; damping it, not removing it, David, 2026-09-16.)
 Switching the entity while the drawer is open does not reopen it: the text
 scrambles per character into the new text over `slower`, with the glyph
 clock on `delays.short`; under reduced motion both flatten and the text
