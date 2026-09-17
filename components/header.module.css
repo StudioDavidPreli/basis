@@ -37,20 +37,6 @@
   border-color: var(--accent);
 }
 
-.action {
-  color: var(--ink);
-  transition: color var(--cadence-duration-fast) var(--cadence-ease-standard);
-}
-
-.action:hover:not(:disabled) {
-  color: var(--accent);
-}
-
-.action:disabled {
-  color: var(--muted);
-  cursor: default;
-}
-
 .title {
   margin: 0;
   color: var(--ink);
@@ -60,40 +46,6 @@
 .titleDate {
   color: var(--muted);
   margin-left: var(--space-2);
-}
-
-.iconButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius);
-  border: var(--hairline) solid var(--rule);
-  color: var(--ink);
-  transition: border-color var(--cadence-duration-fast) var(--cadence-ease-standard),
-    color var(--cadence-duration-fast) var(--cadence-ease-standard);
-}
-
-.iconButton:hover:not(:disabled) {
-  border-color: var(--ink);
-}
-
-.iconButton:disabled {
-  color: var(--muted);
-  cursor: default;
-}
-
-/* A running refresh turns the arrow, looped on the slower duration. Under
-   reduced motion the duration collapses and it holds still. */
-.iconButton[data-busy] svg {
-  animation: turn var(--cadence-duration-slower) var(--cadence-ease-linear) infinite;
-}
-
-@keyframes turn {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @media (max-width: 900px) {

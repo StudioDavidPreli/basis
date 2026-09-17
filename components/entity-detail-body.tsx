@@ -14,6 +14,7 @@ import { sourcesOf } from '@/lib/diff'
 import type { AgentPhase } from '@/worker/refresh'
 import { Figure } from './figure'
 import { SourceList, when } from './source-list'
+import { ScrambleText } from './scramble-text'
 import styles from './entity-detail-body.module.css'
 
 type Props = {
@@ -27,8 +28,8 @@ export function EntityDetailBody({ detail, now, phase, headings: H }: Props) {
   const base = `entity-${detail.id}`
   return (
     <div className={styles.body}>
-      <p className="type-body">{detail.about}</p>
-      <p className={`${styles.muted} type-body`}>{detail.description}</p>
+      <ScrambleText as="p" className="type-body" text={detail.about} />
+      <ScrambleText as="p" className={`${styles.muted} type-body`} text={detail.description} />
 
       <section aria-labelledby={`${base}-figures`} className={styles.section}>
         <H id={`${base}-figures`} className={`${styles.eyebrow} type-eyebrow`}>

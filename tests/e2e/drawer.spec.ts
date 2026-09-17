@@ -127,22 +127,38 @@ test.describe('the drawer', () => {
     await expect(page.getByRole('checkbox', { name: 'Chart Anchor Kaze' })).toBeChecked()
   })
 
-  test('another name click switches the entity in place, and back steps through them', async ({ page }) => {
+  test('another name click switches the entity in place, and back closes the drawer', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /Anchor Kaze/ }).click()
     await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Anchor Kaze/ })).toHaveAttribute('aria-current', 'page')
     const second = page.locator('tbody tr').nth(1).getByRole('link')
     const secondName = (await second.textContent())!.trim()
     await second.click()
+    // One dialog, the same element, re-targeted: no reopen.
     await expect(page.locator('dialog')).toHaveCount(1)
     await expect(page.getByRole('dialog', { name: secondName })).toBeVisible()
     await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toBeFocused()
+    await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toHaveText(new RegExp(secondName))
     await expect(page).not.toHaveURL('/company/ou-tokyo')
-    await page.goBack()
-    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    // The switch replaced history, so one back closes the drawer outright.
     await page.goBack()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(page.getByRole('link', { name: /Anchor Kaze/ })).toBeFocused()
+    await expect(page).toHaveURL('/')
+    await expect(second).toBeFocused()
+  })
+
+  test('clicking the open entity\'s name again leaves the sheet and the drawer alone', async ({ page }) => {
+    await page.goto('/')
+    const link = page.getByRole('link', { name: /Anchor Kaze/ })
+    await link.click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await link.click()
+    await expect(page.locator('dialog')).toHaveCount(1)
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await expect(page.getByRole('region', { name: 'Chart' })).toBeVisible()
+    await expect(page).toHaveURL('/company/ou-tokyo')
+    await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toBeFocused()
   })
 
   test('a provenance dialog inside the drawer takes Escape first', async ({ page }) => {
@@ -153,6 +169,12 @@ test.describe('the drawer', () => {
     const provenance = page.getByRole('dialog', { name: 'Provenance' })
     await expect(provenance).toBeVisible()
     await page.keyboard.press('Escape')
+    await expect(provenance).toHaveCount(0)
+    await expect(drawer).toBeVisible()
+    // And from its own close control, top right.
+    await drawer.getByRole('button', { name: /^Level for/ }).click()
+    await expect(provenance).toBeVisible()
+    await provenance.getByRole('button', { name: 'Close provenance' }).click()
     await expect(provenance).toHaveCount(0)
     await expect(drawer).toBeVisible()
     await page.keyboard.press('Escape')

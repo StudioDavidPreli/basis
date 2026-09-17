@@ -63,6 +63,9 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
   // the entity's, and the sheet's entry is rewritten when back returns to
   // it, which is why the pathname is a dependency.
   const pathname = usePathname()
+  // With a drawer open the path is the entity's; the ledger marks that row.
+  const openMatch = pathname.match(/^\/(?:company|region)\/([^/]+)$/)
+  const openId = openMatch ? decodeURIComponent(openMatch[1]!) : null
   const search = encodeUrlState(state)
   useEffect(() => {
     if (pathname !== '/') return
@@ -166,6 +169,7 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           parentheses={state.dataset === 'comps'}
           phase={phase}
           now={now}
+          openId={openId}
         />
         <Footnotes snapshot={snapshot} now={now} />
       </main>

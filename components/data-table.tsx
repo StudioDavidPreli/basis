@@ -8,7 +8,7 @@
 // slow / standard with a short stagger capped at eight
 // (decisions/2026-09-16-row-reorder-not-spring.md).
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { LayoutGroup, motion } from 'framer-motion'
 import type { ColumnConfig } from '@/lib/config'
@@ -44,11 +44,12 @@ type Props = {
   parentheses: boolean
   phase: AgentPhase
   now: Date
+  openId: string | null // the entity whose drawer is open, if one is
 }
 
 const STAGGER_CAP = 8
 
-export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now }: Props) {
+export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const byId = new Map(rows.map(r => [r.id, r]))
   const all = selection.length === rows.length && rows.length > 0
@@ -57,6 +58,14 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   useEffect(() => {
     if (headerBox.current) headerBox.current.indeterminate = some
   }, [some])
+
+  // The order of the previous committed render, kept beside the current
+  // one, so a row can tell a reorder (it changed index: staggered) from a
+  // shift of the whole ledger, as when the drawer opens beside it (every
+  // row keeps its index: they move as one, on the drawer's own timing).
+  const [orders, setOrders] = useState({ prev: order, current: order })
+  if (orders.current !== order) setOrders({ prev: orders.current, current: order })
+  const prevOrder = orders.current === order ? orders.prev : orders.current
 
   return (
     <div className={styles.wrap}>
@@ -106,7 +115,8 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               const selected = selection.includes(id)
               // The gate flags a literal inside a timing value, so the index math
               // stays out of the transition object.
-              const stagger = Math.min(i, STAGGER_CAP - 1)
+              const moved = prevOrder[i] !== id
+              const stagger = moved ? Math.min(i, STAGGER_CAP - 1) : 0
               return (
                 <motion.tr
                   key={id}
@@ -133,9 +143,25 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   <th scope="row" className={styles.name}>
                     <span className={styles.nameInner}>
                       {/* A real link: click or Enter opens the drawer through
-                          the router with no handler, and the drawer finds the
-                          row to return focus to by data-entity-link. */}
-                      <Link href={row.href} className={styles.nameLink} data-entity-link={id}>
+                          the router, and the drawer finds the row to return
+                          focus to by data-entity-link. With a drawer open the
+                          links replace history, so back closes it rather than
+                          stepping through entities; the open entity's own link
+                          goes nowhere (a same-URL navigation is not intercepted
+                          and would swap the sheet for the full page) and hands
+                          focus to the drawer instead. */}
+                      <Link
+                        href={row.href}
+                        className={styles.nameLink}
+                        data-entity-link={id}
+                        replace={openId !== null}
+                        aria-current={id === openId ? 'page' : undefined}
+                        onClick={e => {
+                          if (id !== openId) return
+                          e.preventDefault()
+                          document.querySelector<HTMLElement>('dialog [data-drawer-heading]')?.focus()
+                        }}
+                      >
                         <Marker shape={row.marker} colors={row.colors} />
                         <span className="type-label">{row.name}</span>
                       </Link>

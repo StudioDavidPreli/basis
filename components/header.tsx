@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { THEMES, THEME_KEY, type Theme } from '@/app/theme-script'
+import { IconButton } from './icon-button'
 import styles from './header.module.css'
 
 type Props = {
@@ -96,9 +97,7 @@ export function Header({ datasets, active, onDataset, busy, onRefresh, date }: P
         <h1 className={`${styles.title} type-eyebrow`}>
           Basis <span className={styles.titleDate}>{stamp(date)}</span>
         </h1>
-        <button
-          type="button"
-          className={styles.iconButton}
+        <IconButton
           onClick={onRefresh}
           disabled={busy}
           aria-busy={busy}
@@ -106,16 +105,14 @@ export function Header({ datasets, active, onDataset, busy, onRefresh, date }: P
           data-busy={busy || undefined}
         >
           <RefreshArrow />
-        </button>
-        <button
-          type="button"
-          className={styles.iconButton}
+        </IconButton>
+        <IconButton
           onClick={toggleTheme}
           aria-label={theme === 'operate' ? 'Switch to the light stock' : 'Switch to the dark stock'}
           aria-pressed={theme === 'operate'}
         >
           <SunMoon theme={theme} />
-        </button>
+        </IconButton>
       </div>
     </header>
   )

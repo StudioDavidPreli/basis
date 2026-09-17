@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import type { FigureStatus, Source } from '@/lib/types'
 import { SourceList, when } from './source-list'
+import { CloseIcon, IconButton } from './icon-button'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import styles from './provenance-popover.module.css'
 
@@ -58,9 +59,9 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
       <SourceList sources={sources} />
       <p className={`${styles.meta} type-micro`}>written {when(updatedAt)}</p>
       {dialog && (
-        <button type="button" className={`${styles.close} type-action`} onClick={onClose}>
-          [ Close ]
-        </button>
+        <IconButton className={styles.close} onClick={onClose} aria-label="Close provenance">
+          <CloseIcon />
+        </IconButton>
       )}
     </motion.div>
   )
