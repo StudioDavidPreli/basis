@@ -104,6 +104,37 @@ test.describe('the ledger', () => {
     await expect(trigger).toBeFocused()
   })
 
+  test('the provenance dialog keeps focus where the reader put it', async ({ page }) => {
+    // The focus-into-dialog effect once shared its dependency list with
+    // the Escape listener's, which the Figure re-creates on every render;
+    // a hover on the trigger pulled focus back from the Close button.
+    await page.goto('/')
+    const trigger = page.locator('tbody tr').first().getByRole('button', { name: /^Level for/ })
+    await trigger.click()
+    const dialog = page.getByRole('dialog', { name: 'Provenance' })
+    await expect(dialog).toBeFocused()
+    const close = dialog.getByRole('button', { name: 'Close provenance' })
+    await close.focus()
+    await expect(close).toBeFocused()
+    await trigger.hover()
+    await page.mouse.move(0, 0)
+    await expect(close).toBeFocused()
+    await close.click()
+    await expect(dialog).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+  })
+
+  test('the URL mirror keeps the reduce override through a sort and a reload', async ({ page }) => {
+    await page.goto('/?reduce=1')
+    await page.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await expect(page).toHaveURL(/reduce=1/)
+    await expect(page).toHaveURL(/sort=level/)
+    await page.reload()
+    await expect(page.locator('html')).toHaveAttribute('data-reduce-motion', '1')
+    await expect(page.getByRole('columnheader', { name: /Level/ })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+
   test('switching dataset shows the eight regions', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'Regions' }).click()

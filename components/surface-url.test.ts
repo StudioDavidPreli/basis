@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { encodeUrlState, parseUrlState, type UrlState } from './surface-url'
+import { encodeUrlState, mergeUrlSearch, parseUrlState, type UrlState } from './surface-url'
+
 
 const bare: UrlState = { dataset: 'comps', sort: null, metric: 'level', range: '1Y' }
 
@@ -33,4 +34,16 @@ describe('the URL codec', () => {
   it('ignores repeated params and treats dir without sort as nothing', () => {
     expect(parseUrlState({ sort: ['level', 'change'], dir: 'desc' })).toEqual(bare)
   })
+
+  it('keeps the keys it does not own when it writes', () => {
+    // The reduce and theme overrides belong to the inline script.
+    expect(mergeUrlSearch('?reduce=1&theme=operate', '')).toBe('?reduce=1&theme=operate')
+    expect(mergeUrlSearch('?reduce=1', '?sort=name')).toBe('?reduce=1&sort=name')
+    // Its own keys are replaced, not accumulated, and dropped when back at
+    // the default.
+    expect(mergeUrlSearch('?sort=level&dir=desc&reduce=1', '?sort=name')).toBe('?reduce=1&sort=name')
+    expect(mergeUrlSearch('?sort=level&dir=desc', '')).toBe('')
+    expect(mergeUrlSearch('', '')).toBe('')
+  })
 })
+

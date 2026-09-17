@@ -69,3 +69,20 @@ export function encodeUrlState(state: UrlState, config: Config = defaultConfig):
   const s = q.toString()
   return s ? `?${s}` : ''
 }
+
+// The keys this codec owns. Everything else in a URL belongs to someone
+// else: `?reduce=1` and `?theme=` to the inline script in app/layout.tsx.
+const OWNED = ['dataset', 'sort', 'dir', 'metric', 'range'] as const
+
+// The search string to write: the current one with this codec's keys
+// replaced by `owned` (an encodeUrlState result) and every other key kept.
+// Rebuilding from state alone erased the reduce and theme overrides on the
+// first mirror, so a reload or a copied link lost them.
+export function mergeUrlSearch(current: string, owned: string): string {
+  const q = new URLSearchParams(current)
+  for (const key of OWNED) q.delete(key)
+  new URLSearchParams(owned).forEach((value, key) => q.set(key, value))
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}
+

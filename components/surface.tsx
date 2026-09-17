@@ -13,7 +13,8 @@ import { entityHref } from '@/lib/entity-detail'
 import type { StoredSnapshot } from '@/worker/refresh'
 import type { FigureValue, SeriesSnapshot } from '@/lib/types'
 import { initialState, reduce, sortIds } from './surface-state'
-import { defaultMetric, encodeUrlState, type UrlState } from './surface-url'
+import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
+
 import { useNow } from './use-now'
 import { Header } from './header'
 import { Margin } from './margin'
@@ -59,16 +60,19 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
     const res = await fetch('/api/refresh', { cache: 'no-store' })
     if (!res.ok) return
     const next = (await res.json()) as StoredSnapshot
-    setSnapshot(prev => {
-      if (prev && next.at > prev.at) {
-        for (const m of next.mutations.filter(m => m.at > prev.at).slice(0, 5)) announce(mutationSentence(m))
-      }
-      return next
-    })
-    if (latestAt.current === null || next.at > latestAt.current) {
+    // The diff runs against the ref, never inside the state updater: React
+    // may call an updater more than once (it does, under development Strict
+    // Mode), and an announcement is a side effect.
+    const prevAt = latestAt.current
+    if (prevAt !== null && next.at > prevAt) {
+      for (const m of next.mutations.filter(m => m.at > prevAt).slice(0, 5)) announce(mutationSentence(m))
+    }
+    setSnapshot(next)
+    if (prevAt === null || next.at > prevAt) {
       latestAt.current = next.at
       void loadSeries(activeDataset)
     }
+
   }, [announce, loadSeries, activeDataset])
 
   useEffect(() => {
@@ -80,7 +84,8 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
   // defaults omitted, through replaceState so it never adds history. Only
   // while the sheet's own path is current: with the drawer open the URL is
   // the entity's, and the sheet's entry is rewritten when back returns to
-  // it, which is why the pathname is a dependency.
+  // it, which is why the pathname is a dependency. Keys the codec does not
+  // own (`?reduce=1`, `?theme=`) are kept, not rebuilt away.
   const pathname = usePathname()
   // With a drawer open the path is the entity's; the ledger marks that row.
   const openMatch = pathname.match(/^\/(?:company|region)\/([^/]+)$/)
@@ -88,7 +93,8 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
   const search = encodeUrlState(state)
   useEffect(() => {
     if (pathname !== '/') return
-    const next = `${pathname}${search}${window.location.hash}`
+    const next = `${pathname}${mergeUrlSearch(window.location.search, search)}${window.location.hash}`
+
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
     if (next !== current) window.history.replaceState(null, '', next)
   }, [pathname, search])

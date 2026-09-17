@@ -142,7 +142,20 @@ test.describe('the chart', () => {
     expect(results.violations).toEqual([])
   })
 
+  test('a rescale cut short by a clear leaves no animating flag behind', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
+    await page.getByRole('checkbox', { name: 'Chart Keel London' }).click()
+    const svg = page.locator('svg[preserveAspectRatio="none"]')
+    await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1M' }).click()
+    await expect(svg).toHaveAttribute('data-animating', '')
+    // A stopped animation never resolves; the cleanup owns the flag.
+    await page.getByRole('button', { name: '[ Clear ]' }).click()
+    await expect.poll(async () => (await svg.getAttribute('data-animating')) === null, { timeout: 250 }).toBe(true)
+  })
+
   test('under reduced motion the draw-in and the rescale are instant', async ({ page }) => {
+
     await page.goto('/?reduce=1')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     const ribbon = page.locator('path[data-series="ou-tokyo"]')

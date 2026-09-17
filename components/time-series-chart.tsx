@@ -130,14 +130,15 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     const el = svg.current
     el?.setAttribute('data-animating', '')
     const controls = values.map((v, i) => animate(v, next[i]!, { duration: durations.slow, ease: easings.standard }))
-    let cancelled = false
-    Promise.all(controls).then(() => {
-      if (!cancelled) el?.removeAttribute('data-animating')
-    })
+    Promise.all(controls).then(() => el?.removeAttribute('data-animating'))
     return () => {
-      cancelled = true
+      // A stopped animation never resolves, so the cleanup owns the flag:
+      // a rescale cut short by a clear or a dataset switch left it set. On
+      // a rapid re-target the next run sets it again in the same task.
       controls.forEach(c => c.stop())
+      el?.removeAttribute('data-animating')
     }
+
   }, [targetKey, x0, x1, y0, y1, durations.slow, easings.standard])
 
   // Draw-in stagger by selection order among the ribbons arriving together:

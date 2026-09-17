@@ -26,10 +26,19 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
   const { transitions } = useMotionTokens()
   const panel = useRef<HTMLDivElement>(null)
 
+  // Focus moves into the dialog once, when it becomes one. This is kept
+  // apart from the Escape listener below on purpose: that effect depends on
+  // `onClose`, which the compiler re-creates whenever the Figure re-renders
+  // (a hover on the trigger, the minute poll), and a focus call in the same
+  // effect pulled focus back from the Close button on every such render.
+  useEffect(() => {
+    if (mode === 'dialog') panel.current?.focus()
+  }, [mode])
+
   useEffect(() => {
     if (mode !== 'dialog') return
-    panel.current?.focus()
     const onKey = (e: KeyboardEvent) => {
+
       if (e.key === 'Escape') {
         e.stopPropagation()
         onClose()
