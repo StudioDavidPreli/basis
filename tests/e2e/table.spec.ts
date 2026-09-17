@@ -39,6 +39,22 @@ test.describe('the ledger', () => {
     await expect(page.getByTestId('live-region')).toContainText(/Sorted by Level/)
   })
 
+  test('sorts by name alphabetically, both ways', async ({ page }) => {
+    await page.goto('/')
+    const names = async () => (await page.locator('tbody th[scope="row"] a').allTextContents()).map(t => t.trim())
+    const file = await names()
+    const sorted = [...file].sort((a, b) => a.localeCompare(b))
+    expect(file).not.toEqual(sorted)
+    const header = page.getByRole('columnheader', { name: /Name/ })
+    await header.getByRole('button').click()
+    await expect(header).toHaveAttribute('aria-sort', 'ascending')
+    await expect.poll(names).toEqual(sorted)
+    await header.getByRole('button').click()
+    await expect(header).toHaveAttribute('aria-sort', 'descending')
+    await expect.poll(names).toEqual([...sorted].reverse())
+    await expect(page).toHaveURL('/?sort=name&dir=desc')
+  })
+
   test('Shift-range selects a run of rows and the legend lists them', async ({ page }) => {
     await page.goto('/')
     const boxes = page.locator('tbody input[type="checkbox"]')

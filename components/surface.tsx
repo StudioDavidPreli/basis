@@ -110,7 +110,10 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
         rows.map(r => r.id),
         state.sort,
         id => {
-          const cell = rows.find(r => r.id === id)?.cells[state.sort?.key ?? '']
+          const row = rows.find(r => r.id === id)
+          // The name is the row's own, not a column of the dataset.
+          if (state.sort?.key === 'name') return row?.name
+          const cell = row?.cells[state.sort?.key ?? '']
           return typeof cell === 'object' ? cell?.value : cell
         },
       ),
