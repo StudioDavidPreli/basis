@@ -123,14 +123,22 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
-| Drawer open | — | `spring` | `none` |
+| Drawer open | `slow` | `standard` | `none` |
 | Drawer close | instant (the route unmounts) | — | `none` |
+| Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 
 The drawer is an intercepting route, so Next unmounts it the moment history
-moves: it springs in and disappears at once. No exit is faked by delaying the
+moves: it slides in on `slow` / `standard`, the same pair the ledger's rows
+shift on beside it, so the two move as one, and disappears at once. (The
+spring was tried and read as too springy; Cadence has one spring and Basis
+cannot re-damp it, so the drawer takes the timed pair, David, 2026-09-16.)
+Switching the entity while the drawer is open does not reopen it: the text
+scrambles per character into the new text over `slower`, with the glyph
+clock on `delays.short`; under reduced motion both flatten and the text
+simply changes. No exit is faked by delaying the
 navigation, because the back button, the primary close path, could not be
 animated either and history would lie for the others.
 
