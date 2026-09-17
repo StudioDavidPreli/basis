@@ -1,0 +1,164 @@
+/* The hero's plot (docs/spec.md, Chart; decisions/2026-09-16-passbook-visual-
+   language.md). A grid of three: the value ticks in a column on the left,
+   the plot box, and the date ticks in a row beneath. The ticks and the
+   endpoint markers are HTML positioned by percentage of the box, so they
+   never stretch; only the SVG does (time-series-chart.tsx). */
+.wrap {
+  position: relative;
+}
+
+.plot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: clamp(220px, 44dvh, 520px);
+}
+
+.yAxis {
+  grid-area: 1 / 1;
+  position: relative;
+  width: 3.5rem;
+}
+
+.yTick {
+  position: absolute;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.box {
+  grid-area: 1 / 2;
+  position: relative;
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background-image: var(--pinstripes);
+  background-size: var(--pinstripe-size);
+  overflow: clip;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.grid {
+  stroke: var(--rule);
+  stroke-dasharray: 2 4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The trailing days a source may still revise: a wash of ink, not a color. */
+.provisional {
+  fill: var(--ink);
+  opacity: 0.06;
+}
+
+.ribbon {
+  fill: none;
+  stroke: var(--entity-color);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  /* Row hover / line hover highlight: fast / standard (contract). */
+  transition: stroke-width var(--cadence-duration-fast) var(--cadence-ease-standard),
+    opacity var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+/* One ribbon hovered (from a row or from the plot): it lifts, the rest recede. */
+.plot[data-focus] .ribbon:not([data-hover]) {
+  opacity: 0.4;
+}
+
+.ribbon[data-hover] {
+  stroke-width: 2.5;
+}
+
+/* The drawer's entity beside it: the others are muted, never removed, so a
+   close restores them without a redraw. */
+.ribbon[data-muted] {
+  opacity: 0.2;
+}
+
+/* A wide invisible stroke so a hair-thin ribbon can be hovered. */
+.hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.endpoint {
+  position: absolute;
+  display: flex;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.xAxis {
+  grid-area: 2 / 2;
+  position: relative;
+  height: 1.375rem;
+}
+
+.xTick {
+  position: absolute;
+  top: var(--space-1);
+  transform: translateX(-50%);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.empty {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  margin: 0;
+  color: var(--muted);
+  background: var(--paper);
+  padding: 0 var(--space-1);
+}
+
+/* The readout, pinned to the plot's top right: the hovered or focused
+   row's name and its point (decisions/2026-09-16-passbook-visual-language.md:
+   the readout lives in the hero). A live region, so keyboard focus on a
+   row reads the point. */
+.readout {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.readout:empty {
+  display: none;
+}
+
+.readoutName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.readoutMeta {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .plot {
+    height: clamp(180px, 34dvh, 320px);
+  }
+}

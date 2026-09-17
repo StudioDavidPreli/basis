@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { refresh, runRefresh, KEYS, type RefreshDeps, type StoredSnapshot } from './refresh'
 import { config } from '@/lib/config'
+import type { SeriesSnapshot } from '@/lib/types'
 import { adapters } from '@/sources'
 import { fixtureFetchFor } from './fixtureFetch'
 
@@ -106,6 +107,41 @@ describe('refresh on fixtures', () => {
     // Stale outranks agent-updated: the fixture rule wins on the status.
     expect(stored.entities['ou-tokyo']!.metrics['level']!.status).toBe('stale')
     expect(stored.entities['ou-tokyo']!.metrics['level']!.prev).toBeDefined()
+  })
+
+  it('writes one series key per dataset: real dates ending today, the endpoint equal to the figure', async () => {
+    const mem = memoryKv()
+    await refresh(deps({ kv: mem.kv }))
+    const comps = JSON.parse(mem.store.get(KEYS.series('comps'))!) as SeriesSnapshot
+    const regions = JSON.parse(mem.store.get(KEYS.series('regions'))!) as SeriesSnapshot
+    const snapshot = JSON.parse(mem.store.get(KEYS.snapshot)!) as StoredSnapshot
+    expect(comps.at).toBe(NOW.toISOString())
+    expect(Object.keys(comps.entities)).toHaveLength(12)
+    expect(Object.keys(regions.entities)).toHaveLength(8)
+    for (const [id, s] of Object.entries({ ...comps.entities, ...regions.entities })) {
+      expect(s.dates.length, id).toBe(s.level.length)
+      expect(s.dates.length, id).toBeGreaterThan(10)
+      for (let i = 1; i < s.dates.length; i++) expect(s.dates[i]! > s.dates[i - 1]!, `${id} ascending at ${i}`).toBe(true)
+      expect(s.dates[s.dates.length - 1], id).toBe('2026-09-16')
+      // The endpoint is the ledger's figure, to the stored precision.
+      const level = snapshot.entities[id]!.metrics['level'] ?? snapshot.entities[id]!.metrics['index']
+      expect(s.level[s.level.length - 1], id).toBeCloseTo(level!.value, 3)
+      // Fixture history: covered from the fixture's first date.
+      expect(s.coveredFrom, id).toBe(s.dates[0])
+    }
+    // A company on a daily driver: the archive ends 09-14 and today is
+    // appended; provisional from seven days back (Open-Meteo's trailing
+    // window). A region carries its driver's own history.
+    const tokyo = comps.entities['ou-tokyo']!
+    expect(tokyo.dates.slice(-2)).toEqual(['2026-09-14', '2026-09-16'])
+    expect(tokyo.provisionalFrom).toBe('2026-09-09')
+    expect(tokyo.driver).toBeUndefined()
+    const brooklyn = regions.entities['brooklyn']!
+    expect(brooklyn.driver).toHaveLength(brooklyn.dates.length)
+    expect(brooklyn.driver![brooklyn.driver!.length - 1]).toBeCloseTo(snapshot.entities['brooklyn']!.metrics['driver']!.value, 3)
+    // Five writes a run (agent reading, snapshot, two series keys, agent
+    // done) plus the 23 fixture histories on this first run.
+    expect(mem.writes).toBe(5 + 23)
   })
 
   it('is deterministic: the same fixtures twice write identical entities', async () => {

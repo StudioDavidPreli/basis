@@ -111,7 +111,14 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
           </tr>
         </thead>
         <LayoutGroup id="ledger">
-          <tbody>
+          {/* Keyboard focus inside a row is the row's hover: the chart lifts
+              its ribbon and the hero's readout reads the point. Focus
+              leaving the body clears it. */}
+          <tbody
+            onBlur={e => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onHover(null)
+            }}
+          >
             {order.map((id, i) => {
               const row = byId.get(id)!
               const selected = selection.includes(id)
@@ -129,6 +136,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   data-hover={hoveredId === id || undefined}
                   onMouseEnter={() => onHover(id)}
                   onMouseLeave={() => onHover(null)}
+                  onFocus={() => onHover(id)}
                 >
                   <td className={`${styles.num} type-eyebrow`} aria-hidden="true">
                     ▸ {String(i + 1).padStart(2, '0')}

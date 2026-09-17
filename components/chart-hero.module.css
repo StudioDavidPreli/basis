@@ -35,24 +35,6 @@
   background: var(--band);
 }
 
-.plot {
-  height: clamp(220px, 44dvh, 520px);
-  border: var(--hairline) solid var(--rule);
-  border-radius: var(--radius);
-  background-image: var(--pinstripes);
-  background-size: var(--pinstripe-size);
-  display: grid;
-  place-items: end start;
-  padding: var(--space-3);
-}
-
-.note {
-  margin: 0;
-  color: var(--muted);
-  background: var(--paper);
-  padding: 0 var(--space-1);
-}
-
 .strip {
   display: flex;
   align-items: flex-start;
@@ -128,9 +110,6 @@
 }
 
 @media (max-width: 900px) {
-  .plot {
-    height: clamp(180px, 34dvh, 320px);
-  }
   .controls .group:first-child {
     display: none;
   }

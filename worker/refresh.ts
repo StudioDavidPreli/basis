@@ -11,9 +11,10 @@
 //
 // Budget. The design assumes the free Workers plan and stays under its
 // published limits with margin: at most 45 subrequests a run (limit 50),
-// three KV writes a run (agent reading, the snapshot, agent done) plus the
-// history writes that only happen on the daily trailing fetch or a backfill
-// chunk (limit 1,000 writes a day, 96 runs a day, so about 300 plus history),
+// five KV writes a run (agent reading, the snapshot, one series key per
+// dataset, agent done) plus the history writes that only happen on the daily
+// trailing fetch or a backfill chunk (limit 1,000 writes a day, 96 runs a
+// day, so 480 plus history; decisions/2026-09-16-series-in-their-own-key.md),
 // and small responses so a run's CPU stays in the low milliseconds
 // (limit 10 ms). If the account is on the paid plan none of this binds,
 // and it costs nothing to keep. decisions/2026-09-16-chunked-backfill.md.
@@ -24,7 +25,7 @@ import { generate } from '@/lib/processes'
 import { deriveMetric } from '@/lib/metrics'
 import { diff } from '@/lib/diff'
 import { deriveStatus } from '@/lib/status'
-import type { EntitySnapshot, FigureValue, Mutation, Snapshot, Source } from '@/lib/types'
+import type { EntitySeries, EntitySnapshot, FigureValue, Mutation, SeriesSnapshot, Snapshot, Source } from '@/lib/types'
 import { adapterFor, type Adapter } from '@/sources'
 
 // ── Dependencies and stored shapes ──────────────────────────────────────
@@ -83,6 +84,7 @@ export const KEYS = {
   snapshot: 'snapshot',
   agent: 'agent',
   history: (driver: string) => `history:${driver}`,
+  series: (dataset: string) => `series:${dataset}`,
 }
 
 const MUTATION_LOG_CAP = 300
@@ -269,13 +271,19 @@ function sourceOf(driver: DriverConfig, state: DriverState): Source {
   }
 }
 
+// Stored to four decimals: a level near 100 keeps a hundredth of a basis
+// point, and the series key stays a fraction of the size of the raw floats.
+function round4(v: number): number {
+  return Math.round(v * 10_000) / 10_000
+}
+
 function computeEntity(
   entity: CompanyConfig | RegionConfig,
   dataset: 'comps' | 'regions',
   drivers: Record<string, DriverState>,
   prev: EntitySnapshot | undefined,
   deps: RefreshDeps,
-): EntitySnapshot {
+): { snapshot: EntitySnapshot; series: EntitySeries } {
   const now = deps.now()
   const today = isoDate(now)
   const dominantId = dominantDriver(entity.exposures)
@@ -300,6 +308,31 @@ function computeEntity(
   const prevLevel = axis[axis.length - 1] === today ? level[level.length - 2] : level[level.length - 1]
 
   const sources = entity.exposures.map(e => sourceOf(drivers[e.driver]!.config, drivers[e.driver]!))
+  // The chart's series (lib/types.ts, EntitySeries): the level over the
+  // axis, ending on today's figure so the endpoint is the row's value, and
+  // for a region the dominant driver's own values on the same dates. The
+  // trailing window the adapter re-fetches is what a source may still
+  // revise, so those dates are provisional.
+  const dominantIndex = entity.exposures.findIndex(e => e.driver === dominantId)
+  const dates = [...axis]
+  const levels = level.map(round4)
+  const driverValues = dataset === 'regions' ? series[dominantIndex]!.values.map(round4) : null
+  if (dates[dates.length - 1] === today) {
+    levels[levels.length - 1] = round4(latestLevel)
+    if (driverValues) driverValues[driverValues.length - 1] = round4(dominant.latest.value)
+  } else {
+    dates.push(today)
+    levels.push(round4(latestLevel))
+    if (driverValues) driverValues.push(round4(dominant.latest.value))
+  }
+  const entitySeries: EntitySeries = {
+    dates,
+    level: levels,
+    ...(driverValues ? { driver: driverValues } : {}),
+    coveredFrom: dominant.history.coveredFrom,
+    provisionalFrom: shiftDays(today, -dominant.adapter.trailingDays),
+  }
+
   const columns = deps.config.datasets[dataset]!.columns
   const metrics: Record<string, FigureValue> = {}
   for (const column of columns) {
@@ -320,7 +353,7 @@ function computeEntity(
       updatedAt: now.toISOString(),
     }
   }
-  return { metrics }
+  return { snapshot: { metrics }, series: entitySeries }
 }
 
 // ── The run ─────────────────────────────────────────────────────────────
@@ -377,8 +410,17 @@ export async function refresh(deps: RefreshDeps): Promise<RefreshResult> {
 
   const at = deps.now().toISOString()
   const entities: Record<string, EntitySnapshot> = {}
-  for (const c of config.companies) entities[c.id] = computeEntity(c, 'comps', drivers, prev?.entities[c.id], deps)
-  for (const r of config.regions) entities[r.id] = computeEntity(r, 'regions', drivers, prev?.entities[r.id], deps)
+  const seriesByDataset: Record<'comps' | 'regions', Record<string, EntitySeries>> = { comps: {}, regions: {} }
+  for (const c of config.companies) {
+    const out = computeEntity(c, 'comps', drivers, prev?.entities[c.id], deps)
+    entities[c.id] = out.snapshot
+    seriesByDataset.comps[c.id] = out.series
+  }
+  for (const r of config.regions) {
+    const out = computeEntity(r, 'regions', drivers, prev?.entities[r.id], deps)
+    entities[r.id] = out.snapshot
+    seriesByDataset.regions[r.id] = out.series
+  }
 
   const next: Snapshot = { at, entities }
   const mutations = diff(prev, next)
@@ -401,6 +443,10 @@ export async function refresh(deps: RefreshDeps): Promise<RefreshResult> {
   }
   const snapshot: StoredSnapshot = { ...next, mutations: log, agent }
   await deps.kv.put(KEYS.snapshot, JSON.stringify(snapshot))
+  for (const dataset of ['comps', 'regions'] as const) {
+    const stored: SeriesSnapshot = { at, dataset, entities: seriesByDataset[dataset] }
+    await deps.kv.put(KEYS.series(dataset), JSON.stringify(stored))
+  }
   await deps.kv.put(KEYS.agent, JSON.stringify(agent))
   return { snapshot, mutations, phase, requests: budget.used }
 }

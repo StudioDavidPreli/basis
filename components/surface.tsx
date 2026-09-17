@@ -5,13 +5,13 @@
 // cron, and the pieces of the sheet laid out on the hero map
 // (decisions/2026-09-16-passbook-visual-language.md).
 
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { config } from '@/lib/config'
 import { entityName, mutationSentence } from '@/lib/describe'
 import { entityHref } from '@/lib/entity-detail'
 import type { StoredSnapshot } from '@/worker/refresh'
-import type { FigureValue } from '@/lib/types'
+import type { FigureValue, SeriesSnapshot } from '@/lib/types'
 import { initialState, reduce, sortIds } from './surface-state'
 import { defaultMetric, encodeUrlState, type UrlState } from './surface-url'
 import { useNow } from './use-now'
@@ -26,16 +26,31 @@ import styles from './surface.module.css'
 
 const POLL_MS = 60_000
 
-type Props = { snapshot: StoredSnapshot | null; cold: boolean; renderedAt: string; initial: UrlState }
+type Props = { snapshot: StoredSnapshot | null; series: SeriesSnapshot | null; cold: boolean; renderedAt: string; initial: UrlState }
 
-export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) {
+export function Surface({ snapshot: served, series: servedSeries, cold, renderedAt, initial }: Props) {
   // Seeded from the URL the server parsed, so the first client render is
   // the server's render and a deep link has nothing to reconcile.
   const [state, dispatch] = useReducer(reduce, initial, seed => ({ ...initialState(seed.dataset, seed.metric), ...seed }))
   const [snapshot, setSnapshot] = useState(served)
   const [busy, setBusy] = useState(false)
+  const activeDataset = state.dataset
   const now = useNow(renderedAt)
   const { message, announce } = useAnnouncer()
+
+  // The chart's series, by dataset (decisions/2026-09-16-series-in-their-
+  // own-key.md). The page ships the dataset it opened on; the other is read
+  // when its tab is first switched to (the tab's handler, below), and the
+  // active one again when the poll sees a newer snapshot, so the endpoints
+  // follow the figures.
+  const [seriesByDataset, setSeriesByDataset] = useState<Record<string, SeriesSnapshot | null>>({ [initial.dataset]: servedSeries })
+  const loadSeries = useCallback(async (dataset: string) => {
+    const res = await fetch(`/api/series?dataset=${encodeURIComponent(dataset)}`, { cache: 'no-store' })
+    if (!res.ok) return
+    const next = (await res.json()) as SeriesSnapshot
+    setSeriesByDataset(prev => ({ ...prev, [dataset]: next }))
+  }, [])
+  const latestAt = useRef(served?.at ?? null)
 
   // Follow the cron: read the stored snapshot every minute, announce what
   // changed since the one on screen. Values tick through useAnimatedNumber
@@ -50,7 +65,11 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
       }
       return next
     })
-  }, [announce])
+    if (latestAt.current === null || next.at > latestAt.current) {
+      latestAt.current = next.at
+      void loadSeries(activeDataset)
+    }
+  }, [announce, loadSeries, activeDataset])
 
   useEffect(() => {
     const id = setInterval(load, POLL_MS)
@@ -139,7 +158,12 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
         <Header
           datasets={Object.entries(config.datasets).map(([id, d]) => ({ id, label: d.label }))}
           active={state.dataset}
-          onDataset={id => dispatch({ type: 'dataset', dataset: id, defaultMetric: defaultMetric(config.datasets[id]!) })}
+          onDataset={id => {
+            dispatch({ type: 'dataset', dataset: id, defaultMetric: defaultMetric(config.datasets[id]!) })
+            // A dataset the page did not ship: read its series now, before a
+            // row is selected.
+            if (!(id in seriesByDataset)) void loadSeries(id)
+          }}
           busy={busy}
           onRefresh={refresh}
           date={snapshot?.at ?? renderedAt}
@@ -151,11 +175,17 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           onMetric={m => dispatch({ type: 'metric', metric: m })}
           range={state.range}
           onRange={r => dispatch({ type: 'range', range: r })}
+          rows={rows}
           selection={state.selection.map(id => rows.find(r => r.id === id)!).filter(Boolean)}
           onDeselect={id => dispatch({ type: 'toggle', id, order })}
           onClear={() => dispatch({ type: 'clear' })}
           hoveredId={state.hoveredId}
+          onHover={id => dispatch({ type: 'hover', id })}
+          openId={openId}
+          series={seriesByDataset[state.dataset] ?? null}
+          parentheses={state.dataset === 'comps'}
           phase={phase}
+          now={now}
         />
         <DataTable
           rows={rows}

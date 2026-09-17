@@ -38,6 +38,23 @@ export type EntitySnapshot = {
   metrics: Record<MetricKey, FigureValue>
 }
 
+// The chart's data, one KV key per dataset beside the snapshot
+// (decisions/2026-09-16-series-in-their-own-key.md). The level is stored
+// once per date; the other metrics derive from it per point (lib/series.ts).
+export type EntitySeries = {
+  dates: string[] // the dominant driver's real dates, ascending; the last is today
+  level: number[] // one per date; the last equals the row's level figure
+  driver?: number[] // regions: the dominant driver's value per date
+  coveredFrom: string | null // how deep the backfill has reached; null while on fixture
+  provisionalFrom: string // dates on or after this may still be revised by the source
+}
+
+export type SeriesSnapshot = {
+  at: string
+  dataset: string
+  entities: Record<string, EntitySeries>
+}
+
 export type Mutation = {
   entity: string
   metric: MetricKey

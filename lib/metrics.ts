@@ -8,7 +8,7 @@ export type MetricInputs = {
   level: number
   prevLevel: number | undefined
   driverValue: number | undefined // the dominant driver's latest raw value
-  entity: CompanyConfig | RegionConfig
+  entity?: CompanyConfig | RegionConfig // only a `field` column reads it; the chart's per-point derivation passes none
 }
 
 export function deriveMetric(column: ColumnConfig, inputs: MetricInputs): number | string | undefined {
@@ -26,6 +26,7 @@ export function deriveMetric(column: ColumnConfig, inputs: MetricInputs): number
       return inputs.driverValue
     case 'field': {
       if (!column.field) throw new Error(`column ${column.key} derives a field without naming it`)
+      if (!inputs.entity) return undefined
       const v = (inputs.entity as unknown as Record<string, unknown>)[column.field]
       return typeof v === 'string' || typeof v === 'number' ? v : undefined
     }

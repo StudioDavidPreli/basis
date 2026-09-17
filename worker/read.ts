@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { KEYS, runRefresh, type StoredSnapshot } from './refresh'
+import type { SeriesSnapshot } from '@/lib/types'
 import { depsFromEnv, type BasisEnv } from './deps'
 
 // The read every page starts with (docs/spec.md, "Server / client
@@ -27,4 +28,14 @@ export async function loadSnapshot(): Promise<Loaded> {
   const snapshot = text ? (JSON.parse(text) as StoredSnapshot) : null
   if (snapshot && agentText) snapshot.agent = JSON.parse(agentText)
   return { snapshot, cold }
+}
+
+// The chart's series for one dataset (decisions/2026-09-16-series-in-their-
+// own-key.md), written by the same run as the snapshot. Read after
+// loadSnapshot, so a cold store has been filled by the time this looks.
+export async function loadSeries(dataset: string): Promise<SeriesSnapshot | null> {
+  const { env } = await getCloudflareContext({ async: true })
+  const e = env as unknown as BasisEnv
+  const text = await e.BASIS_KV.get(KEYS.series(dataset), 'text')
+  return text ? (JSON.parse(text) as SeriesSnapshot) : null
 }
