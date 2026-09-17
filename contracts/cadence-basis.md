@@ -134,25 +134,27 @@ adding a row, in its own commit.
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
 | Drawer open | — | `springDamped` | `none` |
 | Ledger shift beside the drawer (no reorder) | — | `springDamped` (layout) | `none` |
-| Drawer close | instant (the route unmounts) | — | `none` |
+| Drawer close | — | `springDamped` (exit, kept mounted until done) | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 
-The drawer is an intercepting route, so Next unmounts it the moment history
-moves: it comes in on `springDamped` and disappears at once. The drawer sits
-in the layout's right gutter, so on a viewport wide enough it touches nothing;
-when the sheet must give it room, the ledger's rows shift on the same
-`springDamped` (every row keeping its index moves as one; the `short` stagger
-is for a reorder only), so the two move together. (The raw spring read as too
-springy; damping it, not removing it, David, 2026-09-16.)
+The drawer is an intercepting route, so Next removes it from the tree the
+moment history moves, on every close path: Escape, the close control, and
+the back button alike. The drawer shell holds the removed drawer through an
+`AnimatePresence` boundary, so the panel slides out on `springDamped` and the
+element is unmounted when the exit completes; history itself moves at once
+and stays honest. The drawer sits in the layout's right gutter, so on a
+viewport wide enough it touches nothing; when the sheet must give it room,
+the ledger's rows shift on the same `springDamped` (every row keeping its
+index moves as one; the `short` stagger is for a reorder only), so the two
+move together. (The raw spring read as too springy; damping it, not removing
+it, and an instant close read as no exit at all, David, 2026-09-16.)
 Switching the entity while the drawer is open does not reopen it: the text
 scrambles per character into the new text over `slower`, with the glyph
 clock on `delays.short`; under reduced motion both flatten and the text
-simply changes. No exit is faked by delaying the
-navigation, because the back button, the primary close path, could not be
-animated either and history would lie for the others.
+simply changes.
 
 Rive artboards (`AgentPresence`, logos) hold their own timing inside the state
 machine; Basis pushes only view-model values. The `reduced` boolean in the
