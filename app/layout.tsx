@@ -38,7 +38,16 @@ export default function RootLayout({ children, drawer }: { children: ReactNode; 
       <body>
         {/* First in the body, before anything renders: sets data-theme and
             data-reduce-motion so the first paint and the hydration both see
-            the same attributes. See app/theme-script.ts. */}
+            the same attributes. See app/theme-script.ts.
+
+            A raw element on purpose. next/script's beforeInteractive does
+            not run inline content at parse time: the server emits a push
+            onto self.__next_s and Next's runtime executes the queue later,
+            which is after the first paint can happen. This element runs as
+            the parser reaches it. The cost is a development-only warning
+            when React re-creates the layout on the client after a server
+            error (a script element is never executed by React); production
+            hydrates the server's element and never creates one. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <div id="frame" className="frame">
           {children}
