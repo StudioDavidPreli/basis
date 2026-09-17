@@ -56,20 +56,35 @@ body {
   box-sizing: border-box;
 }
 
-/* The layout's grid: the page, and beside it the drawer slot. The second
-   column is the drawer's own width when one is open and nothing when the
-   slot renders null, so the sheet narrows beside the drawer through the
-   layout (docs/spec.md, "Drawer"). */
+/* The layout's grid: a left gutter, the page at most 96rem wide, and a
+   right gutter that holds the drawer slot. The left gutter is fixed at
+   what centers a 96rem page, so the page never moves; the right gutter is
+   at least the drawer's width when one is open and takes the rest
+   otherwise. On a viewport wide enough the drawer sits in the gutter and
+   touches nothing; when there is not enough, the page narrows beside it
+   with its left edge where it was (docs/spec.md, "Drawer"). */
 .frame {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: max(0px, calc((100% - 96rem) / 2)) minmax(0, 96rem) minmax(auto, 1fr);
   align-items: start;
   min-height: 100dvh;
+}
+
+/* Full width of its column: a grid item with auto margins would otherwise
+   shrink to its content and center inside the column, and move when the
+   column changes. */
+.frame > :first-child {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
   .frame {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .frame > :first-child {
+    grid-column: 1;
   }
 }
 

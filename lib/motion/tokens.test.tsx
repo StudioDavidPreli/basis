@@ -24,6 +24,12 @@ describe('useMotionTokens', () => {
     expect(t.easings.standard).toEqual([0.4, 0, 0.2, 1])
     expect(t.scale.pressSubtle).toBe(0.98)
     expect(t.spring).toEqual({ type: 'spring', stiffness: 170, damping: 20, mass: 1.5 })
+    // Critically damped: damping² = 4 · stiffness · mass, nothing else changed.
+    const d = t.springDamped as { type: string; stiffness: number; damping: number; mass: number }
+    expect(d.type).toBe('spring')
+    expect(d.stiffness).toBe(170)
+    expect(d.mass).toBe(1.5)
+    expect(d.damping * d.damping).toBeCloseTo(4 * 170 * 1.5, 6)
     expect(t.transitions.enter).toEqual({ duration: 0.2, ease: [0, 0, 0.2, 1] })
     expect(t.transitions.exit).toEqual({ duration: 0.1, ease: [0.4, 0, 1, 1] })
     expect(t.transitions.spring).toBe(t.spring)
@@ -44,6 +50,7 @@ describe('useMotionTokens', () => {
     setFlag('1')
     const { result } = renderHook(() => useMotionTokens())
     expect(result.current.spring).toEqual({ duration: 0.01 })
+    expect(result.current.springDamped).toEqual({ duration: 0.01 })
   })
 
   it('rebuilds transitions from the flattened fields (the contract trap)', () => {

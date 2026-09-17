@@ -6,8 +6,9 @@
 // showModal()), as the second column of the layout's grid. It mounts once
 // in the slot's layout and stays across entity switches, because Next
 // remounts the [id] segment beneath it on every param change. So: the
-// panel slides in once, on slow / standard, the pair the ledger's rows
-// shift on beside it; a switch changes the content in place.
+// panel comes in once, on the critically damped Cadence spring, the same
+// spring the ledger's rows shift on beside it when the sheet has to give
+// it room; a switch changes the content in place.
 //
 // Escape here goes through router.back(), the same path as the back
 // button. Focus return on close is the content's job (drawer.tsx), whose
@@ -29,7 +30,7 @@ export function rowLinkSelector(id: string): string {
 
 export function DrawerShell({ children }: { children: ReactNode }) {
   const router = useRouter()
-  const { durations, easings } = useMotionTokens()
+  const { springDamped } = useMotionTokens()
   const segments = useSelectedLayoutSegments()
   // ['(.)company', 'ou-tokyo'] with an entity open; empty, or the default
   // marker, on the sheet.
@@ -54,7 +55,7 @@ export function DrawerShell({ children }: { children: ReactNode }) {
         router.back()
       }}
     >
-      <motion.div className={styles.panel} initial={{ x: '100%' }} animate={{ x: 0 }} transition={{ duration: durations.slow, ease: easings.standard }}>
+      <motion.div className={styles.panel} initial={{ x: '100%' }} animate={{ x: 0 }} transition={springDamped}>
         {children}
       </motion.div>
     </dialog>

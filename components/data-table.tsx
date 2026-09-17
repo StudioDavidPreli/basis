@@ -50,7 +50,7 @@ type Props = {
 const STAGGER_CAP = 8
 
 export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId }: Props) {
-  const { durations, easings, delays } = useMotionTokens()
+  const { durations, easings, delays, springDamped } = useMotionTokens()
   const byId = new Map(rows.map(r => [r.id, r]))
   const all = selection.length === rows.length && rows.length > 0
   const some = selection.length > 0 && !all
@@ -60,9 +60,10 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   }, [some])
 
   // The order of the previous committed render, kept beside the current
-  // one, so a row can tell a reorder (it changed index: staggered) from a
-  // shift of the whole ledger, as when the drawer opens beside it (every
-  // row keeps its index: they move as one, on the drawer's own timing).
+  // one, so a row can tell a reorder (it changed index: slow / standard,
+  // staggered) from a shift of the whole ledger, as when the drawer opens
+  // beside it (every row keeps its index: they move as one, on the
+  // drawer's own damped spring).
   const [orders, setOrders] = useState({ prev: order, current: order })
   if (orders.current !== order) setOrders({ prev: orders.current, current: order })
   const prevOrder = orders.current === order ? orders.prev : orders.current
@@ -116,12 +117,12 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               // The gate flags a literal inside a timing value, so the index math
               // stays out of the transition object.
               const moved = prevOrder[i] !== id
-              const stagger = moved ? Math.min(i, STAGGER_CAP - 1) : 0
+              const stagger = Math.min(i, STAGGER_CAP - 1)
               return (
                 <motion.tr
                   key={id}
                   layout="position"
-                  transition={{ duration: durations.slow, ease: easings.standard, delay: stagger * delays.short }}
+                  transition={moved ? { duration: durations.slow, ease: easings.standard, delay: stagger * delays.short } : springDamped}
                   className={styles.row}
                   data-selected={selected || undefined}
                   data-hover={hoveredId === id || undefined}

@@ -1,8 +1,11 @@
-/* The drawer is the second column of the layout's grid (app/globals.css,
-   .frame): a right sheet at full height that scrolls on its own, sticky
-   under the viewport like the margin. Every UA dialog style is replaced:
-   the element is in flow, not absolutely placed; the paper is Basis's. */
+/* The drawer sits in the right gutter of the layout's grid
+   (app/globals.css, .frame), flush with the viewport's edge: a right sheet
+   at full height that scrolls on its own, sticky under the viewport like
+   the margin. Every UA dialog style is replaced: the element is in flow,
+   not absolutely placed; the paper is Basis's. */
 .drawer {
+  grid-column: 3;
+  justify-self: end;
   position: sticky;
   top: 0;
   inset-inline: auto;

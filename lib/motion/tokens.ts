@@ -28,6 +28,7 @@ export type MotionTokens = {
   easings: Easings // unchanged
   scale: Scale // unchanged
   spring: Transition // Cadence spring, or { duration: 0.01 } under reduced motion
+  springDamped: Transition // the same spring critically damped, same reduced-motion branch
   transitions: {
     enter: Transition
     exit: Transition
@@ -55,16 +56,28 @@ const reducedDelays = flattened(moduleDelays, REDUCED_DELAY)
 // cannot express and the contract makes Basis's responsibility.
 const reducedSpring: Transition = { duration: REDUCED_DURATION }
 
+// The Cadence spring critically damped (contracts/cadence-basis.md): the
+// damping raised to 2·√(stiffness · mass), so it settles with no overshoot.
+// Every number is the token's own; the relation is physics. For a use that
+// wants the spring's motion without its bounce, the drawer.
+function criticallyDamped(s: Transition): Transition {
+  const { stiffness, mass } = s as { stiffness: number; mass: number }
+  return { ...s, damping: 2 * Math.sqrt(stiffness * mass) }
+}
+const moduleSpringDamped = criticallyDamped(moduleSpring)
+
 function build(reducedMotion: boolean): MotionTokens {
   const durations = reducedMotion ? reducedDurations : moduleDurations
   const delays = reducedMotion ? reducedDelays : moduleDelays
   const spring: Transition = reducedMotion ? reducedSpring : moduleSpring
+  const springDamped: Transition = reducedMotion ? reducedSpring : moduleSpringDamped
   return {
     durations,
     delays,
     easings,
     scale,
     spring,
+    springDamped,
     // Rebuilt from the fields above, never the module's own `transitions`:
     // the module evaluates `duration: durations.base` at load, so its object
     // holds 0.2 no matter what happened to `durations` here.

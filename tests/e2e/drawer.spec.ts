@@ -186,6 +186,33 @@ test.describe('the drawer', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0)
   })
 
+  test('on a wide viewport the drawer takes the gutter and the sheet does not move', async ({ page }) => {
+    await page.setViewportSize({ width: 2600, height: 900 })
+    await page.goto('/')
+    const table = page.locator('table')
+    const chart = page.getByRole('region', { name: 'Chart' })
+    const before = { table: await table.boundingBox(), chart: await chart.boundingBox() }
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await page.waitForTimeout(900) // the spring settles
+    expect({ table: await table.boundingBox(), chart: await chart.boundingBox() }).toEqual(before)
+    const dialog = (await page.locator('dialog').boundingBox())!
+    expect(Math.round(dialog.x + dialog.width)).toBe(2600)
+    expect(dialog.x).toBeGreaterThanOrEqual(before.table!.x + before.table!.width)
+  })
+
+  test('on a narrower viewport the sheet narrows beside the drawer with its left edge in place', async ({ page }) => {
+    await page.goto('/')
+    const table = page.locator('table')
+    const before = (await table.boundingBox())!
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await page.waitForTimeout(900)
+    const after = (await table.boundingBox())!
+    expect(Math.round(after.x)).toBe(Math.round(before.x))
+    expect(after.width).toBeLessThan(before.width)
+  })
+
   test('a region opens the same way and passes axe with the drawer open', async ({ page }) => {
     await page.goto('/?dataset=regions')
     await page.getByRole('link', { name: /Brooklyn/ }).click()
