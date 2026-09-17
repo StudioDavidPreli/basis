@@ -1,10 +1,20 @@
 /* No horizontal scrollbar, ever: the drawer's resize crosses the table's
    minimum width on the way and an auto scrollbar flashed on and off with
-   it (David, 2026-09-16). The columns below give up width instead: the
-   industry text wraps and the name's floor is low enough that the ledger
-   fits beside an open drawer down to the narrow-viewport breakpoint. */
+   it (David, 2026-09-16). The ledger gives up columns instead, by its own
+   width: it is a container, and below the width the full set of columns
+   needs the text column (industry) hides, whatever made the ledger narrow
+   (an open drawer, a narrow viewport). The name's floor is low enough that
+   what remains fits beside an open drawer at any viewport above the
+   narrow breakpoint. */
 .wrap {
   overflow-x: clip;
+  container-type: inline-size;
+}
+
+@container (max-width: 46rem) {
+  .text {
+    display: none;
+  }
 }
 
 .table {
