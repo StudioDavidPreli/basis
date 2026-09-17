@@ -101,14 +101,15 @@ function createStore(text: string) {
 }
 
 type Store = ReturnType<typeof createStore>
-// Module state, so it is process-wide on the server. A keyed ScrambleText
-// is only ever mounted by the drawer, which only exists after a client
-// navigation; the full page passes no key. If a keyed one ever renders on
-// the server, this map is shared across requests and never reset.
+// Module state, so it would be process-wide on the server, shared across
+// requests and never reset. A keyed ScrambleText is only mounted by the
+// drawer, after a client navigation, but the guard below makes the server
+// case a fresh store regardless. Decided at module scope, not in render.
 const stores = new Map<string, Store>()
+const onServer = typeof window === 'undefined'
 
 function storeFor(key: string | undefined, text: string): Store {
-  if (!key) return createStore(text)
+  if (!key || onServer) return createStore(text)
   let s = stores.get(key)
   if (!s) {
     s = createStore(text)

@@ -7,7 +7,7 @@
 // exactly one place.
 
 import { useMemo, useSyncExternalStore } from 'react'
-import type { Transition } from 'framer-motion'
+import { MotionGlobalConfig, type Transition } from 'framer-motion'
 import {
   durations as moduleDurations,
   easings,
@@ -120,6 +120,23 @@ function getSnapshot() {
 
 function getServerSnapshot() {
   return false
+}
+
+// The hook's value is the server's (`false`) through hydration and the
+// client's only after the first passive effects, so a Framer animation
+// that starts at mount (an `initial` → `animate` on a ribbon or a popover
+// present in the HTML) would start with the un-reduced tokens and run in
+// full. Framer's global skip flag closes that: set here from the attribute
+// at module evaluation, which on the client is before hydration, and kept
+// in step with it after. A skipped animation applies its final keyframe
+// and still fires its completion handler. Module scope, not render: the
+// only place this branches on the document is before React runs.
+function syncSkip() {
+  MotionGlobalConfig.skipAnimations = getSnapshot()
+}
+if (typeof document !== 'undefined') {
+  syncSkip()
+  new MutationObserver(syncSkip).observe(document.documentElement, { attributes: true, attributeFilter: [ATTRIBUTE] })
 }
 
 export function useReducedMotion(): boolean {

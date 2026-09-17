@@ -127,6 +127,22 @@ test.describe('the chart', () => {
     await expect(plot(page)).toHaveAttribute('aria-label', /^Index over 1Y, 1 row: Brooklyn/)
   })
 
+  test('the other dataset reads its series again once the snapshot has advanced', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Regions' }).click()
+    await expect(page.locator('tbody tr')).toHaveCount(8)
+    await page.getByRole('button', { name: 'Comparables' }).click()
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    // A manual refresh advances the snapshot; the poll takes the same path.
+    await page.getByRole('button', { name: 'Refresh' }).click()
+    await expect(page.getByRole('button', { name: 'Refresh' })).toBeEnabled()
+    // The regions series on hand are from before the run and are forgotten;
+    // the switch reads them again, so the endpoints match the figures.
+    const read = page.waitForRequest(r => r.url().includes('/api/series?dataset=regions'), { timeout: 5_000 })
+    await page.getByRole('button', { name: 'Regions' }).click()
+    await read
+  })
+
   test('passes axe with ribbons drawn, the readout up, and the drawer open', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('checkbox', { name: 'Select all rows' }).click()

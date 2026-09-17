@@ -29,6 +29,10 @@ function readTheme(): Theme {
   return t === 'operate' ? 'operate' : 'passbook'
 }
 function useTheme(): [Theme, () => void] {
+  // The server snapshot is the first stock, so on the dark stock the icon
+  // and label render the light stock's for one frame after hydration,
+  // until the client snapshot re-renders. The page's colors are right from
+  // the first paint: the stylesheet keys on the attribute, not on this.
   const theme = useSyncExternalStore(subscribeTheme, readTheme, () => 'passbook' as Theme)
   const toggle = () => {
     const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!
