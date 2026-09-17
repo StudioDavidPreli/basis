@@ -12,5 +12,7 @@ export const dynamic = 'force-dynamic'
 export default async function EmbedFigure({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams
   const status = typeof params['status'] === 'string' ? params['status'] : 'current'
-  return <FigureStage status={status} />
+  // Keyed on the status so a client-side change of it starts the stage
+  // over, at the previous value, rather than keeping the last one.
+  return <FigureStage key={status} status={status} />
 }

@@ -4,10 +4,11 @@
 // decisions/2026-09-16-drawer-non-modal-dialog.md,
 // decisions/2026-09-16-drawer-resizes-the-layout.md): a non-modal <dialog>,
 // open through the `open` attribute (the declarative show(), never
-// showModal()), in the right gutter of the layout's grid. It mounts once
-// in the slot's layout and stays across entity switches, because Next
-// remounts the [id] segment beneath it on every param change; a switch
-// changes the content in place.
+// showModal()), in the right gutter of the layout's grid. It lives in the
+// slot's layout, which Next keeps across entity switches of one kind
+// (company to company) while it remounts the [id] segment beneath it; a
+// switch changes the content in place. Company to region remounts the
+// shell too, so the old dialog exits while the new one opens.
 //
 // Open animates the dialog's width, zero to its CSS width, on the damped
 // spring. The dialog is the grid column, so the sheet beside it resizes on
@@ -23,7 +24,7 @@
 // which outlives the slot (contract, "Drawer close"). Focus return on
 // close is the content's job (drawer.tsx).
 
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { useRouter, useSelectedLayoutSegments } from 'next/navigation'
 import { animate } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
@@ -46,9 +47,17 @@ export function DrawerShell({ children }: { children: ReactNode }) {
   const id = open ? decodeURIComponent(segments[segments.length - 1]!) : null
   const dialog = useRef<HTMLDialogElement>(null)
 
+  // The spring is read through a ref at the moment the open starts, so a
+  // reduced-motion flip while the drawer is open (the palette's toggle)
+  // changes the tokens without re-running the open from zero.
+  const spring = useRef(springDamped)
+  useEffect(() => {
+    spring.current = springDamped
+  }, [springDamped])
+
   useLayoutEffect(() => {
     const d = dialog.current
-    if (!d) return
+    if (!open || !d) return
     // Measure with no inline width, so the stylesheet's rule is what is
     // read. Under React's development Strict Mode this effect runs, is
     // cleaned up, and runs again on the same element; the first run had
@@ -58,13 +67,17 @@ export function DrawerShell({ children }: { children: ReactNode }) {
     d.style.width = ''
     const width = d.getBoundingClientRect().width
     d.style.width = '0px'
-    const controls = animate(d, { width: [0, width] }, springDamped)
+    // `reduceMotion: false`: width is a positional key, and without it
+    // Framer consults prefers-reduced-motion itself and makes the spring
+    // instant. The flag on <html> is the only source of truth for reduced
+    // motion here (contracts/cadence-basis.md); the tokens carry it.
+    const controls = animate(d, { width: [0, width] }, { ...spring.current, reduceMotion: false })
     controls.then(() => {
       d.style.width = ''
     })
     return () => controls.stop()
-    // Runs once per mount: the spring token is stable between renders.
-  }, [springDamped])
+    // Runs whenever the dialog appears, whether or not the shell remounted.
+  }, [open])
 
   if (!open) return <>{children}</>
 

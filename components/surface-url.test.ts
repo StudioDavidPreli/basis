@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { encodeUrlState, mergeUrlSearch, parseUrlState, type UrlState } from './surface-url'
 
-
 const bare: UrlState = { dataset: 'comps', sort: null, metric: 'level', range: '1Y' }
 
 describe('the URL codec', () => {
@@ -46,4 +45,3 @@ describe('the URL codec', () => {
     expect(mergeUrlSearch('', '')).toBe('')
   })
 })
-

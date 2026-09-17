@@ -39,7 +39,10 @@ export function DrawerExit() {
           // The dialog itself, never a motion element: Framer's imperative
           // animate would otherwise pick up an unmounted visual element and
           // go nowhere.
-          animate(node, { width: [width, 0] }, springDamped).then(() => node.remove())
+          // `reduceMotion: false` for the same reason as the open: Framer
+          // would otherwise read prefers-reduced-motion itself for a
+          // positional key; the tokens already carry the flag.
+          animate(node, { width: [width, 0] }, { ...springDamped, reduceMotion: false }).then(() => node.remove())
         }
       }
     })

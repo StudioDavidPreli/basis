@@ -26,7 +26,7 @@
 // alternative. The readout is a live region so keyboard focus on a row
 // reads the point.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { dateMs, domainFor, formatDateTick, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Domain, type Frame, type Point } from '@/lib/chart'
@@ -115,13 +115,26 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
   const svg = useRef<SVGSVGElement>(null)
   const targetKey = target ? target.join(',') : ''
   const hadDomain = useRef(false)
-  useEffect(() => {
+  // A layout effect, so the first domain is in place before the ticks and
+  // gridlines that read it are painted; the values were initialised on the
+  // server's target, so on mount there is nothing to jump.
+  useLayoutEffect(() => {
     if (!targetKey) {
       hadDomain.current = false
       return
     }
     const next = targetKey.split(',').map(Number) as Domain
     const values = [x0, x1, y0, y1]
+    // Already there: the mount, the second run under development Strict
+    // Mode, and the re-run when the reduced-motion flag settles after
+    // hydration all land here. Decided from the values, not from history.
+    if (values.every((v, i) => v.get() === next[i])) {
+      hadDomain.current = true
+      return
+    }
+    // A domain after none (the series arrived) is set, not animated. The
+    // flag records the target's history, which the values cannot: they
+    // still hold the last window, or the nominal one.
     if (!hadDomain.current) {
       hadDomain.current = true
       values.forEach((v, i) => v.jump(next[i]!))
@@ -138,7 +151,6 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
       controls.forEach(c => c.stop())
       el?.removeAttribute('data-animating')
     }
-
   }, [targetKey, x0, x1, y0, y1, durations.slow, easings.standard])
 
   // Draw-in stagger by selection order among the ribbons arriving together:

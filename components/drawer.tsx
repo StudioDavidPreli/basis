@@ -17,6 +17,7 @@ import { Marker } from './marker'
 import { CloseIcon, IconButton } from './icon-button'
 import { ScrambleText, resetScrambleStores } from './scramble-text'
 import { DRAWER_HEADING_ID, DRAWER_SCRAMBLE_KEY, rowLinkSelector } from './drawer-shell'
+import { EXITING } from './drawer-exit'
 import { useNow } from './use-now'
 import styles from './drawer.module.css'
 
@@ -35,7 +36,12 @@ export function Drawer({ detail, renderedAt, phase }: Props) {
     // panel.
     heading.current?.focus({ preventScroll: true })
     return () => {
-      if (document.querySelector('dialog[open]')) return
+      // Another drawer open means a switch, not a close. The one on its
+      // way out still carries `open` (the stylesheet needs it) and is
+      // re-appended by DrawerExit from a microtask that can land before or
+      // after this cleanup depending on the scheduler's slice; its marker
+      // is set before the re-append, so it is never mistaken for a switch.
+      if (document.querySelector(`dialog[open]:not([${EXITING}])`)) return
       document.querySelector<HTMLElement>(rowLinkSelector(id))?.focus()
       resetScrambleStores(DRAWER_SCRAMBLE_KEY)
     }

@@ -101,6 +101,10 @@ function createStore(text: string) {
 }
 
 type Store = ReturnType<typeof createStore>
+// Module state, so it is process-wide on the server. A keyed ScrambleText
+// is only ever mounted by the drawer, which only exists after a client
+// navigation; the full page passes no key. If a keyed one ever renders on
+// the server, this map is shared across requests and never reset.
 const stores = new Map<string, Store>()
 
 function storeFor(key: string | undefined, text: string): Store {
@@ -149,8 +153,14 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: 
   }, [text, reducedMotion, durations.slower, delays.short, ease, store])
 
   const charset = useMemo(() => measureCharset([from, target]), [from, target])
-  if (progress >= 1) return <Tag className={className}>{text}</Tag>
-  const shown = scrambleFrame({ from, target, progress, tick, settleSpan: SETTLE_SPAN, charset, holdMatching: true, ease })
+  if (progress >= 1 && (target === text || reducedMotion)) return <Tag className={className}>{text}</Tag>
+  // A settled store that names another text is the frame before a
+  // transition: the drawer's new content has mounted on the old entity's
+  // store, and the layout effect above is about to start the churn. Show
+  // the old text, not the new one: the store's subscription is passive, so
+  // the render that starts the transition would otherwise paint the new
+  // name settled for a frame and then scramble it from nothing.
+  const shown = progress >= 1 ? target : scrambleFrame({ from, target, progress, tick, settleSpan: SETTLE_SPAN, charset, holdMatching: true, ease })
   return (
     <Tag className={className}>
       <span className="sr-only">{text}</span>

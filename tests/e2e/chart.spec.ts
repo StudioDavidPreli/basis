@@ -155,7 +155,6 @@ test.describe('the chart', () => {
   })
 
   test('under reduced motion the draw-in and the rescale are instant', async ({ page }) => {
-
     await page.goto('/?reduce=1')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     const ribbon = page.locator('path[data-series="ou-tokyo"]')

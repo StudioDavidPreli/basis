@@ -38,7 +38,6 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
   useEffect(() => {
     if (mode !== 'dialog') return
     const onKey = (e: KeyboardEvent) => {
-
       if (e.key === 'Escape') {
         e.stopPropagation()
         onClose()

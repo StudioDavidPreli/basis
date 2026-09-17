@@ -14,7 +14,6 @@ import type { StoredSnapshot } from '@/worker/refresh'
 import type { FigureValue, SeriesSnapshot } from '@/lib/types'
 import { initialState, reduce, sortIds } from './surface-state'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
-
 import { useNow } from './use-now'
 import { Header } from './header'
 import { Margin } from './margin'
@@ -52,14 +51,27 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
     setSeriesByDataset(prev => ({ ...prev, [dataset]: next }))
   }, [])
   const latestAt = useRef(served?.at ?? null)
+  // The dataset on screen when a poll completes, not when it started: a
+  // tab switch during the fetch would otherwise reload the old dataset's
+  // series and leave the new one behind.
+  const activeRef = useRef(activeDataset)
+  useEffect(() => {
+    activeRef.current = activeDataset
+  }, [activeDataset])
 
   // Follow the cron: read the stored snapshot every minute, announce what
   // changed since the one on screen. Values tick through useAnimatedNumber
-  // because the Figure's value prop changes; nothing else re-renders.
-  const load = useCallback(async () => {
-    const res = await fetch('/api/refresh', { cache: 'no-store' })
-    if (!res.ok) return
-    const next = (await res.json()) as StoredSnapshot
+  // because the Figure's value prop changes; nothing else re-renders. A
+  // failed read (offline, the dev server restarting) is a skipped poll.
+  const load = useCallback(async (signal?: AbortSignal) => {
+    let next: StoredSnapshot
+    try {
+      const res = await fetch('/api/refresh', { cache: 'no-store', signal })
+      if (!res.ok) return
+      next = (await res.json()) as StoredSnapshot
+    } catch {
+      return
+    }
     // The diff runs against the ref, never inside the state updater: React
     // may call an updater more than once (it does, under development Strict
     // Mode), and an announcement is a side effect.
@@ -70,14 +82,21 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
     setSnapshot(next)
     if (prevAt === null || next.at > prevAt) {
       latestAt.current = next.at
-      void loadSeries(activeDataset)
+      const active = activeRef.current
+      // The other dataset's series are now behind the figures: forget
+      // them, so the tab handler reads them fresh on the next switch.
+      setSeriesByDataset(prev => ({ [active]: prev[active] ?? null }))
+      void loadSeries(active)
     }
-
-  }, [announce, loadSeries, activeDataset])
+  }, [announce, loadSeries])
 
   useEffect(() => {
-    const id = setInterval(load, POLL_MS)
-    return () => clearInterval(id)
+    const controller = new AbortController()
+    const id = setInterval(() => void load(controller.signal), POLL_MS)
+    return () => {
+      clearInterval(id)
+      controller.abort()
+    }
   }, [load])
 
   // The shareable slice mirrors to the URL (docs/spec.md, "State"), with
@@ -94,7 +113,6 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
   useEffect(() => {
     if (pathname !== '/') return
     const next = `${pathname}${mergeUrlSearch(window.location.search, search)}${window.location.hash}`
-
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
     if (next !== current) window.history.replaceState(null, '', next)
   }, [pathname, search])

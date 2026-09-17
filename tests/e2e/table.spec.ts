@@ -134,7 +134,6 @@ test.describe('the ledger', () => {
     await expect(page.getByRole('columnheader', { name: /Level/ })).toHaveAttribute('aria-sort', 'ascending')
   })
 
-
   test('switching dataset shows the eight regions', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'Regions' }).click()

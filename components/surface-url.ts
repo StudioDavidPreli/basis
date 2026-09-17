@@ -85,4 +85,3 @@ export function mergeUrlSearch(current: string, owned: string): string {
   const s = q.toString()
   return s ? `?${s}` : ''
 }
-

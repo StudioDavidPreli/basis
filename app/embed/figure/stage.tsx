@@ -51,16 +51,20 @@ export function FigureStage({ status }: { status: string }) {
   const composed = compose(status)
   // agent-updated is a transition: the figure arrives at its previous value
   // and ticks to the new one after mount, so the screenshot and the eye
-  // both see the fresh-ink decay the board shows.
+  // both see the fresh-ink decay the board shows. Until the tick, the
+  // figure is what it was on the board before the run: current, with no
+  // fresh ink and no arrow on the old value.
   const [value, setValue] = useState(composed.figure.prev ?? composed.figure.value)
   useEffect(() => {
     const t = setTimeout(() => setValue(composed.figure.value), 300)
     return () => clearTimeout(t)
   }, [composed.figure.value])
+  const arrived = value === composed.figure.value
+  const figure: FigureValue = arrived ? { ...composed.figure, value } : { ...composed.figure, value, status: 'current' }
   return (
     <main className={styles.stage} data-status={status}>
       <h1 className="sr-only">Figure, {status}</h1>
-      <Figure figure={{ ...composed.figure, value }} column={column} parentheses phase={composed.phase} now={composed.now} entityName={companyName(company)} />
+      <Figure figure={figure} column={column} parentheses phase={composed.phase} now={composed.now} entityName={companyName(company)} />
       <p className={`${styles.caption} type-eyebrow`}>{status}</p>
     </main>
   )
