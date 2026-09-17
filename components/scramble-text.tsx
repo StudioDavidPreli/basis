@@ -13,6 +13,10 @@
 // uses), started from a layout effect so no settled frame of the new text
 // paints ahead of the churn. The visible glyphs are aria-hidden; a
 // visually hidden copy of the real text is what assistive tech reads.
+//
+// `persistKey` keeps the store in a module map, so a text whose component
+// remounts (the drawer's, on every entity switch) still comes FROM what
+// was on screen. The owner resets its keys when the run is over.
 
 import { useLayoutEffect, useMemo, useState, useSyncExternalStore, type ElementType } from 'react'
 import { useMotionTokens } from '@/lib/motion/tokens'
@@ -54,9 +58,19 @@ function createStore(text: string) {
       set({ progress: 0, tick: 0, from, target })
       const t0 = performance.now()
       let raf = 0
-      const clock = tickMs > 0 ? setInterval(() => set({ tick: state.tick + 1 }), tickMs) : 0
+      // Progress is a function of the clock, read on every frame and on
+      // every glyph tick, so a tab hidden mid-transition (no animation
+      // frames) still resolves rather than churning until it is shown.
+      const at = (now: number) => Math.min(1, (now - t0) / ms)
+      const clock = tickMs > 0
+        ? setInterval(() => {
+            const p = at(performance.now())
+            set({ tick: state.tick + 1, progress: p })
+            if (p >= 1) clearInterval(clock)
+          }, tickMs)
+        : 0
       const step = (now: number) => {
-        const p = Math.min(1, (now - t0) / ms)
+        const p = at(now)
         set({ progress: p })
         if (p < 1) raf = requestAnimationFrame(step)
         else clearInterval(clock)
@@ -70,11 +84,29 @@ function createStore(text: string) {
   }
 }
 
-type Props = { text: string; as?: ElementType; className?: string }
+type Store = ReturnType<typeof createStore>
+const stores = new Map<string, Store>()
 
-export function ScrambleText({ text, as: Tag = 'span', className }: Props) {
+function storeFor(key: string | undefined, text: string): Store {
+  if (!key) return createStore(text)
+  let s = stores.get(key)
+  if (!s) {
+    s = createStore(text)
+    stores.set(key, s)
+  }
+  return s
+}
+
+// Forget every persisted store whose key starts with the prefix.
+export function resetScrambleStores(prefix: string): void {
+  for (const key of [...stores.keys()]) if (key.startsWith(prefix)) stores.delete(key)
+}
+
+type Props = { text: string; as?: ElementType; className?: string; persistKey?: string }
+
+export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: Props) {
   const { durations, delays, easings, reducedMotion } = useMotionTokens()
-  const [store] = useState(() => createStore(text))
+  const [store] = useState(() => storeFor(persistKey, text))
   const { progress, tick, from, target } = useSyncExternalStore(store.subscribe, store.get, store.getServer)
   const ease = useMemo(() => bezier(easings.standard), [easings.standard])
 

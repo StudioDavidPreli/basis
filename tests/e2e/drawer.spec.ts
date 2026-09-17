@@ -134,9 +134,14 @@ test.describe('the drawer', () => {
     await expect(page.getByRole('link', { name: /Anchor Kaze/ })).toHaveAttribute('aria-current', 'page')
     const second = page.locator('tbody tr').nth(1).getByRole('link')
     const secondName = (await second.textContent())!.trim()
+    const before = await page.locator('dialog').elementHandle()
     await second.click()
+    // The text scrambles into the new entity's: noise glyphs appear beside
+    // the hidden real text for a moment.
+    await page.waitForFunction(() => !!document.querySelector('dialog h2 span[aria-hidden]'))
     // One dialog, the same element, re-targeted: no reopen.
     await expect(page.locator('dialog')).toHaveCount(1)
+    expect(await page.locator('dialog').evaluate((el, prev) => el === prev, before)).toBe(true)
     await expect(page.getByRole('dialog', { name: secondName })).toBeVisible()
     await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toBeFocused()
     await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toHaveText(new RegExp(secondName))

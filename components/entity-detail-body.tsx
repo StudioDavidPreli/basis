@@ -22,14 +22,15 @@ type Props = {
   now: Date
   phase: AgentPhase
   headings: 'h2' | 'h3'
+  scrambleKey?: string // set by the drawer, whose texts must scramble across a remount
 }
 
-export function EntityDetailBody({ detail, now, phase, headings: H }: Props) {
+export function EntityDetailBody({ detail, now, phase, headings: H, scrambleKey }: Props) {
   const base = `entity-${detail.id}`
   return (
     <div className={styles.body}>
-      <ScrambleText as="p" className="type-body" text={detail.about} />
-      <ScrambleText as="p" className={`${styles.muted} type-body`} text={detail.description} />
+      <ScrambleText as="p" className="type-body" text={detail.about} persistKey={scrambleKey && `${scrambleKey}:about`} />
+      <ScrambleText as="p" className={`${styles.muted} type-body`} text={detail.description} persistKey={scrambleKey && `${scrambleKey}:description`} />
 
       <section aria-labelledby={`${base}-figures`} className={styles.section}>
         <H id={`${base}-figures`} className={`${styles.eyebrow} type-eyebrow`}>
