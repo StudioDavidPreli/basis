@@ -26,9 +26,15 @@ export const metadata: Metadata = {
 // entity drawer once a row's link is followed. Both are columns of one
 // grid (.frame in globals.css), so the sheet narrows beside the drawer
 // through the layout and never a backdrop.
+//
+// suppressHydrationWarning on <html>: the inline script writes data-theme
+// and data-reduce-motion on it before React loads, on purpose (the contract's
+// reduced-motion flag), so the client's attributes differ from the server's
+// HTML by exactly those two. The flag is one level deep: it covers this
+// element's attributes and nothing inside it.
 export default function RootLayout({ children, drawer }: { children: ReactNode; drawer: ReactNode }) {
   return (
-    <html lang="en" className={`${mono.variable} ${sans.variable} ${dot.variable}`}>
+    <html lang="en" className={`${mono.variable} ${sans.variable} ${dot.variable}`} suppressHydrationWarning>
       <body>
         {/* First in the body, before anything renders: sets data-theme and
             data-reduce-motion so the first paint and the hydration both see
