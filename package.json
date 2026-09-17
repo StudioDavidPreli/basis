@@ -19,7 +19,8 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "preview:fixtures": "opennextjs-cloudflare build && opennextjs-cloudflare preview -e fixtures",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "test:e2e:dev": "playwright test -c playwright.dev.config.ts"
   },
   "dependencies": {
     "cadence-tokens": "^2.0.1",

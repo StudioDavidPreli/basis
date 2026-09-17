@@ -17,11 +17,13 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-if lsof -nP -iTCP:8787 -sTCP:LISTEN >/dev/null 2>&1; then
-  echo "pre-push: something is listening on 8787. Stop it (a preview? an earlier e2e run's workerd?) and push again." >&2
-  lsof -nP -iTCP:8787 -sTCP:LISTEN | tail -n +2 >&2
-  exit 1
-fi
+for port in 8787 3000; do
+  if lsof -nP -iTCP:$port -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "pre-push: something is listening on $port. Stop it (a preview? a dev server? an earlier e2e run's workerd?) and push again." >&2
+    lsof -nP -iTCP:$port -sTCP:LISTEN | tail -n +2 >&2
+    exit 1
+  fi
+done
 
 echo "pre-push: lint"
 npm run lint --silent
@@ -47,5 +49,20 @@ if [ -n "$pids" ]; then kill $pids 2>/dev/null || true; fi
 if [ "$status" -ne 0 ]; then
   echo "pre-push: e2e failed; the push is refused. Full log: $log. Fix, or git push --no-verify if you mean it." >&2
   exit "$status"
+fi
+
+# The second suite, on `next dev` with Strict Mode: the class of bug the
+# built-output suite cannot see (decisions/2026-09-17-a-dev-mode-gate.md).
+# After, never beside: both suites start a local Cloudflare simulation.
+echo "pre-push: e2e on next dev (Strict Mode)"
+devlog=".wrangler/pre-push-e2e-dev.log"
+devstatus=0
+npx playwright test -c playwright.dev.config.ts --reporter=line >"$devlog" 2>&1 || devstatus=$?
+tail -n 8 "$devlog"
+pids=$(lsof -nP -tiTCP:3000 -sTCP:LISTEN 2>/dev/null || true)
+if [ -n "$pids" ]; then kill $pids 2>/dev/null || true; fi
+if [ "$devstatus" -ne 0 ]; then
+  echo "pre-push: dev-mode e2e failed; the push is refused. Full log: $devlog." >&2
+  exit "$devstatus"
 fi
 echo "pre-push: clean"
