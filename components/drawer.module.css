@@ -21,7 +21,7 @@
   background: var(--paper);
   background-image: var(--grain);
   color: var(--ink);
-  overflow-x: hidden;
+  overflow-x: clip; /* clip, not hidden: nothing may scroll the panel into place while it slides */
   overflow-y: auto;
   z-index: 3; /* above the sticky table header */
 }

@@ -29,7 +29,11 @@ export function Drawer({ detail, renderedAt, phase }: Props) {
 
   const id = detail.id
   useEffect(() => {
-    heading.current?.focus()
+    // preventScroll: on open the panel is still off to the right, and the
+    // browser's scroll-into-view on focus would scroll the dialog to it,
+    // cancelling the slide frame by frame. The heading arrives with the
+    // panel.
+    heading.current?.focus({ preventScroll: true })
     return () => {
       if (document.querySelector('dialog[open]')) return
       document.querySelector<HTMLElement>(rowLinkSelector(id))?.focus()
