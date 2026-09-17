@@ -49,6 +49,13 @@ export function DrawerShell({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const d = dialog.current
     if (!d) return
+    // Measure with no inline width, so the stylesheet's rule is what is
+    // read. Under React's development Strict Mode this effect runs, is
+    // cleaned up, and runs again on the same element; the first run had
+    // set the inline width to zero, and the second measured that zero and
+    // sprang from nothing to nothing, which read as a drawer that snapped
+    // into place. Production runs the effect once; this makes both agree.
+    d.style.width = ''
     const width = d.getBoundingClientRect().width
     d.style.width = '0px'
     const controls = animate(d, { width: [0, width] }, springDamped)
