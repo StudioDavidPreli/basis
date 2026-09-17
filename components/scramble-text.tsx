@@ -36,6 +36,13 @@ type State = {
 function createStore(text: string) {
   let state: State = { progress: 1, tick: 0, from: text, target: text }
   const server: State = state
+  // Whether a clock is driving progress right now. The effect below asks
+  // this before trusting the store's target: under React's development
+  // Strict Mode the effect runs, is cleaned up (which stops the clock), and
+  // runs again on a store that already names the new target at progress
+  // zero. Without this flag that second run returned early and the text
+  // froze on its first noise frame. Production runs the effect once.
+  let running = false
   const listeners = new Set<() => void>()
   const emit = () => listeners.forEach(l => l())
   const set = (next: Partial<State>) => {
@@ -49,6 +56,7 @@ function createStore(text: string) {
     },
     get: () => state,
     getServer: () => server,
+    isRunning: () => running,
     // No transition: the text just is.
     settle(text: string) {
       if (state.progress < 1 || state.target !== text) set({ progress: 1, tick: 0, from: text, target: text })
@@ -56,6 +64,7 @@ function createStore(text: string) {
     // Runs one transition from `from` to `target`; returns the stop function.
     start(from: string, target: string, ms: number, tickMs: number) {
       set({ progress: 0, tick: 0, from, target })
+      running = true
       const t0 = performance.now()
       let raf = 0
       // Progress is a function of the clock, read on every frame and on
@@ -66,19 +75,26 @@ function createStore(text: string) {
         ? setInterval(() => {
             const p = at(performance.now())
             set({ tick: state.tick + 1, progress: p })
-            if (p >= 1) clearInterval(clock)
+            if (p >= 1) {
+              clearInterval(clock)
+              running = false
+            }
           }, tickMs)
         : 0
       const step = (now: number) => {
         const p = at(now)
         set({ progress: p })
         if (p < 1) raf = requestAnimationFrame(step)
-        else clearInterval(clock)
+        else {
+          clearInterval(clock)
+          running = false
+        }
       }
       raf = requestAnimationFrame(step)
       return () => {
         cancelAnimationFrame(raf)
         clearInterval(clock)
+        running = false
       }
     },
   }
@@ -116,10 +132,15 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: 
       return
     }
     const s = store.get()
-    if (s.target === text) return
+    // Already there, or already on its way there. A store that names this
+    // target at partial progress with no clock is a stopped transition (the
+    // Strict Mode double run, above) and restarts from what is on screen.
+    if (s.target === text && (s.progress >= 1 || store.isRunning())) return
     // An interrupted transition carries its length forward, from what is on
-    // screen rather than from the old target it never reached.
-    const start = s.progress < 1 ? synthesizeFrom(s.from, s.target, s.progress, ease) : s.target
+    // screen rather than from the old target it never reached. At progress
+    // zero what is on screen is the from text itself, so a stopped
+    // transition restarts from there in full.
+    const start = s.progress <= 0 ? s.from : s.progress < 1 ? synthesizeFrom(s.from, s.target, s.progress, ease) : s.target
     if (start === text) {
       store.settle(text)
       return
