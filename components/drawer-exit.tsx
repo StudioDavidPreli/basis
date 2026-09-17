@@ -6,11 +6,11 @@
 // included, so nothing inside the slot can hold it for an exit. This
 // lives in the root layout, which outlives the slot, and works on the DOM
 // React has already let go of: it watches the frame for a removed drawer
-// element, puts that element back out of flow at the viewport's right
-// edge, slides it out on the damped spring, and removes it when the
-// spring settles. The element is inert during the exit, which is what
-// an exit is for; history has already moved. Under reduced motion the
-// spring is the 10 ms branch and the exit is at once.
+// element, puts that element back in its grid column, springs its width
+// to zero so the sheet widens on the same curve it narrowed on, and
+// removes it when the spring settles. The element is inert during the
+// exit, which is what an exit is for; history has already moved. Under
+// reduced motion the spring is the 10 ms branch and the exit is at once.
 
 import { useEffect } from 'react'
 import { animate } from 'framer-motion'
@@ -32,14 +32,14 @@ export function DrawerExit() {
           node.removeAttribute('aria-labelledby')
           node.setAttribute('aria-hidden', 'true')
           node.setAttribute('inert', '')
-          // Out of flow, so the grid's drawer column collapses at once and
-          // the sheet reflows on its own spring while this slides away.
-          Object.assign(node.style, { position: 'fixed', top: '0', right: '0', left: 'auto', zIndex: '4' })
+          // Back into its cell (the stylesheet places it), where a drawer
+          // opening meanwhile overlaps it rather than stacking below.
           frame.appendChild(node)
+          const width = node.getBoundingClientRect().width
           // The dialog itself, never a motion element: Framer's imperative
-          // animate would otherwise pick up the panel's unmounted visual
-          // element and go nowhere.
-          animate(node, { x: '100%' }, springDamped).then(() => node.remove())
+          // animate would otherwise pick up an unmounted visual element and
+          // go nowhere.
+          animate(node, { width: [width, 0] }, springDamped).then(() => node.remove())
         }
       }
     })

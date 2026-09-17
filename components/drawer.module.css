@@ -2,15 +2,20 @@
    (app/globals.css, .frame), flush with the viewport's edge: a right sheet
    at full height that scrolls on its own, sticky under the viewport like
    the margin. Every UA dialog style is replaced: the element is in flow,
-   not absolutely placed; the paper is Basis's. */
+   not absolutely placed; the paper is Basis's. Its width is what opens
+   and closes (drawer-shell.tsx, drawer-exit.tsx): the inline width runs
+   on the spring while --drawer-w holds the panel's true width, so the
+   content never rewraps and is clipped instead. grid-area, not
+   grid-column, so an exiting drawer and an opening one share the cell. */
 .drawer {
-  grid-column: 3;
+  --drawer-w: min(30rem, 42vw);
+  grid-area: 1 / 3;
   justify-self: end;
   position: sticky;
   top: 0;
   inset-inline: auto;
   align-self: start;
-  width: min(30rem, 42vw);
+  width: var(--drawer-w);
   height: 100dvh;
   max-width: none;
   max-height: none;
@@ -21,12 +26,13 @@
   background: var(--paper);
   background-image: var(--grain);
   color: var(--ink);
-  overflow-x: clip; /* clip, not hidden: nothing may scroll the panel into place while it slides */
+  overflow-x: clip; /* clip: nothing may scroll the panel into view while the width runs */
   overflow-y: auto;
   z-index: 3; /* above the sticky table header */
 }
 
 .panel {
+  width: var(--drawer-w);
   min-height: 100%;
   padding: var(--space-4) var(--space-6) var(--space-8);
   display: flex;
@@ -62,9 +68,10 @@
 @media (max-width: 900px) {
   /* Full width on a narrow viewport (docs/spec.md, narrow viewports). */
   .drawer {
+    --drawer-w: 100vw;
     position: fixed;
     inset: 0;
-    width: auto;
+    width: var(--drawer-w);
     height: auto;
     border-left: 0;
     z-index: 5;

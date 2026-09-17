@@ -50,7 +50,7 @@ type Props = {
 const STAGGER_CAP = 8
 
 export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId }: Props) {
-  const { durations, easings, delays, springDamped } = useMotionTokens()
+  const { durations, easings, delays } = useMotionTokens()
   const byId = new Map(rows.map(r => [r.id, r]))
   const all = selection.length === rows.length && rows.length > 0
   const some = selection.length > 0 && !all
@@ -60,10 +60,11 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   }, [some])
 
   // The order of the previous committed render, kept beside the current
-  // one, so a row can tell a reorder (it changed index: slow / standard,
-  // staggered) from a shift of the whole ledger, as when the drawer opens
-  // beside it (every row keeps its index: they move as one, on the
-  // drawer's own damped spring).
+  // one, so a row can tell a reorder (it changed index: the layout
+  // animation on slow / standard, staggered) from a resize of the whole
+  // ledger, as when the drawer opens beside it (every row keeps its index:
+  // no layout animation, the rows follow the reflow, which runs on the
+  // drawer's spring).
   const [orders, setOrders] = useState({ prev: order, current: order })
   if (orders.current !== order) setOrders({ prev: orders.current, current: order })
   const prevOrder = orders.current === order ? orders.prev : orders.current
@@ -121,8 +122,8 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               return (
                 <motion.tr
                   key={id}
-                  layout="position"
-                  transition={moved ? { duration: durations.slow, ease: easings.standard, delay: stagger * delays.short } : springDamped}
+                  layout={moved ? 'position' : false}
+                  transition={{ duration: durations.slow, ease: easings.standard, delay: stagger * delays.short }}
                   className={styles.row}
                   data-selected={selected || undefined}
                   data-hover={hoveredId === id || undefined}

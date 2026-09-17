@@ -1,14 +1,21 @@
 'use client'
 
 // The persistent half of the drawer (docs/spec.md, "Drawer";
-// decisions/2026-09-16-drawer-non-modal-dialog.md): a non-modal <dialog>,
+// decisions/2026-09-16-drawer-non-modal-dialog.md,
+// decisions/2026-09-16-drawer-resizes-the-layout.md): a non-modal <dialog>,
 // open through the `open` attribute (the declarative show(), never
 // showModal()), in the right gutter of the layout's grid. It mounts once
 // in the slot's layout and stays across entity switches, because Next
-// remounts the [id] segment beneath it on every param change. So: the
-// panel comes in once, on the critically damped Cadence spring, the same
-// spring the ledger's rows shift on beside it when the sheet has to give
-// it room; a switch changes the content in place.
+// remounts the [id] segment beneath it on every param change; a switch
+// changes the content in place.
+//
+// Open animates the dialog's width, zero to its CSS width, on the damped
+// spring. The dialog is the grid column, so the sheet beside it resizes on
+// the same curve; the panel inside keeps its full width and is clipped, so
+// nothing in it rewraps. A layout effect sets the width to zero before the
+// first paint, so no full-width frame shows ahead of the motion. When the
+// spring settles the inline width is cleared and the stylesheet's rule
+// takes over, so a viewport resize is honored.
 //
 // Escape here goes through router.back(), the same path as the back
 // button. On every close path Next removes the drawer from the tree at
@@ -16,9 +23,9 @@
 // which outlives the slot (contract, "Drawer close"). Focus return on
 // close is the content's job (drawer.tsx).
 
-import { useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { useRouter, useSelectedLayoutSegments } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { animate } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import styles from './drawer.module.css'
 
@@ -39,6 +46,19 @@ export function DrawerShell({ children }: { children: ReactNode }) {
   const id = open ? decodeURIComponent(segments[segments.length - 1]!) : null
   const dialog = useRef<HTMLDialogElement>(null)
 
+  useLayoutEffect(() => {
+    const d = dialog.current
+    if (!d) return
+    const width = d.getBoundingClientRect().width
+    d.style.width = '0px'
+    const controls = animate(d, { width: [0, width] }, springDamped)
+    controls.then(() => {
+      d.style.width = ''
+    })
+    return () => controls.stop()
+    // Runs once per mount: the spring token is stable between renders.
+  }, [springDamped])
+
   if (!open) return <>{children}</>
 
   return (
@@ -56,9 +76,7 @@ export function DrawerShell({ children }: { children: ReactNode }) {
         router.back()
       }}
     >
-      <motion.div className={styles.panel} initial={{ x: '100%' }} animate={{ x: 0 }} transition={springDamped}>
-        {children}
-      </motion.div>
+      <div className={styles.panel}>{children}</div>
     </dialog>
   )
 }
