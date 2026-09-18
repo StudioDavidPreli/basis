@@ -215,6 +215,7 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
           series={seriesByDataset[state.dataset] ?? null}
           parentheses={state.dataset === 'comps'}
           phase={phase}
+          pulseKey={snapshot?.at ?? null}
           now={now}
         />
         <DataTable

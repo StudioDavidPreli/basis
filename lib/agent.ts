@@ -30,3 +30,12 @@ export function agentPhase(agent: AgentState | null, now: Date, refreshing: bool
   if (!agent.finishedAt) return 'done'
   return now.getTime() - Date.parse(agent.finishedAt) >= IDLE_AFTER_MS ? 'idle' : 'done'
 }
+
+// contracts/agent-presence.md: 0 while `reading`, 1 from `building` on. The
+// artboard reads it only in those two phases, and it is never a fraction of
+// sources (decisions/2026-09-18-coarse-agent-progress.md). Derived here rather
+// than passed, so no call site can hold a progress that disagrees with its
+// own phase.
+export function agentProgress(phase: AgentPhase): number {
+  return phase === 'reading' ? 0 : 1
+}

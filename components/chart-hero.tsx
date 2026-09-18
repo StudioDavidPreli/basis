@@ -12,6 +12,7 @@ import { CHART_CAP, RANGES, type Range } from './surface-state'
 import type { Row } from './data-table'
 import { Marker } from './marker'
 import { TimeSeriesChart, type ChartRow, type Readout } from './time-series-chart'
+import { AgentPresence } from './agent-presence'
 import styles from './chart-hero.module.css'
 
 // The hero's frame: metric selector, range control, the plot, and the
@@ -22,15 +23,6 @@ import styles from './chart-hero.module.css'
 //
 // The selection is not capped; the chart is. The first CHART_CAP selected
 // rows are charted, the rest wait, and the legend says so.
-
-const PHASE_LABEL: Record<AgentPhase, string> = {
-  idle: 'Agent idle',
-  reading: 'Agent reading sources',
-  building: 'Agent building',
-  waiting: 'Agent waiting for a manual refresh',
-  done: 'Agent done',
-  error: 'Agent error',
-}
 
 type Props = {
   columns: ColumnConfig[]
@@ -48,10 +40,12 @@ type Props = {
   series: SeriesSnapshot | null
   parentheses: boolean
   phase: AgentPhase
+  // The snapshot's `at`: the mark pulses when a run lands.
+  pulseKey: string | null
   now: Date
 }
 
-export function ChartHero({ columns, metric, onMetric, range, onRange, rows, selection, onDeselect, onClear, hoveredId, onHover, openId, series, parentheses, phase, now }: Props) {
+export function ChartHero({ columns, metric, onMetric, range, onRange, rows, selection, onDeselect, onClear, hoveredId, onHover, openId, series, parentheses, phase, pulseKey, now }: Props) {
   const charted = selection.slice(0, CHART_CAP)
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
@@ -174,12 +168,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
             </li>
           )}
         </ul>
-        {/* AgentPresence arrives in M7 as a Rive mark; until then the phase
-            is a text mark with the same aria-label contract. */}
-        <span className={`${styles.agent} type-micro`} role="img" aria-label={PHASE_LABEL[phase]} data-phase={phase}>
-          <span className={styles.agentDot} aria-hidden="true" />
-          {phase}
-        </span>
+        <AgentPresence phase={phase} pulseKey={pulseKey} />
       </div>
     </section>
   )

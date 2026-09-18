@@ -57,35 +57,6 @@
   color: var(--muted);
 }
 
-.agent {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--muted);
-  padding-top: 2px;
-}
-
-.agentDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: var(--hairline) solid var(--ink);
-  background: transparent;
-  transition: background-color var(--cadence-duration-base) var(--cadence-ease-standard);
-}
-
-.agent[data-phase='done'] .agentDot,
-.agent[data-phase='reading'] .agentDot,
-.agent[data-phase='building'] .agentDot {
-  background: var(--accent);
-}
-
-.agent[data-phase='waiting'] .agentDot,
-.agent[data-phase='error'] .agentDot {
-  background: var(--ink);
-}
-
 .legendItem {
   display: inline-flex;
   align-items: center;

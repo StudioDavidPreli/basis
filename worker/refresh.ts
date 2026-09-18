@@ -45,7 +45,10 @@ export type RefreshDeps = {
   maxRequests?: number
 }
 
-export type AgentPhase = 'idle' | 'reading' | 'building' | 'waiting' | 'done' | 'error'
+// One list, so a route or a test can iterate the phases without restating
+// them. Same shape as THEMES in app/theme-script.ts.
+export const AGENT_PHASES = ['idle', 'reading', 'building', 'waiting', 'done', 'error'] as const
+export type AgentPhase = (typeof AGENT_PHASES)[number]
 
 export type Interruption = {
   level: 'source' | 'all' | 'handler'

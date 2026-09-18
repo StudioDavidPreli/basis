@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { agentPhase, IDLE_AFTER_MS } from './agent'
-import type { AgentState } from '@/worker/refresh'
+import { agentPhase, agentProgress, IDLE_AFTER_MS } from './agent'
+import { AGENT_PHASES, type AgentState } from '@/worker/refresh'
 
 const NOW = new Date('2026-09-16T16:30:00Z')
 
@@ -56,5 +56,18 @@ describe('agentPhase', () => {
 
   it('a clock behind the run keeps it done rather than going negative into idle', () => {
     expect(agentPhase(agent({ finishedAt: new Date(NOW.getTime() + 60_000).toISOString() }), NOW, false)).toBe('done')
+  })
+})
+
+describe('agentProgress', () => {
+  it('is 0 while reading and 1 from building on, for every phase', () => {
+    expect(agentProgress('reading')).toBe(0)
+    for (const phase of AGENT_PHASES.filter(p => p !== 'reading')) {
+      expect(agentProgress(phase)).toBe(1)
+    }
+  })
+
+  it('is never a fraction: a phase carries one of two values, whatever is added later', () => {
+    expect(new Set(AGENT_PHASES.map(agentProgress))).toEqual(new Set([0, 1]))
   })
 })

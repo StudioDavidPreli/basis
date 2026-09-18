@@ -1,0 +1,17 @@
+/* The figure stage's frame, at the mark's own size: centred on the page with
+   nothing else in it, so a screenshot is of the mark and not of a layout. */
+
+.stage {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  font-size: 1.5rem;
+}
+
+.caption {
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+}
