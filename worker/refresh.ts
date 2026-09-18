@@ -404,19 +404,14 @@ export async function refresh(deps: RefreshDeps): Promise<RefreshResult> {
   // did. KV reads are not budgeted; the fetches are.
   const stored = Object.fromEntries(await Promise.all(ids.map(async id => [id, await deps.kv.get(KEYS.history(id))] as const)))
   const ordered = [...ids].sort((a, b) => Number(stored[b] === null) - Number(stored[a] === null))
+  let historyWrote = false
   for (const id of ordered) {
     const state = drivers[id]!
-    const { history, error } = await updateHistory(deps, state.adapter, id, state.config, budget, stored[id] ?? null)
+    const { history, wrote, error } = await updateHistory(deps, state.adapter, id, state.config, budget, stored[id] ?? null)
     state.history = history
+    if (wrote) historyWrote = true
     if (error) failures.push({ provider: state.config.provider, driver: id, url: history.url ?? '', error })
   }
-
-  // The sources are in; what follows is the recompute and the diff. One
-  // write, so `building` is a phase that happens rather than one only the
-  // contract names (contracts/agent-presence.md). A reader's 60 s poll will
-  // rarely catch it, which is the point of keeping it to a single put
-  // (decisions/2026-09-18-coarse-agent-progress.md).
-  await deps.kv.put(KEYS.agent, JSON.stringify({ ...reading, phase: 'building', progress: 1 } satisfies AgentState))
 
   const at = deps.now().toISOString()
   const entities: Record<string, EntitySnapshot> = {}
@@ -453,9 +448,20 @@ export async function refresh(deps: RefreshDeps): Promise<RefreshResult> {
   }
   const snapshot: StoredSnapshot = { ...next, mutations: log, agent }
   await deps.kv.put(KEYS.snapshot, JSON.stringify(snapshot))
-  for (const dataset of ['comps', 'regions'] as const) {
-    const stored: SeriesSnapshot = { at, dataset, entities: seriesByDataset[dataset] }
-    await deps.kv.put(KEYS.series(dataset), JSON.stringify(stored))
+  // The series are the two most expensive keys and the least likely to have
+  // moved: they change when a figure changes, because the endpoint is the
+  // ledger's figure, or when a history gained a point. Neither of those is
+  // knowable without a read, but both are already known here — the diff and
+  // the history loop just produced them. A run that finds every source
+  // standing still writes nothing here, which is most of what a quiet night
+  // or a stalled provider costs (decisions/2026-09-18-the-write-budget.md).
+  // `at` on the series key is not read by anything, so a skipped write does
+  // not leave a reader looking at the wrong clock.
+  if (mutations.length > 0 || historyWrote) {
+    for (const dataset of ['comps', 'regions'] as const) {
+      const stored: SeriesSnapshot = { at, dataset, entities: seriesByDataset[dataset] }
+      await deps.kv.put(KEYS.series(dataset), JSON.stringify(stored))
+    }
   }
   await deps.kv.put(KEYS.agent, JSON.stringify(agent))
   return { snapshot, mutations, phase, requests: budget.used }

@@ -153,12 +153,12 @@ describe('refresh on fixtures', () => {
     const brooklyn = regions.entities['brooklyn']!
     expect(brooklyn.driver).toHaveLength(brooklyn.dates.length)
     expect(brooklyn.driver![brooklyn.driver!.length - 1]).toBeCloseTo(snapshot.entities['brooklyn']!.metrics['driver']!.value, 3)
-    // Six writes a run (agent reading, agent building, snapshot, two series
-    // keys, agent done) plus the 23 fixture histories on this first run. The
-    // count is asserted because the progress decision turns on it: one write
-    // per phase, never one per driver
-    // (decisions/2026-09-18-coarse-agent-progress.md).
-    expect(mem.writes).toBe(6 + 23)
+    // Five writes on a first run (agent reading, snapshot, two series keys,
+    // agent done) plus the 23 fixture histories. The count is asserted
+    // because the write budget turns on it — the free tier allows a thousand
+    // a day and the cron multiplies every one of these
+    // (decisions/2026-09-18-the-write-budget.md).
+    expect(mem.writes).toBe(5 + 23)
   })
 
   it('is deterministic: the same fixtures twice write identical entities', async () => {
@@ -254,22 +254,37 @@ describe('runRefresh', () => {
     expect(agent.error).toContain('disk gone')
   })
 
-  // contracts/agent-presence.md, "Phase semantics": one write per phase, and
-  // `building` is a phase that happens. Never one write per driver, which is
-  // decisions/2026-09-18-coarse-agent-progress.md.
-  it('writes the agent key once per phase, with coarse progress', async () => {
+  // contracts/agent-presence.md, "Phase semantics": the agent key is written
+  // twice, once to mark the run started and once with its outcome. Never once
+  // per driver (decisions/2026-09-18-coarse-agent-progress.md), and no longer
+  // once for `building`, which no reader could observe and which cost 96
+  // writes a day (decisions/2026-09-18-the-write-budget.md).
+  it('writes the agent key twice: the run started, and how it ended', async () => {
     const mem = memoryKv()
     await refresh(deps({ kv: mem.kv }))
     expect(phaseLog(mem)).toEqual([
       ['reading', 0],
-      ['building', 1],
       ['done', 1],
     ])
+  })
+
+  // The two series keys are the biggest values the handler writes and the
+  // least likely to have moved. A second run on the same fixtures changes no
+  // figure and appends no history, so it writes the agent key twice and the
+  // snapshot once, and nothing else (decisions/2026-09-18-the-write-budget.md).
+  it('a run that changes nothing writes no series and no history', async () => {
+    const mem = memoryKv()
+    await refresh(deps({ kv: mem.kv }))
+    const first = mem.writes
+    await refresh(deps({ kv: mem.kv }))
+    const keys = mem.log.slice(first).map(([k]) => k)
+    expect(keys).toEqual([KEYS.agent, KEYS.snapshot, KEYS.agent])
+    expect(keys.some(k => k.startsWith('series'))).toBe(false)
   })
 
   it('a failed source ends the same sequence in waiting', async () => {
     const mem = memoryKv()
     await refresh(deps({ kv: mem.kv, fixturesOnly: false, fetchText: fixtureFetch(url => url.includes('frankfurter')) }))
-    expect(phaseLog(mem).map(([phase]) => phase)).toEqual(['reading', 'building', 'waiting'])
+    expect(phaseLog(mem).map(([phase]) => phase)).toEqual(['reading', 'waiting'])
   })
 })

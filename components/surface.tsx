@@ -91,11 +91,38 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
     }
   }, [announce, loadSeries])
 
+  // The poll follows the cron, but only while someone is looking. A hidden
+  // tab reads two KV keys a minute for a page nobody is on, which on the free
+  // tier is the largest avoidable cost Basis has
+  // (decisions/2026-09-18-the-write-budget.md). Coming back reads once
+  // immediately, because a tab returning is behind by however long it was
+  // away.
+  //
+  // The clock is decided from `visibilityState` every time, never from
+  // whether this effect has run before: Strict Mode runs it twice on the same
+  // element, and `stop()` before each start is what makes the second run
+  // land where the first did.
   useEffect(() => {
     const controller = new AbortController()
-    const id = setInterval(() => void load(controller.signal), POLL_MS)
+    let id: ReturnType<typeof setInterval> | null = null
+    const stop = () => {
+      if (id !== null) clearInterval(id)
+      id = null
+    }
+    const sync = () => {
+      stop()
+      if (document.visibilityState === 'hidden') return
+      id = setInterval(() => void load(controller.signal), POLL_MS)
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void load(controller.signal)
+      sync()
+    }
+    sync()
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
-      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisibility)
+      stop()
       controller.abort()
     }
   }, [load])

@@ -20,9 +20,12 @@
     { "binding": "NEXT_INC_CACHE_KV", "id": "c58750ed89574e19a8e95c4c2e25d9a1" },
     { "binding": "BASIS_KV", "id": "ba3e7f2f671748069c9b3a5bbd268e0f" }
   ],
-  // The agent: every 15 minutes, the cap in docs/spec.md. The fastest
-  // source is minutes, so the cap binds.
-  "triggers": { "crons": ["*/15 * * * *"] },
+  // The agent: hourly. The fastest source is minutes and docs/spec.md caps
+  // the cadence at 15, but 96 runs a day is the multiplier on every KV write
+  // the handler makes and the free tier allows 1,000 a day
+  // (decisions/2026-09-18-the-write-budget.md). The data is simulated; its
+  // freshness is not what Basis demonstrates.
+  "triggers": { "crons": ["0 * * * *"] },
   // Fixture mode for the e2e suite and offline work: `opennextjs-cloudflare
   // preview -e fixtures`. Wrangler environments do not inherit bindings or
   // vars, so the two namespaces and the assets block are restated. Nothing
