@@ -1,0 +1,48 @@
+'use client'
+
+import { useSyncExternalStore } from 'react'
+import { THEMES, THEME_KEY, type Theme } from '@/app/theme-script'
+
+// The theme is the `data-theme` attribute the inline script set, read as an
+// external store: the same pattern as the reduced-motion flag in
+// lib/motion/tokens.ts and the clock in use-now.ts. The server snapshot is
+// the first stock, hydration uses it, the client snapshot takes over with no
+// mismatch.
+//
+// Shared rather than private to the header because a Rive canvas cannot read
+// CSS variables and has to be told which palette to bind
+// (contracts/agent-presence.md, the `theme` property).
+
+function subscribe(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  return () => observer.disconnect()
+}
+
+function getSnapshot(): Theme {
+  const t = document.documentElement.getAttribute('data-theme')
+  return t === 'operate' ? 'operate' : 'passbook'
+}
+
+function getServerSnapshot(): Theme {
+  return 'passbook'
+}
+
+// The server snapshot is the first stock, so on the dark stock a consumer
+// renders the light stock's for one frame after hydration, until the client
+// snapshot re-renders. The page's colors are right from the first paint: the
+// stylesheet keys on the attribute, not on this.
+export function useTheme(): Theme {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
+// Not a hook, and it closes over nothing: it reads the attribute at the
+// moment of the click, so it keeps one identity for the life of the module
+// and an effect or a memo block that lists it never re-runs on it.
+export function toggleTheme(): void {
+  const next = THEMES[(THEMES.indexOf(getSnapshot()) + 1) % THEMES.length]!
+  document.documentElement.setAttribute('data-theme', next)
+  try {
+    localStorage.setItem(THEME_KEY, next)
+  } catch {}
+}

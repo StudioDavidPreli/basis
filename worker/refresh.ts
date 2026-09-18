@@ -408,6 +408,13 @@ export async function refresh(deps: RefreshDeps): Promise<RefreshResult> {
     if (error) failures.push({ provider: state.config.provider, driver: id, url: history.url ?? '', error })
   }
 
+  // The sources are in; what follows is the recompute and the diff. One
+  // write, so `building` is a phase that happens rather than one only the
+  // contract names (contracts/agent-presence.md). A reader's 60 s poll will
+  // rarely catch it, which is the point of keeping it to a single put
+  // (decisions/2026-09-18-coarse-agent-progress.md).
+  await deps.kv.put(KEYS.agent, JSON.stringify({ ...reading, phase: 'building', progress: 1 } satisfies AgentState))
+
   const at = deps.now().toISOString()
   const entities: Record<string, EntitySnapshot> = {}
   const seriesByDataset: Record<'comps' | 'regions', Record<string, EntitySeries>> = { comps: {}, regions: {} }

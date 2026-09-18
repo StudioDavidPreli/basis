@@ -18,9 +18,13 @@ const FIXTURES = path.resolve(__dirname, '../public/fixtures')
 
 function memoryKv() {
   const store = new Map<string, string>()
+  // The store is last-write-wins, so the agent key's intermediate phases are
+  // invisible in it. The log keeps the order they were written in.
+  const log: Array<[key: string, value: string]> = []
   let writes = 0
   return {
     store,
+    log,
     get writes() {
       return writes
     },
@@ -30,10 +34,20 @@ function memoryKv() {
       },
       async put(key: string, value: string) {
         writes += 1
+        log.push([key, value])
         store.set(key, value)
       },
     },
   }
+}
+
+// The phases written to the agent key, in order, with the progress each
+// carried.
+function phaseLog(mem: { log: Array<[string, string]> }): Array<[string, number]> {
+  return mem.log.filter(([k]) => k === KEYS.agent).map(([, v]) => {
+    const a = JSON.parse(v) as { phase: string; progress: number }
+    return [a.phase, a.progress]
+  })
 }
 
 const loadFixture = (name: string) => readFile(path.join(FIXTURES, name), 'utf8')
@@ -139,9 +153,12 @@ describe('refresh on fixtures', () => {
     const brooklyn = regions.entities['brooklyn']!
     expect(brooklyn.driver).toHaveLength(brooklyn.dates.length)
     expect(brooklyn.driver![brooklyn.driver!.length - 1]).toBeCloseTo(snapshot.entities['brooklyn']!.metrics['driver']!.value, 3)
-    // Five writes a run (agent reading, snapshot, two series keys, agent
-    // done) plus the 23 fixture histories on this first run.
-    expect(mem.writes).toBe(5 + 23)
+    // Six writes a run (agent reading, agent building, snapshot, two series
+    // keys, agent done) plus the 23 fixture histories on this first run. The
+    // count is asserted because the progress decision turns on it: one write
+    // per phase, never one per driver
+    // (decisions/2026-09-18-coarse-agent-progress.md).
+    expect(mem.writes).toBe(6 + 23)
   })
 
   it('is deterministic: the same fixtures twice write identical entities', async () => {
@@ -235,5 +252,24 @@ describe('runRefresh', () => {
     expect(agent.phase).toBe('error')
     expect(agent.interruption.level).toBe('handler')
     expect(agent.error).toContain('disk gone')
+  })
+
+  // contracts/agent-presence.md, "Phase semantics": one write per phase, and
+  // `building` is a phase that happens. Never one write per driver, which is
+  // decisions/2026-09-18-coarse-agent-progress.md.
+  it('writes the agent key once per phase, with coarse progress', async () => {
+    const mem = memoryKv()
+    await refresh(deps({ kv: mem.kv }))
+    expect(phaseLog(mem)).toEqual([
+      ['reading', 0],
+      ['building', 1],
+      ['done', 1],
+    ])
+  })
+
+  it('a failed source ends the same sequence in waiting', async () => {
+    const mem = memoryKv()
+    await refresh(deps({ kv: mem.kv, fixturesOnly: false, fetchText: fixtureFetch(url => url.includes('frankfurter')) }))
+    expect(phaseLog(mem).map(([phase]) => phase)).toEqual(['reading', 'building', 'waiting'])
   })
 })

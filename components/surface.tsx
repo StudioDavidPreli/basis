@@ -15,6 +15,7 @@ import type { FigureValue, SeriesSnapshot } from '@/lib/types'
 import { initialState, reduce, sortIds } from './surface-state'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
 import { useNow } from './use-now'
+import { agentPhase } from '@/lib/agent'
 import { Header } from './header'
 import { Margin } from './margin'
 import { InterruptionBanner } from './interruption-banner'
@@ -173,7 +174,12 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
     [columns, state.sort, announce],
   )
 
-  const phase = snapshot?.agent.phase ?? 'idle'
+  // The phase the reader sees, not only the phase the handler stored:
+  // `idle` is a function of the reader's clock, and `reading` is this
+  // client's own refresh, which it knows about before KV does (lib/agent.ts,
+  // contracts/agent-presence.md). `busy` reaching it is what finally makes
+  // `refreshing` figures reachable outside the embed stage.
+  const phase = agentPhase(snapshot?.agent ?? null, now, busy)
 
   return (
     <div className={styles.sheet} data-busy={busy || undefined}>

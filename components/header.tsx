@@ -1,8 +1,8 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
-import { THEMES, THEME_KEY, type Theme } from '@/app/theme-script'
+import { type Theme } from '@/app/theme-script'
 import { IconButton } from './icon-button'
+import { useTheme, toggleTheme } from './use-theme'
 import styles from './header.module.css'
 
 type Props = {
@@ -12,36 +12,6 @@ type Props = {
   busy: boolean
   onRefresh: () => void
   date: string
-}
-
-// The theme is the data-theme attribute the inline script set, read as an
-// external store (the same pattern as the reduced-motion flag in
-// lib/motion/tokens.ts): the server snapshot is the first stock, hydration
-// uses it, the client snapshot takes over with no mismatch. The toggle
-// writes the attribute and stores the choice for the next visit.
-function subscribeTheme(onChange: () => void) {
-  const observer = new MutationObserver(onChange)
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-  return () => observer.disconnect()
-}
-function readTheme(): Theme {
-  const t = document.documentElement.getAttribute('data-theme')
-  return t === 'operate' ? 'operate' : 'passbook'
-}
-function useTheme(): [Theme, () => void] {
-  // The server snapshot is the first stock, so on the dark stock the icon
-  // and label render the light stock's for one frame after hydration,
-  // until the client snapshot re-renders. The page's colors are right from
-  // the first paint: the stylesheet keys on the attribute, not on this.
-  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => 'passbook' as Theme)
-  const toggle = () => {
-    const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!
-    document.documentElement.setAttribute('data-theme', next)
-    try {
-      localStorage.setItem(THEME_KEY, next)
-    } catch {}
-  }
-  return [theme, toggle]
 }
 
 // The last refresh, as the sheet's date line: date and time in UTC, the
@@ -79,7 +49,7 @@ function SunMoon({ theme }: { theme: Theme }) {
 }
 
 export function Header({ datasets, active, onDataset, busy, onRefresh, date }: Props) {
-  const [theme, toggleTheme] = useTheme()
+  const theme = useTheme()
   return (
     <header className={styles.header}>
       <div className={styles.left}>
