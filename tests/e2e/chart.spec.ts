@@ -134,8 +134,12 @@ test.describe('the chart', () => {
     await page.getByRole('button', { name: 'Comparables' }).click()
     await expect(page.locator('tbody tr')).toHaveCount(12)
     // A manual refresh advances the snapshot; the poll takes the same path.
-    await page.getByRole('button', { name: 'Refresh' }).click()
-    await expect(page.getByRole('button', { name: 'Refresh' })).toBeEnabled()
+    // `exact`, because while the run is in flight every figure's own label
+    // ends in ", refreshing" and a loose name matches all 36 of them. The
+    // header button is `Refreshing` for the same window, so waiting for
+    // `Refresh` to exist again is waiting for the run to land.
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
     // The regions series on hand are from before the run and are forgotten;
     // the switch reads them again, so the endpoints match the figures.
     const read = page.waitForRequest(r => r.url().includes('/api/series?dataset=regions'), { timeout: 5_000 })
