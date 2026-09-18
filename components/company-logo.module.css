@@ -1,0 +1,8 @@
+/* Not in the layout: the Marker inside is the flex child its call sites have
+   always laid out, so the wrapper can carry the view model's values without
+   moving anything. When the artboard lands this becomes a real box with the
+   canvas's own size, and that is the commit that changes the layout. */
+
+.logo {
+  display: contents;
+}

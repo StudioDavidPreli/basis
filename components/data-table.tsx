@@ -17,7 +17,7 @@ import { useMotionTokens } from '@/lib/motion/tokens'
 import type { AgentPhase } from '@/worker/refresh'
 import type { Sort } from './surface-state'
 import { Figure } from './figure'
-import { Marker } from './marker'
+import { CompanyLogo } from './company-logo'
 import styles from './data-table.module.css'
 
 export type Row = {
@@ -26,6 +26,8 @@ export type Row = {
   href: string // the row's own page; a client navigation opens the drawer
   colors: { light: string; dark: string }
   marker: string
+  // This entity's latest mutation `at`, or null: the mark pulses on it.
+  pulseKey: string | null
   cells: Record<string, FigureValue | string | undefined>
 }
 
@@ -172,7 +174,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                           document.querySelector<HTMLElement>('dialog [data-drawer-heading]')?.focus()
                         }}
                       >
-                        <Marker shape={row.marker} colors={row.colors} />
+                        <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
                         <span className="type-label">{row.name}</span>
                       </Link>
                       <span className={styles.leader} aria-hidden="true" />

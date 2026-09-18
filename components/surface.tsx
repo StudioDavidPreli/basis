@@ -134,6 +134,16 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
   const columns = dataset.columns
   const entities = dataset.entities === 'companies' ? config.companies : config.regions
 
+  // Each entity's latest mutation, for its mark's pulse. The log is newest
+  // first (worker/refresh.ts prepends this run's), so the first entry an
+  // entity appears in is the one, and a run that changed nothing for it
+  // leaves its key alone and its mark still.
+  const pulseKeys = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const m of snapshot?.mutations ?? []) if (!(m.entity in out)) out[m.entity] = m.at
+    return out
+  }, [snapshot])
+
   const rows: Row[] = useMemo(
     () =>
       entities.map(e => {
@@ -143,9 +153,9 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
           if (col.derive === 'field') cells[col.key] = (e as unknown as Record<string, string>)[col.field!]
           else cells[col.key] = snap?.metrics[col.key]
         }
-        return { id: e.id, name: entityName(e.id), href: entityHref(e.id), colors: { light: e.color, dark: e.colorDark }, marker: e.marker, cells }
+        return { id: e.id, name: entityName(e.id), href: entityHref(e.id), colors: { light: e.color, dark: e.colorDark }, marker: e.marker, pulseKey: pulseKeys[e.id] ?? null, cells }
       }),
-    [entities, columns, snapshot],
+    [entities, columns, snapshot, pulseKeys],
   )
 
   const order = useMemo(

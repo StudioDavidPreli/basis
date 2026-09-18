@@ -122,6 +122,13 @@ export function loadConfig(input: unknown = raw): Config {
 
 export const config: Config = loadConfig()
 
+// An entity's fixed color and marker, by id, across both datasets. The row
+// and the detail already carry these; this is for a consumer that has only an
+// id, and it cannot disagree with them because both derive from this config.
+export function entityStyleOf(id: string, c: Config = config): EntityStyle | null {
+  return c.companies.find(e => e.id === id) ?? c.regions.find(e => e.id === id) ?? null
+}
+
 export function dominantDriver(exposures: Exposure[]): string {
   return exposures.reduce((a, b) => (b.weight > a.weight ? b : a)).driver
 }
