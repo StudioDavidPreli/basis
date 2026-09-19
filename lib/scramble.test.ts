@@ -39,8 +39,46 @@ describe('scramble', () => {
     const mid = scrambleFrame({ ...base, from: 'ab', target: 'abcdefghij', progress: 0.5, tick: 0 })
     expect(mid.length).toBeGreaterThan(2)
     expect(mid.length).toBeLessThan(10)
-    expect(synthesizeFrom('ab', 'abcdefghij', 0.5, ease).length).toBe(mid.length)
-    expect(synthesizeFrom('abcdef', 'ab', 0.5, ease)).toMatch(/^ab +$/)
+    expect(synthesizeFrom('ab', 'abcdefghij', 0.5, 0.35, ease).length).toBe(mid.length)
+    // Shared leading characters hold as the length shrinks to the target's.
+    expect(synthesizeFrom('abcdef', 'ab', 0.5, 0.35, ease)).toMatch(/^ab/)
+  })
+
+  // The regression that stopped one entity switch in four from animating:
+  // synthesizeFrom answers "what is on screen", and at a progress of a
+  // thousandth what is on screen is the old text, not the new one. The
+  // caller compares its answer with the incoming text to decide whether a
+  // transition is needed at all, so a wrong answer here cancels the
+  // transition outright (docs/notes/2026-09-18-the-scramble-spec-is-flaky.md).
+  it('is the old text at the very start and the new one at the end', () => {
+    const a = 'Anchor Kaze'
+    const b = 'Keel London'
+    expect(synthesizeFrom(a, b, 0, 0.35, ease)).toBe(a)
+    expect(synthesizeFrom(a, b, 0.0012, 0.35, ease)).toBe(a)
+    expect(synthesizeFrom(a, b, 1, 0.35, ease)).toBe(b)
+    // Equal-length texts were the trap: the old code sliced the target to
+    // the interpolated length, which for two names of the same length is
+    // the whole target at every progress.
+    expect(a).toHaveLength(b.length)
+  })
+
+  it('is the frame\'s length and only ever real characters, at every progress', () => {
+    const from = 'Anchor Kaze'
+    const target = 'Keel London'
+    for (const progress of [0, 0.2, 0.5, 0.8, 1]) {
+      const synth = synthesizeFrom(from, target, progress, 0.35, ease)
+      const frame = scrambleFrame({ ...base, charset: measureCharset([from, target]), from, target, progress, tick: 3 })
+      // The same length, so a transition restarting from it does not jump
+      // the text's width.
+      expect(synth).toHaveLength(frame.length)
+      // Every position is the old character, the new one, or a hole. The
+      // frame on screen shows noise at the unresolved ones; this never does,
+      // which is the whole point of synthesizing rather than reading it.
+      // (It cannot be checked the other way round — the noise alphabet is
+      // drawn from both names, so a noise glyph equals the target's
+      // character often enough to make that assertion lie.)
+      for (let j = 0; j < synth.length; j++) expect([from[j], target[j], ' ']).toContain(synth[j])
+    }
   })
 
   it('every position resolves by the end', () => {

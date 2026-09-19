@@ -70,7 +70,10 @@ function createStore(text: string) {
       // Progress is a function of the clock, read on every frame and on
       // every glyph tick, so a tab hidden mid-transition (no animation
       // frames) still resolves rather than churning until it is shown.
-      const at = (now: number) => Math.min(1, (now - t0) / ms)
+      // Clamped at both ends. A rAF timestamp is the frame's start and can
+      // precede t0, so an unclamped `at` returned small negative numbers
+      // that flowed into the ease and the frame math.
+      const at = (now: number) => Math.min(1, Math.max(0, (now - t0) / ms))
       const clock = tickMs > 0
         ? setInterval(() => {
             const p = at(performance.now())
@@ -142,10 +145,12 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: 
     // Strict Mode double run, above) and restarts from what is on screen.
     if (s.target === text && (s.progress >= 1 || store.isRunning())) return
     // An interrupted transition carries its length forward, from what is on
-    // screen rather than from the old target it never reached. At progress
-    // zero what is on screen is the from text itself, so a stopped
-    // transition restarts from there in full.
-    const start = s.progress <= 0 ? s.from : s.progress < 1 ? synthesizeFrom(s.from, s.target, s.progress, ease) : s.target
+    // screen rather than from the old target it never reached. There is no
+    // special case at zero: synthesizeFrom answers `from` there, which is
+    // what is on screen. Reading a progress of a thousandth as "already
+    // showing the target" is the bug that stopped one switch in four from
+    // animating at all.
+    const start = s.progress < 1 ? synthesizeFrom(s.from, s.target, s.progress, SETTLE_SPAN, ease) : s.target
     if (start === text) {
       store.settle(text)
       return

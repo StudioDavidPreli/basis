@@ -51,12 +51,29 @@ export function bezier([x1, y1, x2, y2]: readonly number[] | number[]): Ease {
   }
 }
 
-// What is on screen at the moment a transition is interrupted: the
-// interpolated length, filled with the old target truncated or padded.
-// Length is what must carry over, or the text visibly jumps width.
-export function synthesizeFrom(from: string, target: string, progress: number, ease: Ease): string {
+// What is on screen at the moment a transition is interrupted, without the
+// noise: the interpolated length, and at each position the character that
+// has actually settled there — the target's where this position's moment has
+// passed, the old text's where it has not. It ran the length and filled the
+// whole of it with the target, which is only true near the end; at a
+// progress of a thousandth it answered with the target entire, and a caller
+// asking "am I already showing this?" believed it. That is how one entity
+// switch in four stopped animating
+// (docs/notes/2026-09-18-the-scramble-spec-is-flaky.md).
+//
+// The thresholds are `scrambleFrame`'s, so this and the frame on screen
+// agree about which positions have resolved. At progress 0 it is `from`
+// exactly, at 1 it is `target`, and length is what must carry over or the
+// text visibly jumps width.
+export function synthesizeFrom(from: string, target: string, progress: number, settleSpan: number, ease: Ease): string {
   const len = Math.round(from.length + (target.length - from.length) * ease(progress))
-  return target.length >= len ? target.slice(0, len) : target + ' '.repeat(len - target.length)
+  let out = ''
+  for (let j = 0; j < len; j++) {
+    const shared = from[j] !== undefined && from[j] === target[j]
+    const threshold = shared ? 0 : hash01(1, j) * (1 - settleSpan) + settleSpan
+    out += progress >= threshold ? (target[j] ?? ' ') : (from[j] ?? ' ')
+  }
+  return out
 }
 
 export type FrameInput = {
