@@ -111,6 +111,52 @@ test.describe('under next dev, with Strict Mode', () => {
     await expect(page.locator('[data-drawer-heading] .sr-only')).toHaveCount(0)
   })
 
+  test('the first row charted is on its window from the first frame', async ({ page }) => {
+    await warm(page)
+    // Sample the geometry on every frame from the ribbon's arrival: the
+    // path's first x, the endpoint's left offset, and the reveal's width.
+    // The Strict Mode bug: the chart jumped the domain values after the
+    // ribbon, the ticks, and the endpoint had read them, the simulated
+    // unmount cancelled the derived values' update, and the whole chart sat
+    // on the placeholder window (x around 2e15) for the length of the draw.
+    await page.evaluate(() => {
+      const w = window as unknown as { samples: { x: number; left: number; width: number }[] }
+      w.samples = []
+      const box = document.querySelector('svg[preserveAspectRatio="none"]')!.parentElement!
+      const observer = new MutationObserver(() => {
+        const path = box.querySelector('path[data-series]')
+        const endpoint = box.querySelector<HTMLElement>('[data-endpoint]')
+        if (!path || !endpoint) return
+        observer.disconnect()
+        const tick = () => {
+          const d = path.getAttribute('d') ?? ''
+          const rect = box.querySelector('[data-reveal]')
+          w.samples.push({ x: Number(d.slice(1).split(',')[0]), left: parseFloat(endpoint.style.left), width: parseFloat(rect?.getAttribute('width') ?? '') })
+          if (w.samples.length < 45) requestAnimationFrame(tick)
+        }
+        tick()
+      })
+      observer.observe(box, { childList: true, subtree: true })
+    })
+    await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
+    await expect(page.locator('path[data-series="ou-tokyo"]')).toHaveAttribute('data-drawn')
+    const samples = await page.evaluate(() => (window as unknown as { samples: { x: number; left: number; width: number }[] }).samples)
+    const full = await page.locator('svg[preserveAspectRatio="none"]').evaluate(el => (el as SVGSVGElement).viewBox.baseVal.width)
+    expect(samples.length).toBeGreaterThan(20)
+    for (const s of samples) {
+      // On the window: the first point of a 1Y window over a series that
+      // starts in June sits inside the plot, and the endpoint at its right edge.
+      expect(Number.isFinite(s.x)).toBe(true)
+      expect(Math.abs(s.x)).toBeLessThan(full * 2)
+      expect(s.left).toBeGreaterThan(50)
+      expect(s.left).toBeLessThanOrEqual(100)
+    }
+    // And the reveal ran on it: several frames with the clip mid-way.
+    const end = samples[samples.length - 1]!.width
+    expect(end).toBeGreaterThan(full * 0.2)
+    expect(samples.filter(s => s.width > end * 0.2 && s.width < end * 0.8).length).toBeGreaterThan(3)
+  })
+
   test('the sheet hydrates and opens the drawer with nothing in the console', async ({ page }) => {
     const errors = collectErrors(page)
     await page.goto('/?reduce=1')

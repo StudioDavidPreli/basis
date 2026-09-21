@@ -13,6 +13,25 @@
 // animation and no React render per frame. Under reduced motion the
 // durations are 10 ms and both are instant.
 //
+// A domain after none (the first row charted, or the first after a clear)
+// is set, not animated, and it is set by making four new values at the
+// new window rather than by jumping the old ones. The children compute
+// their first derived value in the same render, from the values as they
+// are, so the first paint is on the right window without any notification
+// in between. Jumping values the children had already read left the whole
+// chart on the placeholder window for the length of the draw under
+// development Strict Mode: the derived values subscribe in a layout
+// effect, the jump scheduled their update for the next frame, and Strict
+// Mode's simulated unmount ran the subscription cleanup, which cancelled
+// it (decisions/2026-09-21-clip-reveal-and-fresh-domain-values.md).
+//
+// The draw-in is a clip rectangle widening from the ribbon's first
+// visible point to its last, uniform in x and so in time. It is not a
+// stroke drawn along the path: the path carries the whole history and the
+// window clips it, so on 1Y with five years stored, most of the path's
+// length is off-screen to the left and a draw along it spent most of the
+// duration showing nothing.
+//
 // The plot's width changes on every frame of the drawer's spring
 // (decisions/2026-09-16-drawer-resizes-the-layout.md). The SVG stretches
 // through its viewBox (preserveAspectRatio none) for the duration, and the
@@ -27,7 +46,7 @@
 // reads the point.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AnimatePresence, animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
+import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { dateMs, domainFor, formatDateTick, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Domain, type Frame, type Point } from '@/lib/chart'
 import type { Range } from './surface-state'
@@ -65,6 +84,12 @@ const X_TICKS = 5
 const Y_TICKS = 4
 
 type DomainValues = { x0: MotionValue<number>; x1: MotionValue<number>; y0: MotionValue<number>; y1: MotionValue<number> }
+
+// Four values at a window; the unit window when there is none, which
+// nothing reads until a domain arrives and replaces them.
+function domainValues(d: Domain | null): DomainValues {
+  return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
+}
 
 export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredId, openId, onHover, summary, readout }: Props) {
   const { durations, easings } = useMotionTokens()
@@ -104,42 +129,28 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     }
   }, [])
 
-  // The animated domain. The first window is set, not animated; every
-  // later change runs on slow / standard; the values themselves live in
-  // MotionValues so a change never renders per frame.
-  const x0 = useMotionValue(target?.[0] ?? 0)
-  const x1 = useMotionValue(target?.[1] ?? 1)
-  const y0 = useMotionValue(target?.[2] ?? 0)
-  const y1 = useMotionValue(target?.[3] ?? 1)
-  const dom: DomainValues = { x0, x1, y0, y1 }
+  // The animated domain. A window after none is set, not animated: the
+  // four values are made new at it, in this render, decided from the
+  // target itself (the header explains why not a jump). A clear keeps the
+  // last values, so the ribbons draw out on the window they were on. Every
+  // later change animates the values on slow / standard, so a change never
+  // renders per frame.
+  const hasTarget = target !== null
+  const [held, setHeld] = useState(() => ({ hasTarget, dom: domainValues(target) }))
+  if (held.hasTarget !== hasTarget) setHeld({ hasTarget, dom: hasTarget ? domainValues(target) : held.dom })
+  const dom = held.dom
   const svg = useRef<SVGSVGElement>(null)
   const targetKey = target ? target.join(',') : ''
-  const hadDomain = useRef(false)
-  // A layout effect, so the first domain is in place before the ticks and
-  // gridlines that read it are painted; the values were initialised on the
-  // server's target, so on mount there is nothing to jump.
+  // A layout effect, so a rescale is under way before the frame that
+  // follows the change is painted.
   useLayoutEffect(() => {
-    if (!targetKey) {
-      hadDomain.current = false
-      return
-    }
+    if (!targetKey) return
     const next = targetKey.split(',').map(Number) as Domain
-    const values = [x0, x1, y0, y1]
-    // Already there: the mount, the second run under development Strict
-    // Mode, and the re-run when the reduced-motion flag settles after
-    // hydration all land here. Decided from the values, not from history.
-    if (values.every((v, i) => v.get() === next[i])) {
-      hadDomain.current = true
-      return
-    }
-    // A domain after none (the series arrived) is set, not animated. The
-    // flag records the target's history, which the values cannot: they
-    // still hold the last window, or the nominal one.
-    if (!hadDomain.current) {
-      hadDomain.current = true
-      values.forEach((v, i) => v.jump(next[i]!))
-      return
-    }
+    const values = [dom.x0, dom.x1, dom.y0, dom.y1]
+    // Already there: the first window of these values, the second run
+    // under development Strict Mode, and the re-run when the reduced-motion
+    // flag settles after hydration all land here. Decided from the values.
+    if (values.every((v, i) => v.get() === next[i])) return
     const el = svg.current
     el?.setAttribute('data-animating', '')
     const controls = values.map((v, i) => animate(v, next[i]!, { duration: durations.slow, ease: easings.standard }))
@@ -151,7 +162,7 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
       controls.forEach(c => c.stop())
       el?.removeAttribute('data-animating')
     }
-  }, [targetKey, x0, x1, y0, y1, durations.slow, easings.standard])
+  }, [targetKey, dom, durations.slow, easings.standard])
 
   // Draw-in stagger by selection order among the ribbons arriving together:
   // a single toggle draws at once, a Shift-range or select-all cascades.
@@ -232,21 +243,53 @@ function Ribbon({ row, dom, frame, delayIndex, hover, muted, onHover }: Part & {
   const { durations, easings, delays } = useMotionTokens()
   const d = useTransform(domainList(dom), (v: number[]) => pathFor(row.points, v as Domain, frame))
   const [drawn, setDrawn] = useState(false)
+  const [present, safeToRemove] = usePresence()
   const delay = delayIndex * delays.short
+
+  // The reveal: a clip rectangle from the ribbon's first visible point to
+  // its last, so a series shorter than the window (the fixtures' three
+  // months on 1Y) is not preceded by a sweep across empty plot. Its
+  // extent reads the domain, so it follows a rescale in flight; its
+  // progress is one value, 0 to 1 on enter and back on exit. Once drawn
+  // and staying, the ribbon is unclipped, so a later re-measure of the
+  // frame never clips it; on the way out the clip returns and retracts.
+  const progress = useMotionValue(0)
+  const first = row.points[0]
+  const last = row.points[row.points.length - 1]
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => (first ? Math.max(PAD.left, xScale([a!, b!, 0, 1], frame)(first[0])) : 0))
+  const width = useTransform([dom.x0, dom.x1, progress], ([a, b, p]: number[]) => {
+    if (!first || !last) return 0
+    const scale = xScale([a!, b!, 0, 1], frame)
+    return Math.max(0, scale(last[0]) - Math.max(PAD.left, scale(first[0]))) * p!
+  })
+  useEffect(() => {
+    if (present) {
+      // To 1 from wherever it is: the mount, and the second run under
+      // development Strict Mode after the first was stopped.
+      const controls = animate(progress, 1, { duration: durations.slower, ease: easings.enter, delay })
+      controls.then(() => setDrawn(true))
+      return () => controls.stop()
+    }
+    const controls = animate(progress, 0, { duration: durations.base, ease: easings.exit })
+    controls.then(() => safeToRemove())
+    return () => controls.stop()
+  }, [present, safeToRemove, progress, durations.slower, durations.base, easings.enter, easings.exit, delay])
+
+  const clipId = `ribbon-clip-${row.id}`
+  const clipped = !drawn || !present
   return (
     <g className="entity" style={entityStyle(row.colors)}>
+      <clipPath id={clipId}>
+        <motion.rect x={left} y={0} width={width} height={frame.height} data-reveal={row.id} />
+      </clipPath>
       <motion.path
         className={styles.ribbon}
         d={d}
+        clipPath={clipped ? `url(#${clipId})` : undefined}
         data-series={row.id}
         data-hover={hover || undefined}
         data-muted={muted || undefined}
         data-drawn={drawn || undefined}
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        exit={{ pathLength: 0, transition: { duration: durations.base, ease: easings.exit } }}
-        transition={{ duration: durations.slower, ease: easings.enter, delay }}
-        onAnimationComplete={() => setDrawn(true)}
       />
       <motion.path className={styles.hit} d={d} onMouseEnter={() => onHover(row.id)} onMouseLeave={() => onHover(null)} />
     </g>

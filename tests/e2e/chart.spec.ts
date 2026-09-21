@@ -22,12 +22,58 @@ test.describe('the chart', () => {
     // A real path over real dates: many segments, drawn in on slower / enter.
     expect((await ribbon.getAttribute('d'))!.split('L').length).toBeGreaterThan(20)
     await expect(ribbon).toHaveAttribute('data-drawn')
+    // Drawn and staying, the ribbon is unclipped, so a re-measure of the
+    // frame after the drawer's spring never clips it.
+    await expect(ribbon).not.toHaveAttribute('clip-path')
     await expect(page.locator('[data-endpoint="ou-tokyo"]')).toBeVisible()
     await expect(plot(page)).toHaveAttribute('aria-label', /^Level over 1Y, 1 row: Anchor Kaze [\d.,]+\. History from 2026-06-01\. Values from \d{4}-\d{2}-\d{2} are provisional\. The table below is the accessible alternative\.$/)
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     await expect(ribbon).toHaveCount(0)
     await expect(page.locator('[data-endpoint="ou-tokyo"]')).toHaveCount(0)
     await expect(plot(page)).toHaveAttribute('aria-label', /^No rows charted/)
+  })
+
+  test('the draw-in is a reveal across the plot, visible mid-way', async ({ page }) => {
+    await page.goto('/')
+    // Sample the clip rectangle's width on every frame from the ribbon's
+    // arrival. The stroke drawn along the path's length that this replaced
+    // spent most of `slower` on history the window clips, and the visible
+    // part arrived in the last 150 ms; the built-output gate could not see
+    // that because it only waited for `data-drawn`.
+    await page.evaluate(() => {
+      const w = window as unknown as { samples: { width: number; clipped: boolean }[] }
+      w.samples = []
+      const svg = document.querySelector('svg[preserveAspectRatio="none"]')!
+      const observer = new MutationObserver(() => {
+        const rect = svg.querySelector('[data-reveal]')
+        const path = svg.querySelector('path[data-series]')
+        if (!rect || !path) return
+        observer.disconnect()
+        const tick = () => {
+          w.samples.push({ width: parseFloat(rect.getAttribute('width') ?? ''), clipped: path.hasAttribute('clip-path') })
+          if (w.samples.length < 60) requestAnimationFrame(tick)
+        }
+        tick()
+      })
+      observer.observe(svg, { childList: true, subtree: true })
+    })
+    await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
+    await expect(page.locator('path[data-series="ou-tokyo"]')).toHaveAttribute('data-drawn')
+    await page.waitForTimeout(400)
+    const samples = await page.evaluate(() => (window as unknown as { samples: { width: number; clipped: boolean }[] }).samples)
+    const widths = samples.map(s => s.width)
+    const full = widths[widths.length - 1]!
+    const plot = await page.locator('svg[preserveAspectRatio="none"]').evaluate(el => (el as SVGSVGElement).viewBox.baseVal.width)
+    // Starts closed, ends across the ribbon's visible extent (the fixtures'
+    // history is three months of a 1Y window), and passes through the
+    // middle over several frames rather than jumping there.
+    expect(full).toBeGreaterThan(plot * 0.2)
+    expect(widths[0]).toBeLessThan(full * 0.2)
+    expect(widths.filter(x => x > full * 0.2 && x < full * 0.8).length).toBeGreaterThan(3)
+    for (let i = 1; i < widths.length; i++) expect(widths[i]!).toBeGreaterThanOrEqual(widths[i - 1]!)
+    // Clipped while revealing, unclipped once drawn.
+    expect(samples[0]!.clipped).toBe(true)
+    expect(samples[samples.length - 1]!.clipped).toBe(false)
   })
 
   test('the legend removes a ribbon, and the ninth selected row waits', async ({ page }) => {
