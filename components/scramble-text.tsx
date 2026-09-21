@@ -5,8 +5,8 @@
 // moment and resolves into the new one; shared characters hold still. The
 // pure frame math is lib/scramble.ts. Timing is all tokens: the transition
 // runs over durations.slower, the glyph clock ticks every delays.short,
-// the length eases on easings.standard, and under reduced motion the text
-// simply changes.
+// the length, the onsets, and the settle schedule ease on
+// easings.standard, and under reduced motion the text simply changes.
 //
 // Progress and the tick live in a small external store read through
 // useSyncExternalStore (the pattern every browser-driven value in Basis
@@ -20,11 +20,13 @@
 
 import { useLayoutEffect, useMemo, useState, useSyncExternalStore, type ElementType } from 'react'
 import { useMotionTokens } from '@/lib/motion/tokens'
-import { bezier, measureCharset, scrambleFrame, synthesizeFrom } from '@/lib/scramble'
+import { bezier, measureCharset, scrambleFrame, synthesizeFrom, type Spans } from '@/lib/scramble'
 
-// How much of the transition one character spends scrambling: a fraction
-// of the token duration, not a timing of its own.
-const SETTLE_SPAN = 0.35
+// The schedule's spans (lib/scramble.ts, Spans): onsets spread over the
+// first 0.3 of eased progress, and every character churns for at least
+// 0.35 after its onset. Fractions of the token duration, not timings of
+// their own.
+const SPANS: Spans = { onset: 0.3, settle: 0.35 }
 
 type State = {
   progress: number // 0..1; 1 is settled, also the resting state
@@ -150,7 +152,7 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: 
     // what is on screen. Reading a progress of a thousandth as "already
     // showing the target" is the bug that stopped one switch in four from
     // animating at all.
-    const start = s.progress < 1 ? synthesizeFrom(s.from, s.target, s.progress, SETTLE_SPAN, ease) : s.target
+    const start = s.progress < 1 ? synthesizeFrom(s.from, s.target, s.progress, SPANS, ease) : s.target
     if (start === text) {
       store.settle(text)
       return
@@ -166,7 +168,7 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: 
   // the old text, not the new one: the store's subscription is passive, so
   // the render that starts the transition would otherwise paint the new
   // name settled for a frame and then scramble it from nothing.
-  const shown = progress >= 1 ? target : scrambleFrame({ from, target, progress, tick, settleSpan: SETTLE_SPAN, charset, holdMatching: true, ease })
+  const shown = progress >= 1 ? target : scrambleFrame({ from, target, progress, tick, spans: SPANS, charset, holdMatching: true, ease })
   return (
     <Tag className={className}>
       <span className="sr-only">{text}</span>

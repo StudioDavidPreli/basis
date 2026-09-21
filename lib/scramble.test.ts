@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { bezier, hash, measureCharset, scrambleFrame, synthesizeFrom } from './scramble'
+import { bezier, hash, measureCharset, moments, scrambleFrame, synthesizeFrom } from './scramble'
 
 const ease = bezier([0.4, 0, 0.2, 1])
-const base = { settleSpan: 0.35, charset: 'abcxyz', holdMatching: true, ease }
+const grid = Array.from({ length: 201 }, (_, i) => i / 200)
+const spans = { onset: 0.3, settle: 0.35 }
+const base = { spans, charset: 'abcxyz', holdMatching: true, ease }
 
 describe('scramble', () => {
   it('hashes deterministically and differs by tick', () => {
@@ -29,19 +31,79 @@ describe('scramble', () => {
 
   it('settled shows the target, unsettled shows noise where the texts differ and holds where they match', () => {
     expect(scrambleFrame({ ...base, from: 'Anchor Kaze', target: 'Anchor Baram', progress: 1, tick: 0 })).toBe('Anchor Baram')
-    const early = scrambleFrame({ ...base, from: 'Anchor Kaze', target: 'Anchor Baram', progress: 0, tick: 0 })
-    expect(early.slice(0, 7)).toBe('Anchor ')
-    expect(early.length).toBe('Anchor Kaze'.length)
-    for (const ch of early.slice(7)) expect('abcxyz'.includes(ch)).toBe(true)
+    // A progress past every onset and before any settle: eased progress in
+    // [onset, onset + settle).
+    const p = grid.find(p => ease(p) >= spans.onset && ease(p) < spans.onset + spans.settle)!
+    const churn = scrambleFrame({ ...base, from: 'Anchor Kaze', target: 'Anchor Baram', progress: p, tick: 0 })
+    expect(churn.slice(0, 7)).toBe('Anchor ')
+    for (const ch of churn.slice(7)) expect('abcxyz'.includes(ch)).toBe(true)
+  })
+
+  // The eased schedule (contracts/cadence-basis.md: standard on the
+  // length, the onsets, and the settle schedule). Two hundred positions
+  // that all differ, a noise alphabet disjoint from both texts, so a
+  // position's state is legible from its character: old, noise, or new.
+  const from = 'x'.repeat(200)
+  const target = 'y'.repeat(200)
+  const legible = { ...base, charset: 'abc', from, target }
+  const count = (p: number, ch: string) => [...scrambleFrame({ ...legible, progress: p, tick: 1 })].filter(c => c === ch).length
+
+  it('is the old text at progress zero: nothing has begun', () => {
+    expect(scrambleFrame({ ...legible, progress: 0, tick: 0 })).toBe(from)
+  })
+
+  it('churn ramps in rather than switching on: more onsets in the second eighth than the first', () => {
+    const first = 200 - count(0.125, 'x')
+    const second = 200 - count(0.25, 'x') - first
+    expect(first).toBeGreaterThan(0)
+    expect(second).toBeGreaterThan(first)
+  })
+
+  it('settles taper at the end: fewer in the last 15% than in the middle 15%', () => {
+    const middle = count(0.575, 'y') - count(0.425, 'y')
+    const tail = 200 - count(0.85, 'y')
+    expect(tail).toBeGreaterThan(0)
+    expect(middle).toBeGreaterThan(tail)
+    expect(scrambleFrame({ ...legible, progress: 1, tick: 0 })).toBe(target)
+  })
+
+  it('a position only ever moves forward: old, then noise, then new', () => {
+    let last = ''
+    for (const p of grid) {
+      const frame = scrambleFrame({ ...legible, progress: p, tick: 2 })
+      for (let j = 0; j < 200 && last; j++) {
+        if (last[j] !== 'x') expect(frame[j]).not.toBe('x')
+        if (last[j] === 'y') expect(frame[j]).toBe('y')
+      }
+      last = frame
+    }
+  })
+
+  it('the synthesizer agrees with the frame at every position and progress', () => {
+    for (const p of grid) {
+      const frame = scrambleFrame({ ...legible, progress: p, tick: 4 })
+      const synth = synthesizeFrom(from, target, p, spans, ease)
+      for (let j = 0; j < 200; j++) expect(synth[j]).toBe(frame[j] === 'y' ? 'y' : 'x')
+    }
+  })
+
+  it('a position that arrives by growth churns at once, and every moment is ordered', () => {
+    for (let j = 0; j < 50; j++) {
+      const m = moments(j, 20, spans)
+      if (j >= 20) expect(m.onset).toBe(0)
+      else expect(m.onset).toBeLessThanOrEqual(spans.onset)
+      expect(m.settle).toBeGreaterThanOrEqual(m.onset + spans.settle)
+      expect(m.settle).toBeLessThanOrEqual(1)
+    }
   })
 
   it('length interpolates toward the target as progress runs', () => {
     const mid = scrambleFrame({ ...base, from: 'ab', target: 'abcdefghij', progress: 0.5, tick: 0 })
     expect(mid.length).toBeGreaterThan(2)
     expect(mid.length).toBeLessThan(10)
-    expect(synthesizeFrom('ab', 'abcdefghij', 0.5, 0.35, ease).length).toBe(mid.length)
+    expect(synthesizeFrom('ab', 'abcdefghij', 0.5, spans, ease).length).toBe(mid.length)
     // Shared leading characters hold as the length shrinks to the target's.
-    expect(synthesizeFrom('abcdef', 'ab', 0.5, 0.35, ease)).toMatch(/^ab/)
+    expect(synthesizeFrom('abcdef', 'ab', 0.5, spans, ease)).toMatch(/^ab/)
   })
 
   // The regression that stopped one entity switch in four from animating:
@@ -53,9 +115,9 @@ describe('scramble', () => {
   it('is the old text at the very start and the new one at the end', () => {
     const a = 'Anchor Kaze'
     const b = 'Keel London'
-    expect(synthesizeFrom(a, b, 0, 0.35, ease)).toBe(a)
-    expect(synthesizeFrom(a, b, 0.0012, 0.35, ease)).toBe(a)
-    expect(synthesizeFrom(a, b, 1, 0.35, ease)).toBe(b)
+    expect(synthesizeFrom(a, b, 0, spans, ease)).toBe(a)
+    expect(synthesizeFrom(a, b, 0.0012, spans, ease)).toBe(a)
+    expect(synthesizeFrom(a, b, 1, spans, ease)).toBe(b)
     // Equal-length texts were the trap: the old code sliced the target to
     // the interpolated length, which for two names of the same length is
     // the whole target at every progress.
@@ -66,7 +128,7 @@ describe('scramble', () => {
     const from = 'Anchor Kaze'
     const target = 'Keel London'
     for (const progress of [0, 0.2, 0.5, 0.8, 1]) {
-      const synth = synthesizeFrom(from, target, progress, 0.35, ease)
+      const synth = synthesizeFrom(from, target, progress, spans, ease)
       const frame = scrambleFrame({ ...base, charset: measureCharset([from, target]), from, target, progress, tick: 3 })
       // The same length, so a transition restarting from it does not jump
       // the text's width.

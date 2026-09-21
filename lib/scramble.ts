@@ -51,6 +51,28 @@ export function bezier([x1, y1, x2, y2]: readonly number[] | number[]): Ease {
   }
 }
 
+// The schedule. A transition's progress is linear in time; every moment
+// below is compared to it EASED, through the token's `standard` curve
+// (contracts/cadence-basis.md, "Drawer entity switch"). The glyph clock is
+// one value and cannot ease; what eases is which characters are churning
+// at each moment. `standard` moves slowly at both ends, so onsets ramp in,
+// settles bunch in the middle, and the last characters resolve in a tail.
+//
+// Two spans, both fractions of the token duration rather than timings of
+// their own: onsets are spread over the first `onset` of eased progress,
+// and every character churns for at least `settle` after its onset.
+export type Spans = { onset: number; settle: number }
+
+// One position's moments, fixed for the whole transition. A position
+// beyond the old text arrives by growth and churns from the moment the
+// length reaches it: appearing is already an event. The two hashes are
+// seeded apart so a late onset says nothing about a late settle.
+export function moments(j: number, fromLength: number, spans: Spans): { onset: number; settle: number } {
+  const onset = j < fromLength ? hash01(2, j) * spans.onset : 0
+  const settle = onset + spans.settle + hash01(1, j) * (1 - onset - spans.settle)
+  return { onset, settle }
+}
+
 // What is on screen at the moment a transition is interrupted, without the
 // noise: the interpolated length, and at each position the character that
 // has actually settled there — the target's where this position's moment has
@@ -61,17 +83,18 @@ export function bezier([x1, y1, x2, y2]: readonly number[] | number[]): Ease {
 // switch in four stopped animating
 // (docs/notes/2026-09-18-the-scramble-spec-is-flaky.md).
 //
-// The thresholds are `scrambleFrame`'s, so this and the frame on screen
-// agree about which positions have resolved. At progress 0 it is `from`
-// exactly, at 1 it is `target`, and length is what must carry over or the
-// text visibly jumps width.
-export function synthesizeFrom(from: string, target: string, progress: number, settleSpan: number, ease: Ease): string {
-  const len = Math.round(from.length + (target.length - from.length) * ease(progress))
+// The moments are `moments`', shared with `scrambleFrame`, so this and the
+// frame on screen agree about which positions have resolved. At progress 0
+// it is `from` exactly, at 1 it is `target`, and length is what must carry
+// over or the text visibly jumps width.
+export function synthesizeFrom(from: string, target: string, progress: number, spans: Spans, ease: Ease): string {
+  const q = ease(progress)
+  const len = Math.round(from.length + (target.length - from.length) * q)
   let out = ''
   for (let j = 0; j < len; j++) {
     const shared = from[j] !== undefined && from[j] === target[j]
-    const threshold = shared ? 0 : hash01(1, j) * (1 - settleSpan) + settleSpan
-    out += progress >= threshold ? (target[j] ?? ' ') : (from[j] ?? ' ')
+    const done = shared || q >= moments(j, from.length, spans).settle
+    out += done ? (target[j] ?? ' ') : (from[j] ?? ' ')
   }
   return out
 }
@@ -79,26 +102,25 @@ export function synthesizeFrom(from: string, target: string, progress: number, s
 export type FrameInput = {
   from: string
   target: string
-  progress: number // 0..1
+  progress: number // 0..1, linear in time; eased here
   tick: number
-  settleSpan: number // 0..1, how much of the transition one character spends scrambling
+  spans: Spans
   charset: string
   holdMatching: boolean
   ease: Ease
 }
 
 // The string to show at one moment of the transition.
-export function scrambleFrame({ from, target, progress, tick, settleSpan, charset, holdMatching, ease }: FrameInput): string {
+export function scrambleFrame({ from, target, progress, tick, spans, charset, holdMatching, ease }: FrameInput): string {
   if (progress >= 1 || !charset) return target
-  const len = Math.round(from.length + (target.length - from.length) * ease(progress))
+  const q = ease(progress)
+  const len = Math.round(from.length + (target.length - from.length) * q)
   let out = ''
   for (let j = 0; j < len; j++) {
     const shared = holdMatching && from[j] !== undefined && from[j] === target[j]
-    // Each position's settle moment is fixed for the whole transition.
-    const threshold = shared ? 0 : hash01(1, j) * (1 - settleSpan) + settleSpan
-    const done = progress >= threshold
-    if (done && j < target.length) out += target[j]
-    else if (done) out += ' '
+    const { onset, settle } = moments(j, from.length, spans)
+    if (shared || q >= settle) out += target[j] ?? ' '
+    else if (q < onset) out += from[j] ?? ' '
     else if (target[j] === ' ' && from[j] === ' ') out += ' '
     else out += charset[hash(1, j, tick) % charset.length]
   }
