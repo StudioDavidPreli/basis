@@ -132,6 +132,7 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
+| Chart cursor: the rule, the dots, and the point card enter / exit | `transitions.enter` / `transitions.exit` | | `none` |
 | Drawer open | — | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | — | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | — | follows the column: one layout, one spring | `none` |
@@ -153,6 +154,12 @@ clips it, so nothing in the drawer rewraps. The ledger's `short` stagger is
 for a reorder only. (The raw spring read as too springy; damping it, not
 removing it; an instant close read as no exit; a translated panel over an
 instant reflow read as a seam. David, 2026-09-16.)
+The chart's cursor (docs/spec.md, Chart): the rule, the dots, and the point
+card enter and exit together on `transitions.enter` / `transitions.exit`,
+and their position follows the pointer with no tween, since a tween there
+reads as lag. The card is the pointer's affordance; the readout stays the
+live region for keyboard users and hides while a cursor is up, so one row
+never shows two values at once.
 Switching the entity while the drawer is open does not reopen it: the text
 scrambles per character into the new text over `slower`, with the glyph
 clock on `delays.short`. The clock is one value and cannot ease; what
