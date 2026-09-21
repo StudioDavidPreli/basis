@@ -135,7 +135,7 @@ adding a row, in its own commit.
 | Drawer open | — | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | — | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | — | follows the column: one layout, one spring | `none` |
-| Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length | `none` |
+| Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
@@ -155,8 +155,12 @@ removing it; an instant close read as no exit; a translated panel over an
 instant reflow read as a seam. David, 2026-09-16.)
 Switching the entity while the drawer is open does not reopen it: the text
 scrambles per character into the new text over `slower`, with the glyph
-clock on `delays.short`; under reduced motion both flatten and the text
-simply changes.
+clock on `delays.short`. The clock is one value and cannot ease; what
+eases is the schedule: which characters are churning at each moment.
+Progress runs through `standard` before it is compared to any character's
+onset or settle moment, so the churn ramps in, settles mostly in the
+middle, and the last characters resolve in a tail rather than at once.
+Under reduced motion both flatten and the text simply changes.
 
 Rive artboards (`AgentPresence`, logos) hold their own timing inside the state
 machine; Basis pushes only view-model values. The `reduced` boolean in the
