@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dateMs, domainFor, formatDateTick, pathFor, pct, summarize, toPoints, xTicks, yTicks, PAD, type Domain } from './chart'
+import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, pathFor, pct, summarize, toPoints, xScale, xTicks, yScale, yTicks, PAD, type Domain, type Point } from './chart'
 
 const DAY = 86_400_000
 
@@ -103,5 +103,69 @@ describe('summarize', () => {
 
   it('names the empty state', () => {
     expect(summarize({ label: 'Level', range: '1Y', charted: [], selected: 0, historyFrom: null, provisionalFrom: null })).toMatch(/^No rows charted/)
+  })
+})
+
+describe('the cursor', () => {
+  const day = 86_400_000
+  const daily: Point[] = Array.from({ length: 10 }, (_, i) => [i * day, 100 + i])
+  const sparse: Point[] = [0, 3, 7].map(i => [i * day, 200 - i * 10])
+  const frame = { width: 1000, height: 400 }
+  const domain: Domain = [0, 9 * day, 90, 210]
+
+  it('nearestIndex answers the nearest point, either side, and -1 for none', () => {
+    expect(nearestIndex(daily, 2.4 * day)).toBe(2)
+    expect(nearestIndex(daily, 2.6 * day)).toBe(3)
+    expect(nearestIndex(daily, -5 * day)).toBe(0)
+    expect(nearestIndex(daily, 50 * day)).toBe(9)
+    expect(nearestIndex(sparse, 4 * day)).toBe(1)
+    expect(nearestIndex([], 0)).toBe(-1)
+  })
+
+  it('anchorAt takes the ribbon whose nearest point is closest to the pointer', () => {
+    const rows = [
+      { id: 'a', points: daily },
+      { id: 'b', points: sparse },
+    ]
+    const x = xScale(domain, frame)
+    const y = yScale(domain, frame)
+    // On the daily ribbon at day 5.
+    expect(anchorAt(rows, domain, frame, x(5 * day), y(105))).toEqual({ id: 'a', index: 5 })
+    // Near the sparse ribbon's day 3 point, at a time between its points:
+    // it answers with a date it has, not an interpolation.
+    expect(anchorAt(rows, domain, frame, x(3.4 * day), y(172))).toEqual({ id: 'b', index: 1 })
+    // Nothing charted with points.
+    expect(anchorAt([{ id: 'c', points: [] }], domain, frame, 10, 10)).toBeNull()
+  })
+
+  it('anchorAt reads the line at the pointer\'s time, so a steep segment is as easy to take as a flat one', () => {
+    // A steep ribbon rising 100 between two days, and a flat one sitting
+    // exactly on the steep one's lower vertex. Mid-segment, the pointer is
+    // on the steep line and far from both its vertices; the flat ribbon's
+    // vertex is nearer as a point, but the pointer is not on its line.
+    const steep: Point[] = [[4 * day, 100], [5 * day, 200]]
+    const flat: Point[] = [[4 * day, 100], [5 * day, 100]]
+    const rows = [
+      { id: 'flat', points: flat },
+      { id: 'steep', points: steep },
+    ]
+    const x = xScale(domain, frame)
+    const y = yScale(domain, frame)
+    expect(anchorAt(rows, domain, frame, x(4.5 * day), y(150))!.id).toBe('steep')
+    expect(anchorAt(rows, domain, frame, x(4.5 * day), y(105))!.id).toBe('flat')
+  })
+
+  it('anchorAt measures in both axes, so a ribbon that ended earlier does not win on height', () => {
+    const early: Point[] = [[0, 150], [1 * day, 150]]
+    const rows = [
+      { id: 'early', points: early },
+      { id: 'a', points: daily },
+    ]
+    const x = xScale(domain, frame)
+    const y = yScale(domain, frame)
+    // At day 8, level 150: the early ribbon's height matches exactly, but
+    // its nearest point is seven days to the left; the daily ribbon at 108
+    // is nearer in the frame.
+    expect(anchorAt(rows, domain, frame, x(8 * day), y(150))!.id).toBe('a')
   })
 })

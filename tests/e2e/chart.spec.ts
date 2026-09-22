@@ -142,18 +142,11 @@ test.describe('the chart', () => {
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     await page.getByRole('checkbox', { name: 'Chart Keel London' }).click()
     await expect(page.locator('path[data-series="ou-london"]')).toHaveAttribute('data-drawn')
-    // The pointer on the ribbon itself: a point along its geometry, mapped
-    // from the SVG's viewBox to the screen, so the wide hit stroke beneath
-    // takes the hover.
-    const spot = await page.locator('path[data-series="ou-london"] + path').evaluate(p => {
-      const path = p as SVGPathElement
-      const at = path.getPointAtLength(path.getTotalLength() * 0.7)
-      const svg = path.ownerSVGElement!
-      const r = svg.getBoundingClientRect()
-      const vb = svg.viewBox.baseVal
-      return { x: r.left + (at.x / vb.width) * r.width, y: r.top + (at.y / vb.height) * r.height }
-    })
-    await page.mouse.move(spot.x, spot.y)
+    // The pointer on the ribbon itself, at its last point, where the two
+    // ribbons are well apart (the fixtures' two series cross often along
+    // the way, and on a crossing the nearer line is a coin toss).
+    const spot = (await page.locator('[data-endpoint="ou-london"]').boundingBox())!
+    await page.mouse.move(spot.x + spot.width / 2, spot.y + spot.height / 2)
     await expect(page.locator('tbody tr').filter({ hasText: 'Keel London' })).toHaveAttribute('data-hover')
     await page.getByRole('link', { name: /Anchor Kaze/ }).click()
     await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
@@ -162,6 +155,43 @@ test.describe('the chart', () => {
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(page.locator('path[data-series="ou-london"]')).not.toHaveAttribute('data-muted')
+  })
+
+  test('the pointer in the plot raises a card on the nearest point, a dot on every ribbon, and a rule', async ({ page }) => {
+    // Max, so the fixtures' three months fill the window and the card's
+    // side can be judged by where the pointer is.
+    await page.goto('/?range=Max')
+    await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
+    await page.getByRole('checkbox', { name: 'Chart Keel London' }).click()
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(2)
+    const card = page.getByTestId('chart-card')
+    // On the endpoint: the card carries the ledger's own figure, since the
+    // refresh wrote it as the series' last point, dated today, inside the
+    // provisional band.
+    const endpoint = (await page.locator('[data-endpoint="ou-tokyo"]').boundingBox())!
+    await page.mouse.move(endpoint.x + endpoint.width / 2, endpoint.y + endpoint.height / 2)
+    await expect(card).toBeVisible()
+    await expect(card).toContainText('Anchor Kaze')
+    const figure = (await page.getByRole('button', { name: /^Level for Anchor Kaze/ }).getAttribute('aria-label'))!
+    await expect(card).toContainText(figure.match(/: ([\d.,()−]+),/)![1]!)
+    await expect(card).toContainText(/\d{4}-\d{2}-\d{2} · provisional/)
+    await expect(card).toHaveAttribute('data-side', 'left')
+    await expect(page.locator('[data-cursor-dot]')).toHaveCount(2)
+    await expect(page.locator('[data-cursor-layer]')).toHaveCount(1)
+    // The anchor is the hovered row, and the readout steps aside for the card.
+    await expect(page.locator('tbody tr').filter({ hasText: 'Anchor Kaze' })).toHaveAttribute('data-hover')
+    await expect(page.locator('path[data-series="ou-tokyo"]')).toHaveAttribute('data-hover')
+    await expect(page.getByTestId('chart-readout')).toBeHidden()
+    // In the left quarter of the plot the card sits to the right of its point.
+    const box = (await page.locator('svg[preserveAspectRatio="none"]').boundingBox())!
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.5)
+    await expect(card).toHaveAttribute('data-side', 'right')
+    await expect(card).toContainText(/\d{4}-\d{2}-\d{2}/)
+    await expect(card).not.toContainText('provisional')
+    // Leaving the plot takes the cursor and the hover with it.
+    await page.mouse.move(box.x + box.width / 2, box.y - 40)
+    await expect(card).toHaveCount(0)
+    await expect(page.locator('tbody tr').filter({ hasText: 'Anchor Kaze' })).not.toHaveAttribute('data-hover')
   })
 
   test('the regions dataset charts on its own series, read after the switch', async ({ page }) => {
@@ -202,8 +232,20 @@ test.describe('the chart', () => {
     await page.screenshot({ path: 'test-results/chart-eight.png' })
     let results = await new AxeBuilder({ page }).analyze()
     expect(results.violations).toEqual([])
+    // With the cursor up.
+    const endpoint = (await page.locator('[data-endpoint="ou-tokyo"]').boundingBox())!
+    await page.mouse.move(endpoint.x + endpoint.width / 2, endpoint.y + endpoint.height / 2)
+    await expect(page.getByTestId('chart-card')).toBeVisible()
+    // Landed, not mid-enter: axe reads contrast through the layer's opacity.
+    await expect(page.locator('[data-cursor-layer]')).toHaveCSS('opacity', '1')
+    results = await new AxeBuilder({ page }).analyze()
+    expect(results.violations).toEqual([])
     await page.getByRole('link', { name: /Anchor Kaze/ }).click()
     await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    // The click took the pointer out of the plot, so the cursor is on its
+    // way out; axe reads the card's contrast through the fade unless the
+    // exit has landed.
+    await expect(page.getByTestId('chart-card')).toHaveCount(0)
     results = await new AxeBuilder({ page }).analyze()
     expect(results.violations).toEqual([])
   })

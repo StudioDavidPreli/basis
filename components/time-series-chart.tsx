@@ -32,6 +32,17 @@
 // length is off-screen to the left and a draw along it spent most of the
 // duration showing nothing.
 //
+// The cursor (docs/spec.md, Chart): the pointer in the box sets an anchor,
+// the charted ribbon whose nearest point is closest to the pointer, and
+// the index of that point. That is React state, but it changes only when
+// the anchor's point changes, so a move across one point's span renders
+// nothing. The rule, the dots, and the card are HTML positioned by
+// percentage of the box through the domain values, as the endpoints are,
+// so they survive the drawer's stretch and follow a rescale. The anchor is
+// also the hovered row, which is how the ledger lights. They enter and
+// exit together on transitions.enter / exit and their position follows
+// the pointer with no tween (contracts/cadence-basis.md).
+//
 // The plot's width changes on every frame of the drawer's spring
 // (decisions/2026-09-16-drawer-resizes-the-layout.md). The SVG stretches
 // through its viewBox (preserveAspectRatio none) for the duration, and the
@@ -48,7 +59,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
-import { dateMs, domainFor, formatDateTick, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Domain, type Frame, type Point } from '@/lib/chart'
+import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
 import type { Range } from './surface-state'
 import { Marker, entityStyle, type EntityColors } from './marker'
 import styles from './time-series-chart.module.css'
@@ -164,6 +175,36 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     }
   }, [targetKey, dom, durations.slow, easings.standard])
 
+  // The cursor's anchor. Positions are read from the domain values as they
+  // are, so a pointer during a rescale lands on the window in flight.
+  const [anchor, setAnchor] = useState<Anchor | null>(null)
+  const anchorRow = anchor ? rows.find(r => r.id === anchor.id) : undefined
+  const anchorPoint = anchorRow?.points[anchor!.index] ?? null
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = box.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    if (r.width === 0 || r.height === 0) return
+    const px = ((e.clientX - r.left) / r.width) * frame.width
+    const py = ((e.clientY - r.top) / r.height) * frame.height
+    const next = anchorAt(rows, [dom.x0.get(), dom.x1.get(), dom.y0.get(), dom.y1.get()], frame, px, py)
+    if (!next) {
+      if (anchor) {
+        setAnchor(null)
+        onHover(null)
+      }
+      return
+    }
+    if (anchor && anchor.id === next.id && anchor.index === next.index) return
+    setAnchor(next)
+    if (!anchor || anchor.id !== next.id) onHover(next.id)
+  }
+  const onPointerLeave = () => {
+    if (!anchor) return
+    setAnchor(null)
+    onHover(null)
+  }
+
   // Draw-in stagger by selection order among the ribbons arriving together:
   // a single toggle draws at once, a Shift-range or select-all cascades.
   // The previous committed set is kept beside the current one, as the
@@ -181,11 +222,11 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.plot} role="img" aria-label={summary} data-focus={focusId ?? undefined}>
+      <div className={styles.plot} role="img" aria-label={summary} data-focus={focusId ?? undefined} data-cursor={anchorPoint ? '' : undefined}>
         <div className={styles.yAxis} aria-hidden="true">
           {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={format(v)} />)}
         </div>
-        <div ref={box} className={styles.box}>
+        <div ref={box} className={styles.box} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
           <svg ref={svg} className={styles.svg} viewBox={`0 0 ${frame.width} ${frame.height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
             {target && yTicks(target, Y_TICKS).map(v => <GridLine key={v} value={v} dom={dom} frame={frame} />)}
             {target && provisionalMs !== null && <Provisional from={provisionalMs} dom={dom} frame={frame} />}
@@ -199,7 +240,6 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
                   delayIndex={Math.max(0, arriving.indexOf(r.id))}
                   hover={hoveredId === r.id}
                   muted={openId !== null && openId !== r.id}
-                  onHover={onHover}
                 />
               ))}
             </AnimatePresence>
@@ -207,6 +247,11 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
           {rows.map(r => (
             <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
           ))}
+          <AnimatePresence>
+            {anchorRow && anchorPoint && (
+              <Cursor key="cursor" rows={rows} anchor={anchorRow} point={anchorPoint} dom={dom} frame={frame} format={format} provisionalMs={provisionalMs} />
+            )}
+          </AnimatePresence>
           {rows.length === 0 && <p className={`${styles.empty} type-micro`}>Select rows below to chart them.</p>}
         </div>
         <div className={styles.xAxis} aria-hidden="true">
@@ -239,7 +284,7 @@ function domainList(dom: DomainValues) {
   return [dom.x0, dom.x1, dom.y0, dom.y1]
 }
 
-function Ribbon({ row, dom, frame, delayIndex, hover, muted, onHover }: Part & { row: ChartRow; delayIndex: number; hover: boolean; muted: boolean; onHover: (id: string | null) => void }) {
+function Ribbon({ row, dom, frame, delayIndex, hover, muted }: Part & { row: ChartRow; delayIndex: number; hover: boolean; muted: boolean }) {
   const { durations, easings, delays } = useMotionTokens()
   const d = useTransform(domainList(dom), (v: number[]) => pathFor(row.points, v as Domain, frame))
   const [drawn, setDrawn] = useState(false)
@@ -291,8 +336,59 @@ function Ribbon({ row, dom, frame, delayIndex, hover, muted, onHover }: Part & {
         data-muted={muted || undefined}
         data-drawn={drawn || undefined}
       />
-      <motion.path className={styles.hit} d={d} onMouseEnter={() => onHover(row.id)} onMouseLeave={() => onHover(null)} />
     </g>
+  )
+}
+
+// The cursor: one rule at the anchor's point, one dot per charted ribbon at
+// its own nearest point to the anchor's time, and the card at the anchor's
+// point. One container, so the three enter and exit as one.
+function Cursor({ rows, anchor, point, dom, frame, format, provisionalMs }: Part & { rows: ChartRow[]; anchor: ChartRow; point: Point; format: (v: number) => string; provisionalMs: number | null }) {
+  const { transitions } = useMotionTokens()
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(point[0]), frame.width))
+  return (
+    <motion.div className={styles.cursor} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: transitions.exit }} transition={transitions.enter} data-cursor-layer>
+      <motion.div className={styles.rule} style={{ left }} />
+      {rows.map(r => (
+        <Dot key={r.id} row={r} ms={point[0]} dom={dom} frame={frame} />
+      ))}
+      <Card row={anchor} point={point} dom={dom} frame={frame} format={format} provisional={provisionalMs !== null && point[0] >= provisionalMs} />
+    </motion.div>
+  )
+}
+
+function Dot({ row, ms, dom, frame }: Part & { row: ChartRow; ms: number }) {
+  const i = nearestIndex(row.points, ms)
+  const p = i >= 0 ? row.points[i]! : null
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(p?.[0] ?? 0), frame.width))
+  const top = useTransform([dom.y0, dom.y1], ([a, b]: number[]) => pct(yScale([0, 1, a!, b!], frame)(p?.[1] ?? 0), frame.height))
+  if (!p) return null
+  return <motion.span className={`entity ${styles.dot}`} style={{ left, top, ...entityStyle(row.colors) }} data-cursor-dot={row.id} />
+}
+
+// The point's card. Its side and edge are decided from where the point
+// sits in the window at this render: to the left of the point in the
+// right third, hung below it near the top and above it near the bottom.
+function Card({ row, point, dom, frame, format, provisional }: Part & { row: ChartRow; point: Point; format: (v: number) => string; provisional: boolean }) {
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(point[0]), frame.width))
+  const top = useTransform([dom.y0, dom.y1], ([a, b]: number[]) => pct(yScale([0, 1, a!, b!], frame)(point[1]), frame.height))
+  const fx = xScale([dom.x0.get(), dom.x1.get(), 0, 1], frame)(point[0]) / frame.width
+  const fy = yScale([0, 1, dom.y0.get(), dom.y1.get()], frame)(point[1]) / frame.height
+  const side = fx > 0.65 ? 'left' : 'right'
+  const edge = fy < 0.3 ? 'top' : fy > 0.7 ? 'bottom' : undefined
+  const date = new Date(point[0]).toISOString().slice(0, 10)
+  return (
+    <motion.div className={styles.card} style={{ left, top }} data-side={side} data-edge={edge} data-testid="chart-card">
+      <span className={`${styles.cardName} type-label`}>
+        <Marker shape={row.marker} colors={row.colors} hollow={row.hollow} />
+        {row.name}
+      </span>
+      <span className={`${styles.cardValue} type-figure`}>{format(point[1])}</span>
+      <span className={`${styles.cardMeta} type-micro`}>
+        {date}
+        {provisional && ' · provisional'}
+      </span>
+    </motion.div>
   )
 }
 

@@ -8,6 +8,7 @@
 // path is rebuilt on every frame of a domain animation, and parsing
 // fifteen thousand ISO strings a frame is what would make that slow.
 
+import { bisector } from 'd3-array'
 import { scaleLinear, scaleUtc } from 'd3-scale'
 import { line } from 'd3-shape'
 import type { Range } from '@/components/surface-state'
@@ -119,6 +120,57 @@ export function formatDateTick(ms: number, spanMs: number): string {
   if (days <= 120) return dayFormat.format(ms)
   if (days <= 800) return monthFormat.format(ms).replace(' ', ' ’')
   return yearFormat.format(ms)
+}
+
+// ── The cursor (docs/spec.md, Chart) ─────────────────────────────────
+
+const byTime = bisector<Point, number>(p => p[0])
+
+// The index of the point nearest a time, or -1 with no points. Each
+// ribbon takes its own nearest point, so a business-daily series and a
+// daily one under one cursor each answer with a date they actually have.
+export function nearestIndex(points: Point[], ms: number): number {
+  if (points.length === 0) return -1
+  return byTime.center(points, ms)
+}
+
+export type Anchor = { id: string; index: number }
+
+// Which ribbon the pointer is on: the one whose line is nearest the
+// pointer. Inside a ribbon's time extent that is the vertical distance to
+// the line at the pointer's time, interpolated between its two
+// neighbouring points, so a steep segment is as easy to take as a flat
+// one and the pointer on a line is on that line. Outside its extent it is
+// the distance in both axes to the ribbon's end, so a series that ended
+// earlier does not win on height alone. The index is the ribbon's nearest
+// point to the pointer's time. Null when nothing charted has a point.
+export function anchorAt(rows: Array<{ id: string; points: Point[] }>, domain: Domain, frame: Frame, px: number, py: number): Anchor | null {
+  const x = xScale(domain, frame)
+  const y = yScale(domain, frame)
+  const ms = x.invert(px).getTime()
+  let best: Anchor | null = null
+  let bestDistance = Infinity
+  for (const r of rows) {
+    const i = nearestIndex(r.points, ms)
+    if (i < 0) continue
+    const first = r.points[0]!
+    const last = r.points[r.points.length - 1]!
+    let d: number
+    if (ms < first[0]) d = Math.hypot(x(first[0]) - px, y(first[1]) - py)
+    else if (ms > last[0]) d = Math.hypot(x(last[0]) - px, y(last[1]) - py)
+    else {
+      const j = byTime.right(r.points, ms) // the first point after the time
+      const a = r.points[Math.max(0, j - 1)]!
+      const b = r.points[Math.min(r.points.length - 1, j)]!
+      const t = b[0] === a[0] ? 0 : (ms - a[0]) / (b[0] - a[0])
+      d = Math.abs(y(a[1] + (b[1] - a[1]) * t) - py)
+    }
+    if (d < bestDistance) {
+      bestDistance = d
+      best = { id: r.id, index: i }
+    }
+  }
+  return best
 }
 
 // A position in the frame as a percentage of it, for the HTML overlays that

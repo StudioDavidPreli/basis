@@ -83,14 +83,77 @@
   opacity: 0.2;
 }
 
-/* A wide invisible stroke so a hair-thin ribbon can be hovered. */
-.hit {
-  fill: none;
-  stroke: transparent;
-  stroke-width: 14;
-  vector-effect: non-scaling-stroke;
-  pointer-events: stroke;
-  cursor: pointer;
+/* The cursor (docs/spec.md, Chart): one layer over the box, so the rule,
+   the dots, and the card enter and exit as one. Positions are percentages
+   of the box, set from the domain values, as the endpoints are. */
+.cursor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rule {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: var(--hairline) solid var(--ink);
+  opacity: 0.5;
+}
+
+.dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--entity-color);
+  box-shadow: 0 0 0 2px var(--paper);
+  transform: translate(-50%, -50%);
+}
+
+/* The card hangs off the point: to its right, centred on it; to its left in
+   the right third of the window; below it near the top, above it near the
+   bottom. Same paper as the readout. */
+.card {
+  --dx: var(--space-2);
+  --dy: -50%;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  white-space: nowrap;
+  transform: translate(var(--dx), var(--dy));
+}
+
+.card[data-side='left'] {
+  --dx: calc(-100% - var(--space-2));
+}
+
+.card[data-edge='top'] {
+  --dy: var(--space-2);
+}
+
+.card[data-edge='bottom'] {
+  --dy: calc(-100% - var(--space-2));
+}
+
+.cardName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cardValue {
+  font-variant-numeric: tabular-nums;
+}
+
+.cardMeta {
+  color: var(--muted);
 }
 
 .endpoint {
@@ -155,6 +218,13 @@
 
 .readoutMeta {
   color: var(--muted);
+}
+
+/* While a cursor is up the card carries the point; the readout would show
+   the same row's latest figure beside it, so it steps aside. It stays the
+   live region for keyboard users, who raise no cursor. */
+.plot[data-cursor] + .readout {
+  visibility: hidden;
 }
 
 @media (max-width: 900px) {
