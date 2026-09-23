@@ -242,6 +242,10 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
           onMetric={m => dispatch({ type: 'metric', metric: m })}
           range={state.range}
           onRange={r => dispatch({ type: 'range', range: r })}
+          window={state.window}
+          onWindow={w => dispatch({ type: 'window', window: w })}
+          tool={state.tool}
+          onTool={t => dispatch({ type: 'tool', tool: t })}
           rows={rows}
           selection={state.selection.map(id => rows.find(r => r.id === id)!).filter(Boolean)}
           onDeselect={id => dispatch({ type: 'toggle', id, order })}

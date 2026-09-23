@@ -1,0 +1,218 @@
+/* The diagnostics strip (docs/spec.md, Diagnostics): a hairline row between
+   the legend and the ledger, and the one panel under it, floating on hover
+   and in flow when pinned. Same paper as the chart's cards. */
+.strip {
+  position: relative;
+  border-top: var(--hairline) solid var(--rule);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-height: 28px;
+  padding: var(--space-2) 0;
+}
+
+.eyebrow {
+  color: var(--ink);
+}
+
+.scope {
+  color: var(--muted);
+}
+
+.tools {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.tools button[data-up] {
+  border-color: var(--ink);
+  background: var(--band);
+}
+
+.divider {
+  width: var(--hairline);
+  height: 20px;
+  background: var(--rule);
+}
+
+.window {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+}
+
+.date {
+  height: 28px;
+  padding: 0 var(--space-2);
+  box-sizing: border-box;
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  color-scheme: inherit;
+  transition: border-color var(--cadence-duration-fast) var(--cadence-ease-standard),
+    color var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+/* No window set: the view's dates, muted and dashed. */
+.date[data-follows] {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.date:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--band);
+}
+
+.reset {
+  color: var(--muted);
+}
+
+.reset:hover {
+  color: var(--ink);
+}
+
+/* The panel: floating under the strip's left edge on hover, in flow when
+   pinned. Same element, so a pin never re-enters. */
+.panel {
+  z-index: 3;
+}
+
+.panel:not([data-pinned]) {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  max-width: 100%;
+}
+
+.panel[data-pinned] {
+  position: relative;
+  padding-bottom: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--muted);
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+}
+
+.pin {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.pin:hover {
+  color: var(--ink);
+}
+
+.table {
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.table th {
+  font-weight: 400;
+  text-align: right;
+  color: var(--muted);
+  padding: 2px 0 var(--space-1) var(--space-4);
+}
+
+.table th:first-child,
+.table th[scope='row'] {
+  text-align: left;
+  padding-left: 0;
+  color: var(--ink);
+}
+
+.table td {
+  text-align: right;
+  vertical-align: baseline;
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.note {
+  color: var(--muted);
+}
+
+.foot {
+  margin: 0;
+  color: var(--muted);
+  white-space: normal;
+  max-width: 72ch;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-1);
+  min-width: 180px;
+}
+
+.bar {
+  display: flex;
+  height: 8px;
+  border: var(--hairline) solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.barPart[data-tone='ink'] {
+  background: var(--ink);
+}
+
+.barPart[data-tone='entity'] {
+  background: var(--accent);
+}
+
+.barPart[data-tone='accent'] {
+  background: var(--muted);
+}
+
+.barLegend {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .window {
+    flex-wrap: wrap;
+  }
+}

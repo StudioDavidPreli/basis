@@ -29,3 +29,14 @@ describe('formatValue', () => {
     expect(formatValue('number', Number.NaN)).toBe('—')
   })
 })
+
+describe('the diagnostics formats', () => {
+  it('percent is signed with one decimal, days and integers are whole', () => {
+    expect(formatValue('percent', 0.279)).toBe('+27.9%')
+    expect(formatValue('percent', -0.264)).toBe('−26.4%')
+    expect(formatValue('percent', -0.264, { parentheses: true })).toBe('(26.4%)')
+    expect(formatValue('days', 11.4)).toBe('11 d')
+    expect(formatValue('integer', 1831)).toBe('1,831')
+    expect(formatValue('integer', -3)).toBe('−3')
+  })
+})

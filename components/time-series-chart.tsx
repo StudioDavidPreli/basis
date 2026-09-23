@@ -43,6 +43,14 @@
 // exit together on transitions.enter / exit and their position follows
 // the pointer with no tween (contracts/cadence-basis.md).
 //
+// The window (docs/spec.md, Diagnostics): when set, the plot outside it
+// recedes to paper, two handles adjust it, its dates sit on the axis, and
+// the shade appears and clears on base / standard. Dragging across the box
+// sets it, or drags one edge from a handle; the preview follows the pointer
+// through MotionValues, no tween and no render per frame, and the window is
+// committed on release. A press without a drag is a click, and changes
+// nothing. The view never rescales for it: the window is about the data.
+//
 // The plot's width changes on every frame of the drawer's spring
 // (decisions/2026-09-16-drawer-resizes-the-layout.md). The SVG stretches
 // through its viewBox (preserveAspectRatio none) for the duration, and the
@@ -60,6 +68,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
+import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
 import type { Range } from './surface-state'
 import { Marker, entityStyle, type EntityColors } from './marker'
 import styles from './time-series-chart.module.css'
@@ -85,12 +94,15 @@ type Props = {
   onHover: (id: string | null) => void
   summary: string
   readout: Readout
+  window: WindowMs | null // the analysis window when set; null follows the view
+  onWindow: (window: Window | null) => void
 }
 
 // A measurement debounce, not a motion value: the frame is committed once
 // the box's width has held still this long, which is after the drawer's
 // spring has settled and never during it.
 const SETTLE_MS = 120
+const DAY_MS = 86_400_000
 const X_TICKS = 5
 const Y_TICKS = 4
 
@@ -102,7 +114,7 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredId, openId, onHover, summary, readout }: Props) {
+export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow }: Props) {
   const { durations, easings } = useMotionTokens()
   const target = domainFor(
     rows.map(r => r.points),
@@ -181,6 +193,7 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
   const anchorRow = anchor ? rows.find(r => r.id === anchor.id) : undefined
   const anchorPoint = anchorRow?.points[anchor!.index] ?? null
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (onDragMove(e)) return
     const el = box.current
     if (!el) return
     const r = el.getBoundingClientRect()
@@ -205,6 +218,57 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     onHover(null)
   }
 
+  // The brush. `drag` is the edge being moved: a new window from the press,
+  // or one edge from its handle. The preview's bounds are MotionValues.
+  const [drag, setDrag] = useState<{ edge: 'new' | 'from' | 'to'; anchorMs: number; moved: boolean } | null>(null)
+  const dragA = useMotionValue(0)
+  const dragB = useMotionValue(0)
+  const msAt = (clientX: number): number | null => {
+    const el = box.current
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    if (r.width === 0) return null
+    const px = ((clientX - r.left) / r.width) * frame.width
+    const x0 = dom.x0.get()
+    const x1 = dom.x1.get()
+    const ms = xScale([x0, x1, 0, 1], frame).invert(px).getTime()
+    return Math.min(x1, Math.max(x0, ms))
+  }
+  const beginDrag = (e: React.PointerEvent<HTMLElement>, edge: 'new' | 'from' | 'to') => {
+    if (e.button !== 0 || !target) return
+    const ms = msAt(e.clientX)
+    if (ms === null) return
+    const anchorMs = edge === 'new' ? ms : edge === 'from' ? win!.toMs : win!.fromMs
+    dragA.set(Math.min(anchorMs, ms))
+    dragB.set(Math.max(anchorMs, ms))
+    setDrag({ edge, anchorMs, moved: false })
+    if (anchor) {
+      setAnchor(null)
+      onHover(null)
+    }
+    box.current?.setPointerCapture(e.pointerId)
+  }
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => beginDrag(e, 'new')
+  const onDragMove = (e: React.PointerEvent<HTMLDivElement>): boolean => {
+    if (!drag) return false
+    const ms = msAt(e.clientX)
+    if (ms === null) return true
+    dragA.set(Math.min(drag.anchorMs, ms))
+    dragB.set(Math.max(drag.anchorMs, ms))
+    if (!drag.moved && Math.abs(ms - drag.anchorMs) > 0) setDrag({ ...drag, moved: true })
+    return true
+  }
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag) return
+    box.current?.releasePointerCapture(e.pointerId)
+    const a = dragA.get()
+    const b = dragB.get()
+    setDrag(null)
+    // A press without a drag, or a window narrower than a day, is a click.
+    if (!drag.moved || b - a < DAY_MS) return
+    onWindow({ from: isoDate(a), to: isoDate(b) })
+  }
+
   // Draw-in stagger by selection order among the ribbons arriving together:
   // a single toggle draws at once, a Shift-range or select-all cascades.
   // The previous committed set is kept beside the current one, as the
@@ -226,10 +290,12 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
         <div className={styles.yAxis} aria-hidden="true">
           {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={format(v)} />)}
         </div>
-        <div ref={box} className={styles.box} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
+        <div ref={box} className={styles.box} data-dragging={drag ? '' : undefined} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <svg ref={svg} className={styles.svg} viewBox={`0 0 ${frame.width} ${frame.height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
             {target && yTicks(target, Y_TICKS).map(v => <GridLine key={v} value={v} dom={dom} frame={frame} />)}
             {target && provisionalMs !== null && <Provisional from={provisionalMs} dom={dom} frame={frame} />}
+            <AnimatePresence>{target && win && !drag && <Shade key="shade" window={win} dom={dom} frame={frame} />}</AnimatePresence>
+            {drag && <DragPreview a={dragA} b={dragB} dom={dom} frame={frame} />}
             <AnimatePresence>
               {rows.map(r => (
                 <Ribbon
@@ -252,10 +318,23 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
               <Cursor key="cursor" rows={rows} anchor={anchorRow} point={anchorPoint} dom={dom} frame={frame} format={format} provisionalMs={provisionalMs} />
             )}
           </AnimatePresence>
+          <AnimatePresence>
+            {target && win && !drag && (
+              <Handles key="handles" window={win} dom={dom} frame={frame} onEdge={(edge, e) => beginDrag(e, edge)} />
+            )}
+          </AnimatePresence>
           {rows.length === 0 && <p className={`${styles.empty} type-micro`}>Select rows below to chart them.</p>}
         </div>
         <div className={styles.xAxis} aria-hidden="true">
           {target && xTicks(target, X_TICKS).map(t => <XTick key={t} value={t} dom={dom} frame={frame} label={formatDateTick(t, span)} />)}
+          <AnimatePresence>
+            {target && win && !drag && (
+              <motion.span key="tags" className={styles.tags} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: durations.base, ease: easings.standard }}>
+                <XTag ms={win.fromMs} dom={dom} frame={frame} />
+                <XTag ms={win.toMs} dom={dom} frame={frame} />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
       </div>
       <div className={`${styles.readout} type-figure`} role="status" data-testid="chart-readout">
@@ -389,6 +468,61 @@ function Card({ row, point, dom, frame, format, provisional }: Part & { row: Cha
         {provisional && ' · provisional'}
       </span>
     </motion.div>
+  )
+}
+
+// The window's shade: paper over the plot outside it, on base / standard.
+function Shade({ window, dom, frame }: Part & { window: WindowMs }) {
+  const { durations, easings } = useMotionTokens()
+  const right = frame.width
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => Math.min(right, Math.max(0, xScale([a!, b!, 0, 1], frame)(window.fromMs))))
+  const from = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => Math.min(right, Math.max(0, xScale([a!, b!, 0, 1], frame)(window.toMs))))
+  const width = useTransform(from, v => right - v)
+  return (
+    <motion.g className={styles.shade} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: durations.base, ease: easings.standard }} data-window-shade>
+      <motion.rect x={0} y={0} width={left} height={frame.height} />
+      <motion.rect x={from} y={0} width={width} height={frame.height} />
+      <motion.line x1={left} x2={left} y1={0} y2={frame.height} className={styles.edge} />
+      <motion.line x1={from} x2={from} y1={0} y2={frame.height} className={styles.edge} />
+    </motion.g>
+  )
+}
+
+// The brush while it is dragged: no tween, the bounds are the pointer's.
+function DragPreview({ a, b, dom, frame }: Part & { a: MotionValue<number>; b: MotionValue<number> }) {
+  const x = useTransform([dom.x0, dom.x1, a], ([x0, x1, v]: number[]) => xScale([x0!, x1!, 0, 1], frame)(v!))
+  const end = useTransform([dom.x0, dom.x1, b], ([x0, x1, v]: number[]) => xScale([x0!, x1!, 0, 1], frame)(v!))
+  const width = useTransform([x, end], ([p, q]: number[]) => Math.max(0, q! - p!))
+  return (
+    <g className={styles.preview} data-window-preview>
+      <motion.rect x={x} y={0} width={width} height={frame.height} />
+      <motion.line x1={x} x2={x} y1={0} y2={frame.height} className={styles.edge} />
+      <motion.line x1={end} x2={end} y1={0} y2={frame.height} className={styles.edge} />
+    </g>
+  )
+}
+
+// Pointer sugar over the strip's date inputs, which are the keyboard path
+// (decisions/2026-09-22-view-range-and-analysis-window.md): spans, not
+// buttons, so the plot's role="img" holds nothing focusable.
+function Handles({ window, dom, frame, onEdge }: Part & { window: WindowMs; onEdge: (edge: 'from' | 'to', e: React.PointerEvent<HTMLElement>) => void }) {
+  const { durations, easings } = useMotionTokens()
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(window.fromMs), frame.width))
+  const right = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(window.toMs), frame.width))
+  return (
+    <motion.span className={styles.handles} aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: durations.base, ease: easings.standard }}>
+      <motion.span className={styles.handle} style={{ left }} data-window-handle="from" onPointerDown={e => onEdge('from', e)} />
+      <motion.span className={styles.handle} style={{ left: right }} data-window-handle="to" onPointerDown={e => onEdge('to', e)} />
+    </motion.span>
+  )
+}
+
+function XTag({ ms, dom, frame }: Part & { ms: number }) {
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(ms), frame.width))
+  return (
+    <motion.span className={`${styles.tag} type-micro`} style={{ left }} data-window-tag>
+      {isoDate(ms)}
+    </motion.span>
   )
 }
 

@@ -62,7 +62,7 @@ export type Stock = { paper: string; band: string; ink: string; muted: string; r
 export type ColumnConfig = {
   key: string
   label: string
-  format: 'number' | 'bps' | 'multiple' | 'celsius' | 'text'
+  format: 'number' | 'bps' | 'multiple' | 'celsius' | 'text' | 'percent' | 'days' | 'integer' // the last three are the diagnostics' (lib/diagnostics)
   derive: 'level' | 'deltaBps' | 'ratio' | 'driver' | 'field'
   divisor?: number
   field?: string

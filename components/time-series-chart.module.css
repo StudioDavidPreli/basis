@@ -220,6 +220,69 @@
   color: var(--muted);
 }
 
+/* The window (docs/spec.md, Diagnostics): outside it the plot recedes to
+   paper; the edges are hairlines in ink; the handles sit mid-height and
+   take the pointer; the dates sit in the axis row. */
+.shade rect {
+  fill: var(--paper);
+  opacity: 0.55;
+}
+
+.preview rect {
+  fill: var(--ink);
+  opacity: 0.08;
+}
+
+.edge {
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.box[data-dragging] {
+  cursor: col-resize;
+}
+
+.handles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border: var(--hairline) solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  pointer-events: auto;
+  cursor: ew-resize;
+  padding: 0;
+}
+
+.tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tag {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  padding: 0 var(--space-1);
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* While a cursor is up the card carries the point; the readout would show
    the same row's latest figure beside it, so it steps aside. It stays the
    live region for keyboard users, who raise no cursor. */

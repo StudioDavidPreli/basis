@@ -9,6 +9,8 @@ export type Range = '1M' | '3M' | '1Y' | '5Y' | 'Max'
 export const RANGES: Range[] = ['1M', '3M', '1Y', '5Y', 'Max']
 export const DEFAULT_RANGE: Range = '1Y'
 
+export type Window = { from: string; to: string } // ISO dates, inclusive; the analysis window (docs/spec.md, Diagnostics)
+
 export type SurfaceState = {
   dataset: string
   sort: Sort
@@ -16,6 +18,8 @@ export type SurfaceState = {
   hoveredId: string | null
   metric: string
   range: Range
+  window: Window | null // null: follows the view
+  tool: string | null // the pinned diagnostics tool
   anchorId: string | null // the last row toggled, for Shift-range selection
 }
 
@@ -33,9 +37,11 @@ export type SurfaceAction =
   | { type: 'hover'; id: string | null }
   | { type: 'metric'; metric: string }
   | { type: 'range'; range: Range }
+  | { type: 'window'; window: Window | null }
+  | { type: 'tool'; tool: string | null }
 
 export function initialState(dataset: string, metric: string): SurfaceState {
-  return { dataset, sort: null, selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, anchorId: null }
+  return { dataset, sort: null, selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, window: null, tool: null, anchorId: null }
 }
 
 export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState {
@@ -82,7 +88,12 @@ export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState
     case 'metric':
       return { ...state, metric: action.metric }
     case 'range':
+      // The window is about the data, not the view: it survives.
       return { ...state, range: action.range }
+    case 'window':
+      return { ...state, window: action.window }
+    case 'tool':
+      return state.tool === action.tool ? state : { ...state, tool: action.tool }
   }
 }
 

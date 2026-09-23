@@ -7,12 +7,16 @@ import { formatValue } from '@/lib/format'
 import { present } from '@/lib/present'
 import { seriesFor } from '@/lib/series'
 import { downsample } from '@/lib/downsample'
-import { summarize, toPoints } from '@/lib/chart'
+import { domainFor, summarize, toPoints } from '@/lib/chart'
+import { config } from '@/lib/config'
+import { sourcesOf } from '@/lib/diff'
+import { windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
 import { CHART_CAP, RANGES, type Range } from './surface-state'
 import type { Row } from './data-table'
 import { Marker } from './marker'
 import { TimeSeriesChart, type ChartRow, type Readout } from './time-series-chart'
 import { AgentPresence } from './agent-presence'
+import { DiagnosticsStrip } from './diagnostics-strip'
 import styles from './chart-hero.module.css'
 
 // The hero's frame: metric selector, range control, the plot, and the
@@ -37,6 +41,10 @@ type Props = {
   hoveredId: string | null
   onHover: (id: string | null) => void
   openId: string | null
+  window: Window | null
+  onWindow: (window: Window | null) => void
+  tool: string | null
+  onTool: (tool: string | null) => void
   series: SeriesSnapshot | null
   parentheses: boolean
   phase: AgentPhase
@@ -45,7 +53,7 @@ type Props = {
   now: Date
 }
 
-export function ChartHero({ columns, metric, onMetric, range, onRange, rows, selection, onDeselect, onClear, hoveredId, onHover, openId, series, parentheses, phase, pulseKey, now }: Props) {
+export function ChartHero({ columns, metric, onMetric, range, onRange, rows, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
   const charted = selection.slice(0, CHART_CAP)
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
@@ -68,6 +76,34 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
       hollow: status === 'stale' || status === 'unverified',
     }
   })
+
+  // The diagnostics' inputs (docs/spec.md, Diagnostics): each charted row's
+  // full series, the metric figure's inputs, and what the config knows.
+  const view = domainFor(
+    chartRows.map(r => r.points),
+    range,
+  )
+  const viewMs: [number, number] | null = view ? [view[0], view[1]] : null
+  const diagnostics: DiagnosticSeries[] = charted.map(r => {
+    const cell = r.cells[column.key]
+    const figure = cell && typeof cell === 'object' ? cell : null
+    const stored = series?.entities[r.id]
+    return {
+      id: r.id,
+      name: r.name,
+      points: stored ? toPoints(seriesFor(stored, column)) : [],
+      sources: figure ? sourcesOf(figure.source) : [],
+      updatedAt: figure?.updatedAt ?? now.toISOString(),
+      // The panel's row marks, read by the panel through the same object.
+      colors: r.colors,
+      marker: r.marker,
+    } as DiagnosticSeries & { colors: Row['colors']; marker: string }
+  })
+  const facts: Record<string, EntityFacts> = {}
+  for (const r of charted) {
+    const entity = [...config.companies, ...config.regions].find(e => e.id === r.id)
+    if (entity) facts[r.id] = { process: entity.process, exposures: entity.exposures, stored: series?.entities[r.id] ?? null, baseLevel: config.base.level }
+  }
 
   // The earliest date any charted series has reached, and the earliest
   // date any of their sources may still revise.
@@ -136,6 +172,8 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
         onHover={onHover}
         summary={summary}
         readout={readout}
+        window={viewMs && win ? windowMs(win, viewMs) : null}
+        onWindow={onWindow}
       />
       <div className={styles.strip}>
         <ul className={styles.legend} aria-label="Selected rows">
@@ -170,6 +208,19 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
         </ul>
         <AgentPresence phase={phase} pulseKey={pulseKey} />
       </div>
+      <DiagnosticsStrip
+        series={diagnostics}
+        facts={facts}
+        metric={{ key: column.key, label: column.label, derive: column.derive }}
+        view={viewMs}
+        window={win}
+        onWindow={onWindow}
+        tool={tool}
+        onTool={onTool}
+        now={now}
+        phase={phase}
+        parentheses={parentheses}
+      />
     </section>
   )
 }

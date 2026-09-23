@@ -3,7 +3,7 @@
 // parses the same search params the client later writes, and a deep link
 // renders the same state on both sides with nothing to reconcile.
 //
-//   /?dataset=regions&sort=level&dir=desc&metric=index&range=5Y
+//   /?dataset=regions&sort=level&dir=desc&metric=index&range=5Y&from=2026-06-12&to=2026-08-30&tool=summary
 //
 // Defaults are omitted, so the sheet's own URL is bare. An unknown value
 // falls back to the default rather than throwing: a stale link still opens
@@ -11,8 +11,9 @@
 
 import { config as defaultConfig, type Config, type DatasetConfig } from '@/lib/config'
 import { DEFAULT_RANGE, RANGES, type Range, type Sort, type SurfaceState } from './surface-state'
+import { normalizeWindow, TOOLS } from '@/lib/diagnostics'
 
-export type UrlState = Pick<SurfaceState, 'dataset' | 'sort' | 'metric' | 'range'>
+export type UrlState = Pick<SurfaceState, 'dataset' | 'sort' | 'metric' | 'range' | 'window' | 'tool'>
 
 type Params = URLSearchParams | Record<string, string | string[] | undefined>
 
@@ -52,7 +53,11 @@ export function parseUrlState(params: Params, config: Config = defaultConfig): U
   const rangeKey = read(params, 'range')
   const range: Range = RANGES.includes(rangeKey as Range) ? (rangeKey as Range) : DEFAULT_RANGE
 
-  return { dataset, sort, metric, range }
+  const window = normalizeWindow(read(params, 'from'), read(params, 'to'))
+  const toolKey = read(params, 'tool')
+  const tool = toolKey && TOOLS.some(t => t.key === toolKey) ? toolKey : null
+
+  return { dataset, sort, metric, range, window, tool }
 }
 
 // The search string for a state, '' when everything is the default.
@@ -66,13 +71,18 @@ export function encodeUrlState(state: UrlState, config: Config = defaultConfig):
   const ds = config.datasets[state.dataset]
   if (ds && state.metric !== defaultMetric(ds)) q.set('metric', state.metric)
   if (state.range !== DEFAULT_RANGE) q.set('range', state.range)
+  if (state.window) {
+    q.set('from', state.window.from)
+    q.set('to', state.window.to)
+  }
+  if (state.tool) q.set('tool', state.tool)
   const s = q.toString()
   return s ? `?${s}` : ''
 }
 
 // The keys this codec owns. Everything else in a URL belongs to someone
 // else: `?reduce=1` and `?theme=` to the inline script in app/layout.tsx.
-const OWNED = ['dataset', 'sort', 'dir', 'metric', 'range'] as const
+const OWNED = ['dataset', 'sort', 'dir', 'metric', 'range', 'from', 'to', 'tool'] as const
 
 // The search string to write: the current one with this codec's keys
 // replaced by `owned` (an encodeUrlState result) and every other key kept.

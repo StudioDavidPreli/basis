@@ -36,5 +36,16 @@ export function formatValue(format: FormatKey, value: number | string, options: 
       return signed(`${one.format(abs)}x`, value, parentheses)
     case 'celsius':
       return `${signed(one.format(abs), value, false)} °C`
+    // The diagnostics' formats (docs/spec.md, Diagnostics): a rate as a
+    // signed percentage with one decimal, a span of days, a count.
+    case 'percent': {
+      const text = `${one.format(abs * 100)}%`
+      if (value > 0) return `+${text}`
+      return signed(text, value, parentheses)
+    }
+    case 'days':
+      return `${whole.format(abs)} d`
+    case 'integer':
+      return signed(whole.format(abs), value, parentheses)
   }
 }

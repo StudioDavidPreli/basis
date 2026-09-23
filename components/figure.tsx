@@ -31,9 +31,12 @@ type Props = {
   phase: AgentPhase
   now: Date
   entityName: string
+  // The diagnostics panel: many figures share one status, so the panel
+  // states the age once in its head and each figure keeps only its mark.
+  compact?: boolean
 }
 
-export function Figure({ figure, column, parentheses, phase, now, entityName }: Props) {
+export function Figure({ figure, column, parentheses, phase, now, entityName, compact = false }: Props) {
   const p = present(figure, phase, now)
   const text = useAnimatedNumber(figure.value, v => formatValue(column.format, v, { parentheses }))
   const id = useId()
@@ -81,7 +84,7 @@ export function Figure({ figure, column, parentheses, phase, now, entityName }: 
           </span>
         )}
       </button>
-      {p.age && <span className={`${styles.age} type-micro`}>{p.age}</span>}
+      {p.age && !compact && <span className={`${styles.age} type-micro`}>{p.age}</span>}
       {(hover || open) && (
         <ProvenancePopover
           id={id}
