@@ -133,6 +133,8 @@ adding a row, in its own commit.
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
 | Chart domain rescale (time range) | `slow` | `standard` | `none` |
 | Chart cursor: the rule, the dots, and the point card enter / exit | `transitions.enter` / `transitions.exit` | | `none` |
+| Diagnostics card enter / exit (the hover preview and the pinned panel) | `transitions.enter` / `transitions.exit` | | `none` |
+| Window set / reset (the shade, the handles, the axis tags) | `base` | `standard` | `none` |
 | Drawer open | — | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | — | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | — | follows the column: one layout, one spring | `none` |
@@ -160,6 +162,11 @@ and their position follows the pointer with no tween, since a tween there
 reads as lag. The card is the pointer's affordance; the readout stays the
 live region for keyboard users and hides while a cursor is up, so one row
 never shows two values at once.
+The diagnostics strip (docs/spec.md, Diagnostics): a tool's card enters
+and exits on `transitions.enter` / `transitions.exit`, whether it floats on
+hover or sits pinned under the chart. The window's shade, handles, and axis
+tags appear and clear on `base` / `standard`; while the pointer drags, the
+window follows it with no tween.
 Switching the entity while the drawer is open does not reopen it: the text
 scrambles per character into the new text over `slower`, with the glyph
 clock on `delays.short`. The clock is one value and cannot ease; what
