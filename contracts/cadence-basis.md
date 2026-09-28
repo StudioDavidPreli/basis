@@ -110,8 +110,14 @@ popover and the command palette run on `transitions.*`, so without this they
 would be the two interactions that ignore reduced motion.
 
 `reducedMotion` is read from `document.documentElement.dataset.reduceMotion`,
-set by the inline script in `layout.tsx` before hydration from
-`matchMedia('(prefers-reduced-motion: reduce)')` and the `?reduce=1` override.
+set by the inline script in `layout.tsx` before hydration from the `?reduce=1`
+override, then the stored choice (`basis-reduce`, written by the command
+palette's toggle), then `matchMedia('(prefers-reduced-motion: reduce)')`.
+The palette can turn reduced motion on at any time and off only when the
+system does not ask for it: the package's media block flattens CSS timing
+under the system preference whatever the attribute says, and Basis does not
+restate Cadence's durations to undo it
+(`decisions/2026-09-28-palette-scope.md`).
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
