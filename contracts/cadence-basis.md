@@ -121,6 +121,14 @@ restate Cadence's durations to undo it
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
+**Loops do not run under reduced motion.** Flattening a duration is right
+for a transition, which then lands at its end in one frame. A looped
+animation flattened to `0.01s` does not stop: it cycles a hundred times a
+second and reads as a flicker. Every looped animation (the shimmer, the
+refresh arrow) is removed under `[data-reduce-motion='1']` and holds a
+still pose; its state is carried by what does not move (the tint, the
+disabled button, `aria-busy`). David, 2026-09-28.
+
 ## Token assignment for Basis interactions
 
 Every interaction is named here with its token pair. Adding an interaction means
@@ -131,6 +139,7 @@ adding a row, in its own commit.
 | Figure value tick (`useAnimatedNumber`) | `slow` | `standard` | `none` |
 | Figure direction color decay | `slower` | `exit` | `none` |
 | Figure shimmer (refreshing) | `slower`, looped | `linear` | `none` |
+| Refresh arrow turn (while a refresh runs) | `slower`, looped | `linear` | `none` |
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
