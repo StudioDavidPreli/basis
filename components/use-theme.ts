@@ -39,10 +39,32 @@ export function useTheme(): Theme {
 // Not a hook, and it closes over nothing: it reads the attribute at the
 // moment of the click, so it keeps one identity for the life of the module
 // and an effect or a memo block that lists it never re-runs on it.
+//
+// The switch is one crossfade of the whole page, a view transition of the
+// root (contracts/cadence-basis.md, "The theme switch is one crossfade"):
+// the browser fades a picture of the old stock into the new one at one
+// rate, so the drawer, the chart's SVG, and the figures cannot each change
+// at the speed of whatever transition they carry for another reason.
+// `data-theme-switching` suspends those transitions until it is over.
+// Without the API the switch is instant, everywhere at once.
 export function toggleTheme(): void {
+  const root = document.documentElement
   const next = THEMES[(THEMES.indexOf(getSnapshot()) + 1) % THEMES.length]!
-  document.documentElement.setAttribute('data-theme', next)
-  try {
-    localStorage.setItem(THEME_KEY, next)
-  } catch {}
+  const apply = () => {
+    root.setAttribute('data-theme', next)
+    try {
+      localStorage.setItem(THEME_KEY, next)
+    } catch {}
+  }
+  if (typeof document.startViewTransition !== 'function') {
+    root.setAttribute('data-theme-switching', '')
+    apply()
+    // One frame with transitions off, so the new values land, not animate.
+    requestAnimationFrame(() => root.removeAttribute('data-theme-switching'))
+    return
+  }
+  root.setAttribute('data-theme-switching', '')
+  document
+    .startViewTransition(apply)
+    .finished.finally(() => root.removeAttribute('data-theme-switching'))
 }

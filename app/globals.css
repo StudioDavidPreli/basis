@@ -46,8 +46,25 @@ body {
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
-  transition: background-color var(--cadence-duration-base) var(--cadence-ease-standard),
-    color var(--cadence-duration-base) var(--cadence-ease-standard);
+}
+
+/* The theme switch (contracts/cadence-basis.md, "The theme switch is one
+   crossfade"): a view transition of the root, the old page fading into the
+   new on base / standard. The durations are Cadence's custom properties,
+   so reduced motion flattens the fade with every other duration. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--cadence-duration-base);
+  animation-timing-function: var(--cadence-ease-standard);
+}
+
+/* While it runs, no element animates its own way to the new stock: the
+   crossfade is the only motion. Set by toggleTheme, cleared when the
+   transition finishes. */
+[data-theme-switching] *,
+[data-theme-switching] *::before,
+[data-theme-switching] *::after {
+  transition: none !important;
 }
 
 *,

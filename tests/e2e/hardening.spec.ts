@@ -125,3 +125,67 @@ test.describe('a tick does not render React per frame', () => {
     expect(commits).toBeLessThan(10)
   })
 })
+
+test.describe('the theme switch is one crossfade', () => {
+  // Before the view transition, the drawer and the chart switched at once,
+  // the ledger's bands on fast, the page on base, and the figures on
+  // slower (David, 2026-09-28). Now every surface takes its new color in
+  // the same frame, and the only motion is the root's crossfade.
+  for (const reduce of [false, true]) {
+    test(`every surface switches in one frame, inside a crossfade of ${reduce ? '10 ms (reduced motion)' : 'base'}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: 'light', reducedMotion: reduce ? 'reduce' : 'no-preference' })
+      await page.goto('/')
+      await hydrated(page)
+      await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
+      await expect(page.locator('path[data-series="ou-tokyo"]')).toHaveAttribute('data-drawn')
+      await page.getByRole('link', { name: /Keel London/ }).click()
+      await expect(page.getByRole('dialog', { name: /Keel London/ })).toBeVisible()
+      // Let the drawer's spring settle before sampling.
+      await page.waitForTimeout(1000)
+
+      await page.evaluate(() => {
+        const w = window as unknown as { frames: Record<string, string>[]; vt: number[] }
+        w.frames = []
+        w.vt = []
+        const probes: Record<string, () => string> = {
+          page: () => getComputedStyle(document.body).backgroundColor,
+          drawer: () => getComputedStyle(document.querySelector('dialog')!).backgroundColor,
+          band: () => getComputedStyle(document.querySelectorAll('tbody tr')[1]!).backgroundColor,
+          figure: () => getComputedStyle(document.querySelector('[aria-label^="Level for Anchor Kaze"]')!).color,
+          ribbon: () => getComputedStyle(document.querySelector('path[data-series="ou-tokyo"]')!).stroke,
+        }
+        const tick = () => {
+          const f: Record<string, string> = {}
+          for (const [k, read] of Object.entries(probes)) f[k] = read()
+          w.frames.push(f)
+          for (const a of document.getAnimations()) {
+            const effect = a.effect as KeyframeEffect | null
+            if (effect?.pseudoElement === '::view-transition-new(root)') w.vt.push(Number(effect.getTiming().duration))
+          }
+          if (w.frames.length < 40) requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      })
+      await page.getByRole('button', { name: 'Switch to the dark stock' }).click()
+      await page.waitForFunction(() => (window as unknown as { frames: unknown[] }).frames.length >= 40)
+      const { frames, vt } = await page.evaluate(() => {
+        const w = window as unknown as { frames: Record<string, string>[]; vt: number[] }
+        return { frames: w.frames, vt: w.vt }
+      })
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'operate')
+
+      const keys = Object.keys(frames[0]!)
+      const firstChange = keys.map(k => frames.findIndex(f => f[k] !== frames[0]![k]))
+      // Every surface changed, all in the same frame...
+      for (const i of firstChange) expect(i).toBeGreaterThan(0)
+      expect(new Set(firstChange).size).toBe(1)
+      // ...straight to its new value, with nothing in between.
+      for (const k of keys) expect(new Set(frames.map(f => f[k])).size).toBe(2)
+      // And the crossfade ran on the token.
+      expect(vt.length).toBeGreaterThan(0)
+      expect(vt[0]).toBe(reduce ? 10 : 200)
+      // The suspension is lifted once it is over.
+      await expect(page.locator('html')).not.toHaveAttribute('data-theme-switching')
+    })
+  }
+})
