@@ -155,17 +155,25 @@ test.describe('the drawer', () => {
     await expect(second).toBeFocused()
   })
 
-  test('clicking the open entity\'s name again leaves the sheet and the drawer alone', async ({ page }) => {
+  test('clicking the open entity\'s name again closes the drawer; another name switches it', async ({ page }) => {
     await page.goto('/')
     const link = page.getByRole('link', { name: /Anchor Kaze/ })
     await link.click()
     await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
-    await link.click()
+    // Another name switches the drawer in place.
+    await page.getByRole('link', { name: /Keel London/ }).click()
+    await expect(page.getByRole('dialog', { name: /Keel London/ })).toBeVisible()
     await expect(page.locator('dialog')).toHaveCount(1)
+    // The open entity's own name closes it, and focus returns to that name.
+    const keel = page.getByRole('link', { name: /Keel London/ })
+    await keel.click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page).toHaveURL(/localhost:\d+\/(\?|$)/)
+    await expect(keel).toBeFocused()
     await expect(page.locator('tbody tr')).toHaveCount(12)
-    await expect(page.getByRole('region', { name: 'Chart' })).toBeVisible()
-    await expect(page).toHaveURL('/company/ou-tokyo')
-    await expect(page.getByRole('dialog').getByRole('heading', { level: 2 })).toBeFocused()
+    // And it opens again from the same name.
+    await keel.click()
+    await expect(page.getByRole('dialog', { name: /Keel London/ })).toBeVisible()
   })
 
   test('a provenance dialog inside the drawer takes Escape first', async ({ page }) => {

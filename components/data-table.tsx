@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { LayoutGroup, motion } from 'framer-motion'
 import type { ColumnConfig } from '@/lib/config'
 import type { FigureValue, SeriesSnapshot } from '@/lib/types'
@@ -63,6 +64,7 @@ const STAGGER_CAP = 8
 
 export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series }: Props) {
   const { durations, easings, delays } = useMotionTokens()
+  const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
   // Every row's path, once per series, metric, or range: a hover re-renders
   // the ledger, and deriving twelve series on each one is wasted work.
@@ -185,9 +187,10 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                           focus to by data-entity-link. With a drawer open the
                           links replace history, so back closes it rather than
                           stepping through entities; the open entity's own link
-                          goes nowhere (a same-URL navigation is not intercepted
-                          and would swap the sheet for the full page) and hands
-                          focus to the drawer instead. */}
+                          closes it, the way the drawer's X does, by going back
+                          (a same-URL navigation is not intercepted and would
+                          swap the sheet for the full page). Focus returns to
+                          this link as on every close. */}
                       <Link
                         href={row.href}
                         className={styles.nameLink}
@@ -197,7 +200,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                         onClick={e => {
                           if (id !== openId) return
                           e.preventDefault()
-                          document.querySelector<HTMLElement>('dialog [data-drawer-heading]')?.focus()
+                          router.back()
                         }}
                       >
                         <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
