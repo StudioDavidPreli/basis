@@ -59,7 +59,8 @@
 
 /* Refreshing: the print head passing over the digits. A moving band on the
    text itself, looped on the slower duration, linear. Under reduced motion
-   the duration collapses and the band is a static tint. */
+   the loop is removed, not flattened (a flattened loop flickers), and the
+   band holds still across the middle of the digits. */
 .figure[data-status='refreshing'] .value {
   background-image: linear-gradient(90deg, var(--figure-ink) 0 40%, var(--muted) 50%, var(--figure-ink) 60% 100%);
   background-size: 200% 100%;
@@ -67,6 +68,11 @@
   background-clip: text;
   color: transparent;
   animation: shimmer var(--cadence-duration-slower) var(--cadence-ease-linear) infinite;
+}
+
+[data-reduce-motion='1'] .figure[data-status='refreshing'] .value {
+  animation: none;
+  background-position: 50% 0;
 }
 
 @keyframes shimmer {

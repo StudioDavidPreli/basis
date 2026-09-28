@@ -182,6 +182,12 @@ test.describe('under next dev, with Strict Mode', () => {
     await page.goto('/')
     await expect(page.locator('tbody tr')).toHaveCount(12)
     const hint = page.getByRole('button', { name: 'Command palette' })
+    // The rows are server-rendered; the shortcut's listener exists only
+    // once React has hydrated, which a cold dev compile can delay past them.
+    await hint.evaluate(e => new Promise<void>(done => {
+      const check = () => (Object.keys(e).some(k => k.startsWith('__reactProps')) ? done() : requestAnimationFrame(check))
+      check()
+    }))
     await hint.focus()
     await page.evaluate(() => {
       const w = window as unknown as { opacities: number[] }

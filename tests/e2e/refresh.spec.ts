@@ -47,4 +47,36 @@ test.describe('the refresh handler', () => {
     await expect(mark).toHaveAttribute('aria-label', 'Agent done')
     await expect(page.locator('[data-status="refreshing"]')).toHaveCount(0)
   })
+
+  // Loops do not run under reduced motion (contracts/cadence-basis.md): a
+  // loop flattened to 10ms cycles a hundred times a second and flickered
+  // on the refresh arrow (David, 2026-09-28). The refresh is held open so
+  // both loops can be read mid-run.
+  for (const reduce of [false, true]) {
+    test(`while a refresh runs, the arrow and the shimmer ${reduce ? 'hold still under reduced motion' : 'loop'}`, async ({ page }) => {
+      let release: () => void = () => {}
+      const held = new Promise<void>(r => (release = r))
+      await page.route('**/api/refresh', async route => {
+        if (route.request().method() !== 'POST') return route.continue()
+        await held
+        await route.continue()
+      })
+      await page.goto(reduce ? '/?reduce=1' : '/')
+      const button = page.getByRole('button', { name: 'Refresh', exact: true })
+      await button.click()
+      const busy = page.getByRole('button', { name: 'Refreshing', exact: true })
+      await expect(busy).toHaveAttribute('aria-busy', 'true')
+      const arrow = await busy.locator('svg').evaluate(e => getComputedStyle(e).animationName)
+      const shimmer = await page.locator('[data-status="refreshing"] span[class*="value"]').first().evaluate(e => getComputedStyle(e).animationName)
+      if (reduce) {
+        expect(arrow).toBe('none')
+        expect(shimmer).toBe('none')
+      } else {
+        expect(arrow).not.toBe('none')
+        expect(shimmer).not.toBe('none')
+      }
+      release()
+      await expect(button).toBeEnabled()
+    })
+  }
 })

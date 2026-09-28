@@ -12,9 +12,19 @@ test.beforeEach(async ({ request }) => {
 const palette = (page: Page) => page.getByRole('dialog', { name: 'Command palette' })
 const input = (page: Page) => palette(page).getByRole('combobox', { name: 'Command or name' })
 
+// The shortcut's listener exists only after hydration, and the ledger the
+// page shows first is server-rendered: wait for React on the hint.
+async function hydrated(page: Page) {
+  await page.getByRole('button', { name: 'Command palette' }).evaluate(e => new Promise<void>(done => {
+    const check = () => (Object.keys(e).some(k => k.startsWith('__reactProps')) ? done() : requestAnimationFrame(check))
+    check()
+  }))
+}
+
 // Open from the keyboard, type, run the active option with Enter, and wait
 // for the palette to have gone: an action runs after the close.
 async function run(page: Page, query: string) {
+  await hydrated(page)
   await page.keyboard.press('ControlOrMeta+k')
   await expect(input(page)).toBeFocused()
   await input(page).fill(query)
@@ -27,6 +37,7 @@ test.describe('the command palette', () => {
     await page.goto('/')
     const hint = page.getByRole('button', { name: 'Command palette' })
     await expect(hint).toHaveAttribute('aria-keyshortcuts', 'Meta+K Control+K')
+    await hydrated(page)
     await hint.focus()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
@@ -45,6 +56,7 @@ test.describe('the command palette', () => {
 
   test('the arrows move the active option, which the combobox names', async ({ page }) => {
     await page.goto('/')
+    await hydrated(page)
     await page.keyboard.press('ControlOrMeta+k')
     const options = palette(page).getByRole('option')
     const first = await options.nth(0).getAttribute('id')
@@ -136,6 +148,7 @@ test.describe('the command palette', () => {
     await page.goto('/')
     const html = page.locator('html')
     await expect(html).toHaveAttribute('data-reduce-motion', '1')
+    await hydrated(page)
     await page.keyboard.press('ControlOrMeta+k')
     await input(page).fill('motion')
     const option = palette(page).getByRole('option', { name: 'Reduced motion: on (system setting)' })
@@ -152,6 +165,7 @@ test.describe('axe with the palette open', () => {
     for (const reduce of [false, true]) {
       test(`${theme}, reduced motion ${reduce ? 'on' : 'off'}`, async ({ page }) => {
         await page.goto(`/?theme=${theme}${reduce ? '&reduce=1' : ''}`)
+        await hydrated(page)
         await page.keyboard.press('ControlOrMeta+k')
         await expect(input(page)).toBeFocused()
         // Let the enter finish, so axe reads the settled colors.

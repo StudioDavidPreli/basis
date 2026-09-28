@@ -21,9 +21,16 @@
 }
 
 /* A running refresh turns the arrow, looped on the slower duration. Under
-   reduced motion the duration collapses and it holds still. */
+   reduced motion the loop is removed, not flattened: a flattened loop
+   cycles every 10ms and flickers (contracts/cadence-basis.md, "Loops do
+   not run under reduced motion"). The disabled ink and aria-busy carry
+   the state. */
 .iconButton[data-busy] svg {
   animation: turn var(--cadence-duration-slower) var(--cadence-ease-linear) infinite;
+}
+
+[data-reduce-motion='1'] .iconButton[data-busy] svg {
+  animation: none;
 }
 
 @keyframes turn {
