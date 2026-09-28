@@ -24,7 +24,9 @@ export type Adapter = {
   // on the Worker and read from disk in tests.
   fixtures: { latest: string; range: string }
   latestUrl(params: Params): string
-  rangeUrl(params: Params, from: string, to: string): string
+  // `today` is the handler's clock, passed in so the adapter stays pure;
+  // an adapter whose product depends on how recent the range is reads it.
+  rangeUrl(params: Params, from: string, to: string, today?: string): string
   parseLatest(text: string, params: Params): { value: number; asOf: string }
   parseRange(text: string, params: Params): Array<[date: string, value: number]>
 }

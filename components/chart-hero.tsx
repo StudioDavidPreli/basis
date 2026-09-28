@@ -6,8 +6,7 @@ import type { SeriesSnapshot } from '@/lib/types'
 import { formatValue } from '@/lib/format'
 import { present } from '@/lib/present'
 import { seriesFor } from '@/lib/series'
-import { downsample } from '@/lib/downsample'
-import { domainFor, summarize, toPoints } from '@/lib/chart'
+import { domainFor, summarize, toPoints, viewPoints } from '@/lib/chart'
 import { config } from '@/lib/config'
 import { sourcesOf } from '@/lib/diff'
 import { windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
@@ -72,7 +71,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
       name: r.name,
       colors: r.colors,
       marker: r.marker,
-      points: stored ? downsample(toPoints(seriesFor(stored, column))) : [],
+      points: stored ? viewPoints(toPoints(seriesFor(stored, column)), range) : [],
       hollow: status === 'stale' || status === 'unverified',
     }
   })

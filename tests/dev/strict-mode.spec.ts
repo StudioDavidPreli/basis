@@ -217,4 +217,25 @@ test.describe('under next dev, with Strict Mode', () => {
     await expect(hint).toBeFocused()
     expect(errors).toEqual([])
   })
+
+  // M9: hydration in every theme × reduced-motion combination. Production
+  // reports a mismatch as a minified error number; development names it.
+  for (const theme of ['passbook', 'operate'] as const) {
+    for (const reduce of [false, true]) {
+      test(`hydrates with nothing in the console: ${theme}, reduced motion ${reduce ? 'on' : 'off'}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: theme === 'operate' ? 'dark' : 'light', reducedMotion: reduce ? 'reduce' : 'no-preference' })
+        const errors = collectErrors(page)
+        await page.goto('/')
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+        await page.getByRole('button', { name: 'Command palette' }).evaluate(e => new Promise<void>(done => {
+          const check = () => (Object.keys(e).some(k => k.startsWith('__reactProps')) ? done() : requestAnimationFrame(check))
+          check()
+        }))
+        await page.goto('/company/ou-tokyo')
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+        await page.waitForLoadState('networkidle')
+        expect(errors).toEqual([])
+      })
+    }
+  }
 })

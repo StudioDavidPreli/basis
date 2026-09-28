@@ -68,4 +68,24 @@ describe('adapters', () => {
     expect(range.length).toBe(92)
     expect(range.every(([, v]) => v > -1 && v < 4)).toBe(true)
   })
+
+  it('noaa-coops: a range inside the verification lag asks for water_level, an older one for hourly_height', () => {
+    const a = adapters['noaa-coops']!
+    const p = paramsFor('noaa-coops')
+    const today = '2026-09-28'
+    expect(a.rangeUrl(p, '2026-08-29', today, today)).toContain('product=water_level')
+    // Ends 62 days back or earlier: verified data has it.
+    expect(a.rangeUrl(p, '2026-06-29', '2026-07-28', today)).toContain('product=hourly_height')
+    expect(a.rangeUrl(p, '2026-06-29', '2026-07-29', today)).toContain('product=water_level')
+    // Without a clock the adapter cannot tell, and asks for verified data.
+    expect(a.rangeUrl(p, '2026-08-29', today)).toContain('product=hourly_height')
+  })
+
+  it('noaa-coops: the 6-minute water_level range averages to one point a day', async () => {
+    const a = adapters['noaa-coops']!
+    const p = paramsFor('noaa-coops')
+    const range = a.parseRange(await load('noaa-water-level-range-2026-09-28.json'), p)
+    expect(range.map(([d]) => d)).toEqual(['2026-09-25', '2026-09-26', '2026-09-27'])
+    expect(range.every(([, v]) => v > -1 && v < 4)).toBe(true)
+  })
 })

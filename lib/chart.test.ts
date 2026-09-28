@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, pathFor, pct, sparkPath, summarize, toPoints, xScale, xTicks, yScale, yTicks, PAD, type Domain, type Point } from './chart'
+import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, pathFor, pct, sparkPath, summarize, toPoints, viewPoints, RANGE_DAYS, xScale, xTicks, yScale, yTicks, PAD, type Domain, type Point } from './chart'
 
 const DAY = 86_400_000
 
@@ -197,5 +197,32 @@ describe('sparkPath', () => {
   it('a flat series draws across the middle', () => {
     const flat = daily('2026-01-01', Array.from({ length: 10 }, () => 5))
     expect(sparkPath(flat, 'Max', frame)).toMatch(/^M1,10(L[\d.]+,10)+$/)
+  })
+})
+
+describe('viewPoints', () => {
+  const five = daily('2021-09-01', Array.from({ length: 1838 }, (_, i) => 100 + Math.sin(i / 9) * 5))
+
+  it('draws every point of a range that fits the threshold', () => {
+    for (const range of ['1M', '3M', '1Y'] as const) {
+      const out = viewPoints(five, range)
+      const start = five[five.length - 1]![0] - RANGE_DAYS[range]! * DAY
+      const inside = five.filter(p => p[0] >= start)
+      expect(out.filter(p => p[0] >= start)).toEqual(inside)
+    }
+  })
+
+  it('reduces 5Y and Max to at most the threshold on the plot', () => {
+    const max = viewPoints(five, 'Max')
+    expect(max).toHaveLength(500)
+    const out = viewPoints(five, '5Y')
+    const start = five[five.length - 1]![0] - RANGE_DAYS['5Y']! * DAY
+    expect(out.filter(p => p[0] >= start).length).toBeLessThanOrEqual(500)
+    expect(out[out.length - 1]).toBe(five[five.length - 1])
+  })
+
+  it('passes a short series through', () => {
+    const short = five.slice(-120)
+    expect(viewPoints(short, 'Max')).toBe(short)
   })
 })

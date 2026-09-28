@@ -183,7 +183,7 @@ async function updateHistory(
     !history.trailingFetchedAt || Date.parse(history.trailingFetchedAt) + TRAILING_EVERY_MS < now.getTime()
   if (history.points.length > 0 && trailingDue && budget.used < budget.max) {
     const from = shiftDays(today, -adapter.trailingDays)
-    const url = adapter.rangeUrl(driver.params, from, today)
+    const url = adapter.rangeUrl(driver.params, from, today, today)
     try {
       budget.used += 1
       const points = adapter.parseRange(await deps.fetchText(url), driver.params)
@@ -202,7 +202,7 @@ async function updateHistory(
   if (needsBackfill && budget.used < budget.max) {
     const to = history.coveredFrom ? shiftDays(history.coveredFrom, -1) : today
     const from = shiftDays(to, -(adapter.historyChunkDays - 1)) < target ? target : shiftDays(to, -(adapter.historyChunkDays - 1))
-    const url = adapter.rangeUrl(driver.params, from, to)
+    const url = adapter.rangeUrl(driver.params, from, to, today)
     try {
       budget.used += 1
       const points = adapter.parseRange(await deps.fetchText(url), driver.params)

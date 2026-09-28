@@ -13,6 +13,7 @@ import { scaleLinear, scaleUtc } from 'd3-scale'
 import { line } from 'd3-shape'
 import type { Range } from '@/components/surface-state'
 import type { Series } from './types'
+import { downsample, DOWNSAMPLE_ABOVE } from './downsample'
 
 export type Point = [ms: number, value: number]
 // [x0, x1, y0, y1]: the time window in ms and the value window.
@@ -75,6 +76,23 @@ export function domainFor(list: Point[][], range: Range): Domain | null {
   }
   const [y0, y1] = scaleLinear().domain([lo, hi]).nice(5).domain() as [number, number]
   return [start, end, y0, y1]
+}
+
+// What a ribbon draws for a view range (docs/spec.md: LTTB above 500 points
+// per series). The points inside the range and the history before it are
+// downsampled apart: the range keeps up to the threshold of its own, so
+// 1M, 3M and 1Y draw every point, and only 5Y and Max are reduced. The
+// history before the range is off the plot except during a rescale, so it
+// is reduced the same way and never costs the visible part its detail.
+// The window rule is domainFor's: the range back from the last point.
+export function viewPoints(points: Point[], range: Range, threshold: number = DOWNSAMPLE_ABOVE): Point[] {
+  if (points.length <= threshold) return points
+  const days = RANGE_DAYS[range]
+  if (days === null) return downsample(points, threshold)
+  const start = points[points.length - 1]![0] - days * DAY_MS
+  const split = points.findIndex(p => p[0] >= start)
+  if (split <= 0) return downsample(points, threshold)
+  return [...downsample(points.slice(0, split), threshold), ...downsample(points.slice(split), threshold)]
 }
 
 export function xScale(domain: Domain, frame: Frame) {
@@ -215,7 +233,8 @@ export function sparkPath(points: Point[], range: Range, frame: Frame): string {
   const end = points[points.length - 1]![0]
   const days = RANGE_DAYS[range]
   const start = days === null ? points[0]![0] : end - days * DAY_MS
-  const shown = points.filter(p => p[0] >= start)
+  // Two points per pixel is all a line this small can show.
+  const shown = downsample(points.filter(p => p[0] >= start), frame.width * 2)
   if (shown.length < 2) return ''
   let lo = Infinity
   let hi = -Infinity

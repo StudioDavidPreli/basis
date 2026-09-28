@@ -20,7 +20,8 @@
     "preview:fixtures": "opennextjs-cloudflare build && opennextjs-cloudflare preview -e fixtures",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "test:e2e:dev": "playwright test -c playwright.dev.config.ts"
+    "test:e2e:dev": "playwright test -c playwright.dev.config.ts",
+    "test:live": "vitest run -c vitest.live.config.ts"
   },
   "dependencies": {
     "cadence-tokens": "^2.0.1",

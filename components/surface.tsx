@@ -29,9 +29,9 @@ import styles from './surface.module.css'
 
 const POLL_MS = 60_000
 
-type Props = { snapshot: StoredSnapshot | null; series: SeriesSnapshot | null; cold: boolean; renderedAt: string; initial: UrlState }
+type Props = { snapshot: StoredSnapshot | null; cold: boolean; renderedAt: string; initial: UrlState }
 
-export function Surface({ snapshot: served, series: servedSeries, cold, renderedAt, initial }: Props) {
+export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) {
   // Seeded from the URL the server parsed, so the first client render is
   // the server's render and a deep link has nothing to reconcile.
   const [state, dispatch] = useReducer(reduce, initial, seed => ({ ...initialState(seed.dataset, seed.metric), ...seed }))
@@ -42,17 +42,25 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
   const { message, announce } = useAnnouncer()
 
   // The chart's series, by dataset (decisions/2026-09-16-series-in-their-
-  // own-key.md). The page ships the dataset it opened on; the other is read
-  // when its tab is first switched to (the tab's handler, below), and the
-  // active one again when the poll sees a newer snapshot, so the endpoints
-  // follow the figures.
-  const [seriesByDataset, setSeriesByDataset] = useState<Record<string, SeriesSnapshot | null>>({ [initial.dataset]: servedSeries })
+  // own-key.md). None ship with the page
+  // (decisions/2026-09-28-series-after-hydration.md): the active dataset's
+  // are read once hydrated (the effect below), another when its tab is
+  // first switched to (the tab's handler), and the active one again when
+  // the poll sees a newer snapshot, so the endpoints follow the figures.
+  const [seriesByDataset, setSeriesByDataset] = useState<Record<string, SeriesSnapshot | null>>({})
   const loadSeries = useCallback(async (dataset: string) => {
     const res = await fetch(`/api/series?dataset=${encodeURIComponent(dataset)}`, { cache: 'no-store' })
     if (!res.ok) return
     const next = (await res.json()) as SeriesSnapshot
     setSeriesByDataset(prev => ({ ...prev, [dataset]: next }))
   }, [])
+  // Decided from the store, not from a first run: under Strict Mode the
+  // second run finds the read still in flight and asks again, which costs
+  // one request in development and nothing else.
+  const openedOn = initial.dataset
+  useEffect(() => {
+    void loadSeries(openedOn)
+  }, [loadSeries, openedOn])
   const latestAt = useRef(served?.at ?? null)
   // The dataset on screen when a poll completes, not when it started: a
   // tab switch during the fetch would otherwise reload the old dataset's
