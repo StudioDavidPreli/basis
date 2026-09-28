@@ -147,7 +147,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
         <h2 id="chart-title" className="sr-only">
           Chart
         </h2>
-        <div className={styles.group} role="group" aria-label="Metric">
+        <div className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric">
           {columns.map(c => (
             <button key={c.key} type="button" className={`${styles.chip} type-label`} aria-pressed={c.key === metric} onClick={() => onMetric(c.key)}>
               {c.label}

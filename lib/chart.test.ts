@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, pathFor, pct, summarize, toPoints, xScale, xTicks, yScale, yTicks, PAD, type Domain, type Point } from './chart'
+import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, pathFor, pct, sparkPath, summarize, toPoints, xScale, xTicks, yScale, yTicks, PAD, type Domain, type Point } from './chart'
 
 const DAY = 86_400_000
 
@@ -167,5 +167,35 @@ describe('the cursor', () => {
     // its nearest point is seven days to the left; the daily ribbon at 108
     // is nearer in the frame.
     expect(anchorAt(rows, domain, frame, x(8 * day), y(150))!.id).toBe('a')
+  })
+})
+
+describe('sparkPath', () => {
+  const frame = { width: 64, height: 20 }
+  const rising = daily('2025-01-01', Array.from({ length: 500 }, (_, i) => 100 + i))
+
+  it('is empty with fewer than two points in the range', () => {
+    expect(sparkPath([], '1Y', frame)).toBe('')
+    expect(sparkPath(rising.slice(0, 1), '1Y', frame)).toBe('')
+  })
+
+  it('draws only the range, ending at the last point, across the whole frame', () => {
+    const d = sparkPath(rising, '1M', frame)
+    // 31 points: the last day and the thirty before it.
+    expect(d.split('L').length).toBe(31)
+    expect(d.startsWith('M1,19')).toBe(true)
+    expect(d.endsWith('63,1')).toBe(true)
+  })
+
+  it('scales to its own extent, so a small move still fills the height', () => {
+    const tiny = daily('2026-01-01', Array.from({ length: 30 }, (_, i) => 1000 + i * 0.001))
+    const d = sparkPath(tiny, 'Max', frame)
+    expect(d.startsWith('M1,19')).toBe(true)
+    expect(d.endsWith('63,1')).toBe(true)
+  })
+
+  it('a flat series draws across the middle', () => {
+    const flat = daily('2026-01-01', Array.from({ length: 10 }, () => 5))
+    expect(sparkPath(flat, 'Max', frame)).toMatch(/^M1,10(L[\d.]+,10)+$/)
   })
 })

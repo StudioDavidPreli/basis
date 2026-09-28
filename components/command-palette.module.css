@@ -1,0 +1,107 @@
+/* The palette is a sheet of the same paper laid over the page: the stock,
+   the grain, an ink hairline. The dialog is the box; the panel inside it is
+   what enters and exits. */
+.dialog {
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(28rem, calc(100dvh - 6rem));
+  margin: 12dvh auto auto;
+  padding: 0;
+  border: var(--hairline) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper);
+  background-image: var(--grain);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-bottom: var(--hairline) solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+/* The input's own ring would sit inside the dialog's hairline; the caret
+   and the active option say where the keyboard is. */
+.input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-1) 0 var(--space-2);
+}
+
+.group + .group {
+  border-top: var(--hairline) dotted var(--rule);
+  margin-top: var(--space-1);
+  padding-top: var(--space-1);
+}
+
+.heading {
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  color: var(--muted);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: background-color var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+/* The active option: the ledger's hover tint, and a rule in the second ink
+   at its left edge so the state is not carried by the tint alone. */
+.option[aria-selected='true'] {
+  background: color-mix(in srgb, var(--band) 85%, var(--rule));
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.option[aria-disabled='true'] {
+  color: var(--muted);
+  cursor: default;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+}
+
+.tag {
+  color: var(--muted);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--muted);
+}
+
+.keys {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--hairline) solid var(--rule);
+  color: var(--muted);
+}

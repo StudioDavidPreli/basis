@@ -6,13 +6,13 @@
 // (decisions/2026-09-16-passbook-visual-language.md).
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { config } from '@/lib/config'
 import { entityName, mutationSentence } from '@/lib/describe'
 import { entityHref } from '@/lib/entity-detail'
 import type { StoredSnapshot } from '@/worker/refresh'
 import type { FigureValue, SeriesSnapshot } from '@/lib/types'
-import { initialState, reduce, sortIds } from './surface-state'
+import { initialState, reduce, sortIds, RANGES } from './surface-state'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
 import { useNow } from './use-now'
 import { agentPhase } from '@/lib/agent'
@@ -22,6 +22,8 @@ import { InterruptionBanner } from './interruption-banner'
 import { ChartHero } from './chart-hero'
 import { DataTable, type Row } from './data-table'
 import { Footnotes } from './footnotes'
+import { CommandPalette, type PaletteItem } from './command-palette'
+import { Marker } from './marker'
 import { LiveRegion, useAnnouncer } from './live-region'
 import styles from './surface.module.css'
 
@@ -218,6 +220,66 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
   // `refreshing` figures reachable outside the embed stage.
   const phase = agentPhase(snapshot?.agent ?? null, now, busy)
 
+  const onDataset = (id: string) => {
+    dispatch({ type: 'dataset', dataset: id, defaultMetric: defaultMetric(config.datasets[id]!) })
+    // A dataset the page did not ship: read its series now, before a
+    // row is selected.
+    if (!(id in seriesByDataset)) void loadSeries(id)
+  }
+
+  // The palette's list: the sheet's entities, datasets, metrics, and ranges; the
+  // palette adds its own View group. A jump is the name cell's link by
+  // other means: it replaces history while a drawer is open, and the open
+  // entity's own jump hands focus to the drawer.
+  const router = useRouter()
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const paletteItems: PaletteItem[] = [
+    ...order.map(id => {
+      const row = rows.find(r => r.id === id)!
+      return {
+        id: `go:${id}`,
+        group: 'Go to',
+        label: row.name,
+        keywords: Object.values(row.cells).filter(c => typeof c === 'string').join(' '),
+        tag: id === openId ? 'open' : undefined,
+        leading: <Marker shape={row.marker} colors={row.colors} />,
+        run: () => {
+          if (id === openId) document.querySelector<HTMLElement>('dialog [data-drawer-heading]')?.focus()
+          else if (openId !== null) router.replace(row.href)
+          else router.push(row.href)
+        },
+      }
+    }),
+    ...Object.entries(config.datasets).map(([id, d]) => ({
+      id: `dataset:${id}`,
+      group: 'Dataset',
+      label: `Show ${d.label}`,
+      keywords: 'dataset tab',
+      tag: id === state.dataset ? 'current' : undefined,
+      run: () => onDataset(id),
+    })),
+    // The metric chips hide on a narrow viewport (docs/spec.md); here the
+    // metric stays one keystroke away at any width.
+    ...columns
+      .filter(c => c.derive !== 'field' && c.derive !== 'driver')
+      .map(c => ({
+        id: `metric:${c.key}`,
+        group: 'Chart metric',
+        label: `Chart ${c.label}`,
+        keywords: 'metric measure',
+        tag: c.key === state.metric ? 'current' : undefined,
+        run: () => dispatch({ type: 'metric', metric: c.key }),
+      })),
+    ...RANGES.map(r => ({
+      id: `range:${r}`,
+      group: 'Time range',
+      label: r === 'Max' ? 'Whole history' : `Last ${r}`,
+      keywords: `range period ${r}`,
+      tag: r === state.range ? 'current' : undefined,
+      run: () => dispatch({ type: 'range', range: r }),
+    })),
+  ]
+
   return (
     <div className={styles.sheet} data-busy={busy || undefined}>
       <Margin date={snapshot?.at ?? renderedAt} dataset={dataset.label} />
@@ -225,12 +287,8 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
         <Header
           datasets={Object.entries(config.datasets).map(([id, d]) => ({ id, label: d.label }))}
           active={state.dataset}
-          onDataset={id => {
-            dispatch({ type: 'dataset', dataset: id, defaultMetric: defaultMetric(config.datasets[id]!) })
-            // A dataset the page did not ship: read its series now, before a
-            // row is selected.
-            if (!(id in seriesByDataset)) void loadSeries(id)
-          }}
+          onDataset={onDataset}
+          onPalette={() => setPaletteOpen(true)}
           busy={busy}
           onRefresh={refresh}
           date={snapshot?.at ?? renderedAt}
@@ -275,9 +333,13 @@ export function Surface({ snapshot: served, series: servedSeries, cold, rendered
           phase={phase}
           now={now}
           openId={openId}
+          metric={state.metric}
+          range={state.range}
+          series={seriesByDataset[state.dataset] ?? null}
         />
         <Footnotes snapshot={snapshot} now={now} />
       </main>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={paletteItems} />
       <LiveRegion message={message} />
     </div>
   )

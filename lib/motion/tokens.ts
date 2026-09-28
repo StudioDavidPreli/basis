@@ -16,6 +16,7 @@ import {
   spring as moduleSpring,
 } from 'cadence-tokens/dist/standard/cadence.motion.js'
 import { REDUCED_MOTION_RESOLUTION } from 'cadence-tokens'
+import { REDUCE_KEY } from '@/app/theme-script'
 
 export type Durations = typeof moduleDurations
 export type Delays = typeof moduleDelays
@@ -141,6 +142,37 @@ if (typeof document !== 'undefined') {
 
 export function useReducedMotion(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
+// The system's own preference, apart from the attribute: the palette needs
+// it to say why its toggle cannot turn reduced motion off. Cadence's
+// stylesheet flattens CSS timing under the media query whatever the
+// attribute says, and Basis does not restate Cadence's durations to undo it
+// (decisions/2026-09-28-palette-scope.md).
+const QUERY = '(prefers-reduced-motion: reduce)'
+
+function subscribeSystem(onChange: () => void) {
+  const list = window.matchMedia(QUERY)
+  list.addEventListener('change', onChange)
+  return () => list.removeEventListener('change', onChange)
+}
+
+export function useSystemReducedMotion(): boolean {
+  return useSyncExternalStore(subscribeSystem, () => window.matchMedia(QUERY).matches, getServerSnapshot)
+}
+
+// Not a hook, like toggleTheme: it reads the attribute at the moment of the
+// call. Only "on" is stored; turning it off removes the key, so the next
+// load falls back to the system. Under the system preference it does
+// nothing.
+export function toggleReducedMotion(): void {
+  if (window.matchMedia(QUERY).matches) return
+  const next = !getSnapshot()
+  document.documentElement.setAttribute(ATTRIBUTE, next ? '1' : '0')
+  try {
+    if (next) localStorage.setItem(REDUCE_KEY, '1')
+    else localStorage.removeItem(REDUCE_KEY)
+  } catch {}
 }
 
 export function useMotionTokens(): MotionTokens {

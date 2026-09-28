@@ -203,3 +203,31 @@ export function summarize(s: SummaryInput): string {
   parts.push('The table below is the accessible alternative.')
   return parts.join(' ')
 }
+
+// The ledger's sparkline on a narrow viewport (docs/spec.md, narrow
+// viewports): one row's series over the view range, scaled to its own
+// extent, not the chart's shared one, because a line twelve pixels tall
+// shows shape, not level. The same window rule as domainFor: it ends at the
+// row's last point and starts the range back from it. Empty when there is
+// nothing to draw; a flat series draws across the middle.
+export function sparkPath(points: Point[], range: Range, frame: Frame): string {
+  if (points.length === 0) return ''
+  const end = points[points.length - 1]![0]
+  const days = RANGE_DAYS[range]
+  const start = days === null ? points[0]![0] : end - days * DAY_MS
+  const shown = points.filter(p => p[0] >= start)
+  if (shown.length < 2) return ''
+  let lo = Infinity
+  let hi = -Infinity
+  for (const [, v] of shown) {
+    if (v < lo) lo = v
+    if (v > hi) hi = v
+  }
+  const x = scaleUtc().domain([shown[0]![0], end]).range([1, frame.width - 1])
+  const y = lo === hi ? () => frame.height / 2 : scaleLinear().domain([lo, hi]).range([frame.height - 1, 1])
+  return (
+    line<Point>()
+      .x(p => x(p[0]))
+      .y(p => y(p[1]))(shown) ?? ''
+  )
+}

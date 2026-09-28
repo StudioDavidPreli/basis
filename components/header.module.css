@@ -48,12 +48,24 @@
   margin-left: var(--space-2);
 }
 
+.shortcut {
+  width: auto;
+  padding: 0 var(--space-2);
+}
+
 @media (max-width: 900px) {
   .header {
     flex-wrap: wrap;
     row-gap: var(--space-2);
   }
+  /* Out of sight, not out of the tree: it is the page's one h1. */
   .title {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }

@@ -173,4 +173,42 @@ test.describe('under next dev, with Strict Mode', () => {
     // in development and silent in production.
     expect(errors).toEqual([])
   })
+
+  test('the palette opens once, enters, and exits, with nothing in the console', async ({ page }) => {
+    // The open effect runs twice under Strict Mode; a second showModal() on
+    // an open dialog throws. The enter and exit run on the tokens, so the
+    // panel is sampled mid-way, not only at its ends.
+    const errors = collectErrors(page)
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    const hint = page.getByRole('button', { name: 'Command palette' })
+    await hint.focus()
+    await page.evaluate(() => {
+      const w = window as unknown as { opacities: number[] }
+      w.opacities = []
+      // The dialog mounts on the open; sample from its arrival.
+      const observer = new MutationObserver(() => {
+        const panel = document.querySelector('dialog[aria-label="Command palette"] > div')
+        if (!panel) return
+        observer.disconnect()
+        const tick = () => {
+          w.opacities.push(parseFloat(getComputedStyle(panel).opacity))
+          if (w.opacities.length < 40) requestAnimationFrame(tick)
+        }
+        tick()
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+    })
+    await page.keyboard.press('ControlOrMeta+k')
+    const palette = page.getByRole('dialog', { name: 'Command palette' })
+    await expect(palette.getByRole('combobox')).toBeFocused()
+    await page.waitForFunction(() => (window as unknown as { opacities: number[] }).opacities.length >= 40)
+    const opacities = await page.evaluate(() => (window as unknown as { opacities: number[] }).opacities)
+    expect(opacities.some(o => o > 0.05 && o < 0.95)).toBe(true)
+    expect(opacities[opacities.length - 1]).toBe(1)
+    await page.keyboard.press('Escape')
+    await expect(palette).toHaveCount(0)
+    await expect(hint).toBeFocused()
+    expect(errors).toEqual([])
+  })
 })

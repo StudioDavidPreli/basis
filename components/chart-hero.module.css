@@ -81,7 +81,7 @@
 }
 
 @media (max-width: 900px) {
-  .controls .group:first-child {
+  .metric {
     display: none;
   }
 }

@@ -9,6 +9,7 @@ type Props = {
   datasets: Array<{ id: string; label: string }>
   active: string
   onDataset: (id: string) => void
+  onPalette: () => void
   busy: boolean
   onRefresh: () => void
   date: string
@@ -48,7 +49,7 @@ function SunMoon({ theme }: { theme: Theme }) {
   )
 }
 
-export function Header({ datasets, active, onDataset, busy, onRefresh, date }: Props) {
+export function Header({ datasets, active, onDataset, onPalette, busy, onRefresh, date }: Props) {
   const theme = useTheme()
   return (
     <header className={styles.header}>
@@ -71,6 +72,17 @@ export function Header({ datasets, active, onDataset, busy, onRefresh, date }: P
         <h1 className={`${styles.title} type-eyebrow`}>
           Basis <span className={styles.titleDate}>{stamp(date)}</span>
         </h1>
+        {/* The palette's hint and its pointer route: the shortcut, spelled
+            as the Mac spells it; Ctrl+K works everywhere and is announced. */}
+        <IconButton
+          className={`${styles.shortcut} type-micro`}
+          onClick={onPalette}
+          aria-label="Command palette"
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Meta+K Control+K"
+        >
+          ⌘K
+        </IconButton>
         <IconButton
           onClick={onRefresh}
           disabled={busy}

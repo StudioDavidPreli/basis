@@ -8,16 +8,19 @@
 // slow / standard with a short stagger capped at eight
 // (decisions/2026-09-16-row-reorder-not-spring.md).
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { LayoutGroup, motion } from 'framer-motion'
 import type { ColumnConfig } from '@/lib/config'
-import type { FigureValue } from '@/lib/types'
+import type { FigureValue, SeriesSnapshot } from '@/lib/types'
+import { sparkPath, toPoints } from '@/lib/chart'
+import { seriesFor } from '@/lib/series'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import type { AgentPhase } from '@/worker/refresh'
-import type { Sort } from './surface-state'
+import type { Range, Sort } from './surface-state'
 import { Figure } from './figure'
 import { CompanyLogo } from './company-logo'
+import { entityStyle } from './marker'
 import styles from './data-table.module.css'
 
 export type Row = {
@@ -47,13 +50,29 @@ type Props = {
   phase: AgentPhase
   now: Date
   openId: string | null // the entity whose drawer is open, if one is
+  // The narrow viewport's sparkline: the chart's metric over the chart's
+  // range, from the series the chart already holds.
+  metric: string
+  range: Range
+  series: SeriesSnapshot | null
 }
+
+const SPARK = { width: 64, height: 18 }
 
 const STAGGER_CAP = 8
 
-export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId }: Props) {
+export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const byId = new Map(rows.map(r => [r.id, r]))
+  // Every row's path, once per series, metric, or range: a hover re-renders
+  // the ledger, and deriving twelve series on each one is wasted work.
+  const sparks = useMemo(() => {
+    const column = columns.find(c => c.key === metric)
+    const out: Record<string, string> = {}
+    if (!column || !series) return out
+    for (const [id, stored] of Object.entries(series.entities)) out[id] = sparkPath(toPoints(seriesFor(stored, column)), range, SPARK)
+    return out
+  }, [columns, metric, range, series])
   const all = selection.length === rows.length && rows.length > 0
   const some = selection.length > 0 && !all
   const headerBox = useRef<HTMLInputElement>(null)
@@ -94,6 +113,12 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                 <SortMark active={sort?.key === 'name'} dir={sort?.dir} />
               </button>
             </th>
+            {/* Narrow viewports only (docs/spec.md): the stylesheet shows
+                this column and keeps one figure, the chart's metric, beside
+                it. The line is decoration; the kept figure is the reading. */}
+            <th scope="col" className={styles.spark}>
+              <span className="sr-only">Trend</span>
+            </th>
             {columns.map(c => {
               const active = sort?.key === c.key
               return (
@@ -101,6 +126,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   key={c.key}
                   scope="col"
                   className={`${c.format === 'text' ? styles.text : styles.figureCol} type-label`}
+                  data-metric={c.key === metric || undefined}
                   aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
                   <button type="button" className={styles.sortButton} onClick={() => onSort(c.key)}>
@@ -180,6 +206,9 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                       <span className={styles.leader} aria-hidden="true" />
                     </span>
                   </th>
+                  <td className={styles.spark}>
+                    <Sparkline d={sparks[id] ?? ''} colors={row.colors} />
+                  </td>
                   {columns.map(c => {
                     const cell = row.cells[c.key]
                     if (c.format === 'text' || typeof cell === 'string') {
@@ -190,7 +219,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                       )
                     }
                     return (
-                      <td key={c.key} className={styles.figureCol}>
+                      <td key={c.key} className={styles.figureCol} data-metric={c.key === metric || undefined}>
                         {cell ? (
                           <Figure figure={cell} column={c} parentheses={parentheses} phase={phase} now={now} entityName={row.name} />
                         ) : (
@@ -206,6 +235,14 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
         </LayoutGroup>
       </table>
     </div>
+  )
+}
+
+function Sparkline({ d, colors }: { d: string; colors: Row['colors'] }) {
+  return (
+    <svg data-sparkline className={`entity ${styles.sparkLine}`} width={SPARK.width} height={SPARK.height} viewBox={`0 0 ${SPARK.width} ${SPARK.height}`} aria-hidden="true" focusable="false" style={entityStyle(colors)}>
+      {d && <path d={d} />}
+    </svg>
   )
 }
 

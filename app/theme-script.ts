@@ -2,7 +2,11 @@
 // "useMotionTokens()", and the spec's server/client boundary). It writes two
 // attributes on <html>:
 //
-//   data-reduce-motion  "1" | "0"   from prefers-reduced-motion, or ?reduce=1
+//   data-reduce-motion  "1" | "0"   from ?reduce=1, then the stored choice
+//                       (the palette's toggle), then prefers-reduced-motion.
+//                       Only "on" is stored: the system's preference is never
+//                       overridden toward motion
+//                       (decisions/2026-09-28-palette-scope.md)
 //   data-theme          "passbook" | "operate"   from ?theme=, then the stored
 //                       choice, then prefers-color-scheme (dark picks the
 //                       green stock; both stocks are light paper)
@@ -15,11 +19,13 @@
 export const THEMES = ['passbook', 'operate'] as const
 export type Theme = (typeof THEMES)[number]
 export const THEME_KEY = 'basis-theme'
+export const REDUCE_KEY = 'basis-reduce'
 
 export const themeScript = `(function(){try{
 var d=document.documentElement,q=new URLSearchParams(location.search);
-var r=q.get('reduce'),m=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-d.setAttribute('data-reduce-motion',(r==='1'||m)?'1':'0');
+var r=q.get('reduce'),m=window.matchMedia('(prefers-reduced-motion: reduce)').matches,s=null;
+try{s=localStorage.getItem('${REDUCE_KEY}')}catch(e){}
+d.setAttribute('data-reduce-motion',(r==='1'||s==='1'||m)?'1':'0');
 var ok=['passbook','operate'],t=q.get('theme');
 if(ok.indexOf(t)<0){try{t=localStorage.getItem('${THEME_KEY}')}catch(e){t=null}}
 if(ok.indexOf(t)<0){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'operate':'passbook'}

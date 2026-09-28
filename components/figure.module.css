@@ -81,3 +81,17 @@
 .figure[data-status='unverified'] .trigger {
   border-bottom-style: dotted;
 }
+
+/* Narrow viewports: the age goes under the value instead of beside it, so
+   a ledger row fits a phone without losing the stale cue that is not
+   color (docs/spec.md, narrow viewports). */
+@media (max-width: 900px) {
+  .figure {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+  .age {
+    line-height: 1.2;
+  }
+}

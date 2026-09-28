@@ -165,11 +165,53 @@
   color: var(--muted);
 }
 
+/* The sparkline column exists only on a narrow viewport. */
+.spark {
+  display: none;
+}
+
+.sparkLine {
+  display: block;
+  margin-left: auto;
+}
+
+.sparkLine path {
+  fill: none;
+  stroke: var(--entity-color);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Narrow viewports (docs/spec.md): fewer columns and one sparkline inline
+   per row. What stays is the name, the chart's metric as a line, and the
+   same metric as the figure, so the row reads the way the chart does. */
 @media (max-width: 900px) {
   .text {
     display: none;
   }
+  /* Every fixed column gives some back, so the name, the line, and the
+     figure fit a phone's width without the clip cutting the figure. */
+  .num {
+    width: 2.25rem;
+  }
+  .check {
+    width: 1.5rem;
+  }
   .name {
-    min-width: 9rem;
+    min-width: 7rem;
+  }
+  .row td,
+  .row th,
+  .table thead th {
+    padding-left: var(--space-1);
+    padding-right: var(--space-1);
+  }
+  .spark {
+    display: table-cell;
+    width: calc(64px + var(--space-2));
+  }
+  .figureCol:not([data-metric]) {
+    display: none;
   }
 }
