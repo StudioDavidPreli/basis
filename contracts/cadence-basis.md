@@ -121,6 +121,18 @@ restate Cadence's durations to undo it
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
+**The theme switch is one crossfade.** It runs as a view transition of the
+root (`document.startViewTransition`): the old page and the new one fade on
+`base` / `standard`, read from `--cadence-duration-base` and
+`--cadence-ease-standard` on the `::view-transition-old(root)` and
+`-new(root)` pseudo-elements, so reduced motion flattens it like any CSS
+duration. Every element's own transitions are suspended while it runs
+(`[data-theme-switching]`), so nothing fades a second time inside it at its
+own rate; before this, the drawer and the chart switched at once, the
+ledger's bands on `fast`, the page on `base`, and the figures on `slower`
+(David, 2026-09-28). Without the API the switch is instant, everywhere
+together.
+
 **Loops do not run under reduced motion.** Flattening a duration is right
 for a transition, which then lands at its end in one frame. A looped
 animation flattened to `0.01s` does not stop: it cycles a hundred times a
