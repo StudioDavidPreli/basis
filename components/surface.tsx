@@ -54,13 +54,21 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
     const next = (await res.json()) as SeriesSnapshot
     setSeriesByDataset(prev => ({ ...prev, [dataset]: next }))
   }, [])
-  // Decided from the store, not from a first run: under Strict Mode the
-  // second run finds the read still in flight and asks again, which costs
-  // one request in development and nothing else.
+  // The read is the effect's own, with the state set in its callback and
+  // the request aborted on cleanup: under Strict Mode the first run's read
+  // is cancelled and the second's lands, never a first-run flag. A failed
+  // read leaves the chart empty until the poll or a tab switch reads again.
   const openedOn = initial.dataset
   useEffect(() => {
-    void loadSeries(openedOn)
-  }, [loadSeries, openedOn])
+    const controller = new AbortController()
+    fetch(`/api/series?dataset=${encodeURIComponent(openedOn)}`, { cache: 'no-store', signal: controller.signal })
+      .then(res => (res.ok ? (res.json() as Promise<SeriesSnapshot>) : null))
+      .then(next => {
+        if (next) setSeriesByDataset(prev => ({ ...prev, [openedOn]: next }))
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [openedOn])
   const latestAt = useRef(served?.at ?? null)
   // The dataset on screen when a poll completes, not when it started: a
   // tab switch during the fetch would otherwise reload the old dataset's
