@@ -129,15 +129,14 @@ restate Cadence's durations to undo it
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
-**The bands stay on the page; the rows move over them.** The ledger's
-alternating bands belong to the slots, not the rows: they are the table
-body's background, a stripe at each slot's measured position, and they do
-not move during a sort. A row has no fill at rest. While its reorder runs
-it is an opaque paper slip, so a row crossing another never shows the text
-beneath; the fill switches on and off with no transition, and rows stack by
-destination, the row arriving first on top. Before this, each row carried
-its own band, about half of them faded between band and clear on every
-sort, and the clear rows overprinted (David, 2026-10-05).
+**Rows are opaque, and stack by name.** The bands are each row's own fill
+and move with it (the passbook look David chose over still bands,
+2026-10-05). A row without a band is filled with the paper, so a row
+crossing another during a reorder covers it and the text beneath never
+shows through; at rest paper over paper reads as the page. Rows stack in a
+fixed order, alphabetical by name, set once: the table body is its own
+stacking context, so these levels never compete with the sticky header or
+the drawer. No new motion: the reorder row above is unchanged.
 
 **The theme switch is one crossfade.** It runs as a view transition of the
 root (`document.startViewTransition`): the old page and the new one fade on
@@ -173,7 +172,6 @@ adding a row, in its own commit.
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
-| Row slip fill while it moves (paper over the fixed bands) | instant: on at the start of its move, off when it lands | | |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
