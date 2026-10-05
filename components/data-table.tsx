@@ -69,6 +69,13 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
+  // A fixed stacking order, alphabetical by name (contracts/cadence-basis.md,
+  // "Rows are opaque, and stack by name"): a row crossing another during a
+  // reorder always passes over or under it the same way, whatever the sort.
+  const level = useMemo(() => {
+    const names = [...rows].sort((a, b) => a.name.localeCompare(b.name))
+    return new Map(names.map((r, k) => [r.id, names.length - k]))
+  }, [rows])
   // Every row's path, once per series, metric, or range: a hover re-renders
   // the ledger, and deriving twelve series on each one is wasted work.
   const sparks = useMemo(() => {
@@ -81,37 +88,6 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   const all = selection.length === rows.length && rows.length > 0
   const some = selection.length > 0 && !all
   const headerBox = useRef<HTMLInputElement>(null)
-  const body = useRef<HTMLTableSectionElement>(null)
-  const rowEls = useRef(new Map<string, HTMLTableRowElement>())
-
-  // The bands belong to the slots, not the rows (contracts/cadence-basis.md,
-  // "The bands stay on the page"): the body's background is a stripe at
-  // every even slot, at the slot's measured position, so a sort moves rows
-  // over still bands. offsetTop ignores transforms, so a measure taken
-  // mid-sort reads the slots and not the rows crossing them. Measured from
-  // the layout every time, never from a previous run: Strict Mode runs this
-  // twice and the second run measures what the first did. Until the first
-  // measure (the server's HTML, the first paint) the stylesheet bands the
-  // rows themselves, which is where the slots are at rest.
-  useEffect(() => {
-    const tbody = body.current
-    if (!tbody) return
-    const measure = () => {
-      const stops: string[] = []
-      ;[...tbody.rows].forEach((tr, k) => {
-        if (k % 2 === 0) return
-        const top = tr.offsetTop - tbody.offsetTop
-        stops.push(`transparent ${top}px`, `var(--band) ${top}px`, `var(--band) ${top + tr.offsetHeight}px`, `transparent ${top + tr.offsetHeight}px`)
-      })
-      tbody.style.setProperty('--bands', stops.length ? `linear-gradient(to bottom, ${stops.join(', ')})` : 'none')
-      tbody.setAttribute('data-bands', '')
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(tbody)
-    for (const tr of tbody.rows) observer.observe(tr)
-    return () => observer.disconnect()
-  }, [order])
   useEffect(() => {
     if (headerBox.current) headerBox.current.indeterminate = some
   }, [some])
@@ -170,7 +146,6 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               its ribbon and the hero's readout reads the point. Focus
               leaving the body clears it. */}
           <tbody
-            ref={body}
             className={styles.body}
             onBlur={e => {
               if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onHover(null)
@@ -197,17 +172,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   // the reorder jumped.
                   layout="position"
                   layoutDependency={i}
-                  ref={(el: HTMLTableRowElement | null) => {
-                    if (el) rowEls.current.set(id, el)
-                    else rowEls.current.delete(id)
-                  }}
-                  // While its reorder runs the row is a paper slip over the
-                  // still bands, written straight to the element so a move
-                  // does not re-render the ledger. Rows stack by destination,
-                  // the row arriving first on top.
-                  onLayoutAnimationStart={() => rowEls.current.get(id)?.setAttribute('data-moving', '')}
-                  onLayoutAnimationComplete={() => rowEls.current.get(id)?.removeAttribute('data-moving')}
-                  style={{ '--slip-z': order.length - i } as CSSProperties}
+                  style={{ '--row-z': level.get(id) } as CSSProperties}
                   transition={{ duration: durations.slow, ease: easings.standard, delay: stagger * delays.short }}
                   className={styles.row}
                   data-selected={selected || undefined}

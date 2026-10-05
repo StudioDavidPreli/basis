@@ -26,9 +26,7 @@
 .table thead th {
   position: sticky;
   top: 0;
-  /* Above every moving row (their --slip-z runs 1 to the row count), so a
-     slip never crosses the header. */
-  z-index: 100;
+  z-index: 2;
   background: var(--paper);
   background-image: var(--grain);
   text-align: left;
@@ -75,29 +73,27 @@
   transition: background-color var(--cadence-duration-fast) var(--cadence-ease-standard);
 }
 
-/* The passbook's rhythm: every other slot on the band. The bands are the
-   body's, painted at the slots' measured positions (data-table.tsx), so a
-   sort moves rows over them and never the bands themselves. Until the
-   first measure, the rows carry them, which is where the slots are at rest. */
-.body[data-bands] {
-  background-image: var(--bands);
+/* The passbook's rhythm: every other row on the band. A row without the
+   band is filled with the paper, not left clear, so a row crossing another
+   during a reorder covers it and the text beneath never shows through; at
+   rest it is paper over paper (contracts/cadence-basis.md, "Rows are
+   opaque, and stack by name"). No grain on the rows: an SVG noise fill on
+   moving rows is redrawn every frame, and that made the reorder jagged. */
+.row {
+  position: relative;
+  z-index: var(--row-z);
+  background: var(--paper);
 }
 
-.body:not([data-bands]) .row:nth-child(even) {
+.row:nth-child(even) {
   background: var(--band);
 }
 
-/* A row in motion is a paper slip: opaque, so the text it crosses never
-   shows through, stacked by destination. The fill is a background image,
-   which the hover tint's background-color transition does not touch, so it
-   switches on and off at once (contract: the row slip fill is instant). */
-.row {
-  position: relative;
-}
-
-.row[data-moving] {
-  z-index: var(--slip-z);
-  background-image: var(--grain), linear-gradient(var(--paper), var(--paper));
+/* The rows' levels compete only with each other: the body is its own
+   stacking context, so the sticky header (z-index 2) and the drawer keep
+   their places above it. */
+.body {
+  isolation: isolate;
 }
 
 .row[data-hover],

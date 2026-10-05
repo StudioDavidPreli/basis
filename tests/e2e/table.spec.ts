@@ -277,45 +277,66 @@ test.describe('the row reorder on sort', () => {
   })
 })
 
-// The bands belong to the slots (contract: "The bands stay on the page"):
-// the body paints them at measured slot positions, a sort leaves them where
-// they are, and a moving row is an opaque slip stacked by destination.
-test.describe('the bands under a sort', () => {
-  test('stay still while every moving row is an opaque slip, and the slips clear on landing', async ({ page }) => {
-    await page.goto('/embed/table-sort?preset=cinematic')
-    await expect(page.locator('tbody[data-bands]')).toHaveCount(1)
-    const r = await page.evaluate(async () => {
-      const tbody = document.querySelector('tbody')!
-      const bands = tbody.style.getPropertyValue('--bands')
-      // The stripes' edges in px. WebKit rounds a row's offsetHeight to a
-      // whole pixel, and the rounding can land a pixel differently after a
-      // reorder; a stripe that moves by more than that has moved.
-      const edges = (g: string) => [...g.matchAll(/([\d.]+)px/g)].map(m => parseFloat(m[1]!))
-      const e0 = edges(bands)
-      const header = getComputedStyle(document.querySelector('thead th')!).boxShadow
-      const btn = [...document.querySelectorAll('thead button')].find(b => b.textContent?.includes('Level'))! as HTMLButtonElement
-      let slips = 0
-      let clear = 0
-      let moved = false
-      btn.click()
-      for (let i = 0; i < 90; i++) {
-        await new Promise(r => requestAnimationFrame(r))
-        const e = edges(tbody.style.getPropertyValue('--bands'))
-        if (e.length !== e0.length || e.some((v, k) => Math.abs(v - e0[k]!) > 1)) moved = true
-        for (const tr of tbody.querySelectorAll<HTMLElement>('tr[data-moving]')) {
-          slips++
-          if (getComputedStyle(tr).backgroundImage === 'none') clear++
-        }
-      }
-      await new Promise(r => setTimeout(r, 1500))
-      return { stripes: (bands.match(/var\(--band\)/g) ?? []).length / 2, header, moved, slips, clear, left: tbody.querySelectorAll('tr[data-moving]').length }
+// The bands are the rows' own (contract: "Rows are opaque, and stack by
+// name"). Every row is opaque, so a row crossing another covers it; rows
+// stack alphabetically; the levels stay inside the body, under the header
+// and the drawer; and the sort runs at frame rate.
+test.describe('the bands and the row stack', () => {
+  test('every row is opaque, the bands are the even rows, and the levels follow the names', async ({ page }) => {
+    await page.goto('/embed/table-sort')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    const r = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll<HTMLElement>('tbody tr')]
+      const fills = rows.map(tr => getComputedStyle(tr).backgroundColor)
+      const names = rows.map(tr => tr.querySelector('th .type-label')!.textContent!)
+      const levels = rows.map(tr => Number(getComputedStyle(tr).zIndex))
+      return { fills, names, levels, isolated: getComputedStyle(document.querySelector('tbody')!).isolation }
     })
-    expect(r.stripes).toBe(6)
-    expect(r.moved).toBe(false)
-    expect(r.slips).toBeGreaterThan(0)
-    expect(r.clear).toBe(0)
-    expect(r.left).toBe(0)
-    // The header's rule is its own, not a border shared with the first row.
-    expect(r.header).toContain('inset')
+    for (const f of r.fills) expect(f).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/)
+    expect(new Set(r.fills.filter((_, k) => k % 2 === 1)).size).toBe(1)
+    expect(r.fills[1]).not.toBe(r.fills[0])
+    const byName = r.names.map((n, k) => [n, r.levels[k]!] as const).sort((a, b) => a[0].localeCompare(b[0]))
+    for (let k = 1; k < byName.length; k++) expect(byName[k]![1]).toBeLessThan(byName[k - 1]![1])
+    expect(r.isolated).toBe('isolate')
+  })
+
+  test('the sort runs at frame rate', async ({ page }) => {
+    await page.goto('/embed/table-sort?preset=cinematic')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.waitForTimeout(500)
+    const gaps = await page.evaluate(async () => {
+      const btn = [...document.querySelectorAll('thead button')].find(b => b.textContent?.includes('Level'))! as HTMLButtonElement
+      const out: number[] = []
+      let last = performance.now()
+      btn.click()
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const now = performance.now()
+        out.push(now - last)
+        last = now
+      }
+      return out.slice(1)
+    })
+    const sorted = [...gaps].sort((a, b) => a - b)
+    const p90 = sorted[Math.floor(sorted.length * 0.9)]!
+    expect(p90).toBeLessThan(34)
+  })
+})
+
+test.describe('the drawer over the ledger', () => {
+  test.use({ viewport: { width: 600, height: 800 } })
+  test('on a narrow viewport the drawer covers the sticky header', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    const drawer = page.getByRole('dialog', { name: /Anchor Kaze/ })
+    await expect(drawer).toBeVisible()
+    await page.waitForTimeout(1000)
+    // Whatever sits on top at a header cell's centre belongs to the drawer.
+    const top = await page.evaluate(() => {
+      const th = document.querySelector('thead th:nth-child(3)')!.getBoundingClientRect()
+      const el = document.elementFromPoint(th.left + th.width / 2, th.top + th.height / 2)
+      return el?.closest('dialog') ? 'drawer' : el?.closest('thead') ? 'header' : String(el?.tagName)
+    })
+    expect(top).toBe('drawer')
   })
 })
