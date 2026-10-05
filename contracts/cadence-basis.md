@@ -170,9 +170,9 @@ adding a row, in its own commit.
 | Chart cursor: the rule, the dots, and the point card enter / exit | `transitions.enter` / `transitions.exit` | | `none` |
 | Diagnostics card enter / exit (the hover preview and the pinned panel) | `transitions.enter` / `transitions.exit` | | `none` |
 | Window set / reset (the shade, the handles, the axis tags) | `base` | `standard` | `none` |
-| Drawer open | — | `springDamped`, on the drawer column's width | `none` |
-| Drawer close | — | `springDamped`, the width back to zero, kept mounted until done | `none` |
-| Sheet resize beside the drawer | — | follows the column: one layout, one spring | `none` |
+| Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
+| Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
+| Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
