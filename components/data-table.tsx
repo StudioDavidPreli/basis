@@ -102,6 +102,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   const some = selection.length > 0 && !all
   const headerBox = useRef<HTMLInputElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
+  const rowEls = useRef(new Map<string, HTMLTableRowElement>())
 
   // A sort must not move the page. React moves the rows in one commit, and
   // WebKit, at a rendering update after a batch of moved table rows, moved
@@ -209,6 +210,17 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   layout="position"
                   layoutDependency={i}
                   style={{ '--row-z': level.get(id) } as CSSProperties}
+                  // While its reorder runs, a row's content fades out and its
+                  // fill stays (contracts/cadence-basis.md): written straight
+                  // to the element, so a move never re-renders the ledger. A
+                  // row that does not move has no layout animation and keeps
+                  // its content.
+                  ref={(el: HTMLTableRowElement | null) => {
+                    if (el) rowEls.current.set(id, el)
+                    else rowEls.current.delete(id)
+                  }}
+                  onLayoutAnimationStart={() => rowEls.current.get(id)?.setAttribute('data-moving', '')}
+                  onLayoutAnimationComplete={() => rowEls.current.get(id)?.removeAttribute('data-moving')}
                   transition={{ duration: durations.slow, ease: easings.standard, delay: stagger * delays.short }}
                   className={styles.row}
                   data-selected={selected || undefined}

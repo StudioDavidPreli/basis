@@ -89,6 +89,23 @@
   background: var(--band);
 }
 
+/* A moving row's content fades out as its move starts and back in as it
+   lands, on the contract's two rows: out on fast / exit, in on base /
+   enter. A CSS transition runs on the target state's timing, so each rule
+   carries the timing of the direction it leads to. The cells fade, not the
+   row: the row's fill is painted under them and stays opaque, so a crossing
+   row still covers what it passes. */
+.row > td,
+.row > th {
+  transition: opacity var(--cadence-duration-base) var(--cadence-ease-enter);
+}
+
+.row[data-moving] > td,
+.row[data-moving] > th {
+  opacity: 0;
+  transition: opacity var(--cadence-duration-fast) var(--cadence-ease-exit);
+}
+
 /* The rows' levels compete only with each other: the body is its own
    stacking context, so the sticky header (z-index 2) and the drawer keep
    their places above it. */

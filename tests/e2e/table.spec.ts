@@ -369,3 +369,43 @@ test.describe('the drawer over the ledger', () => {
     expect(top).toBe('drawer')
   })
 })
+
+// A moving row's content fades out and back in, its fill staying opaque, so
+// no crossing slices a row's text at another row's edge (contract; David's
+// screenshots of a Name and an Industry sort, 2026-10-05). The row stack
+// project runs this in WebKit too.
+test.describe('the row stack during a move', () => {
+  test('moving rows fade their content and keep their fill; still rows keep theirs; all return on landing', async ({ page }) => {
+    await page.goto('/embed/table-sort?preset=cinematic')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.waitForTimeout(500)
+    const r = await page.evaluate(async () => {
+      const rows = [...document.querySelectorAll<HTMLElement>('tbody tr')]
+      let faded = 0
+      let fillLost = 0
+      let sliced = 0
+      ;([...document.querySelectorAll('thead button')].find(b => b.textContent?.trim().startsWith('Name')) as HTMLButtonElement).click()
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        for (const tr of rows) {
+          const op = parseFloat(getComputedStyle(tr.querySelector('th')!).opacity)
+          if (tr.hasAttribute('data-moving') && op < 0.05) faded++
+          if (/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(tr).backgroundColor)) fillLost++
+          if (op < 0.3) continue
+          const l = tr.querySelector('th .type-label')!.getBoundingClientRect()
+          const hit = (y: number) => document.elementFromPoint(l.left + 4, y)?.closest('tr') === tr
+          if (hit(l.top + 2) !== hit(l.bottom - 2)) sliced++
+        }
+      }
+      await new Promise(r => setTimeout(r, 2000))
+      const after = rows.map(tr => parseFloat(getComputedStyle(tr.querySelector('th')!).opacity))
+      return { faded, fillLost, sliced, after, moving: document.querySelectorAll('tbody tr[data-moving]').length }
+    })
+    expect(r.faded).toBeGreaterThan(0)
+    expect(r.fillLost).toBe(0)
+    // A landed row fading back in can meet a late mover for a frame or two.
+    expect(r.sliced).toBeLessThanOrEqual(3)
+    expect(r.moving).toBe(0)
+    for (const op of r.after) expect(op).toBe(1)
+  })
+})
