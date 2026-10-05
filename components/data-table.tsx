@@ -8,7 +8,7 @@
 // slow / standard with a short stagger capped at eight
 // (decisions/2026-09-16-row-reorder-not-spring.md).
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LayoutGroup, motion } from 'framer-motion'
@@ -85,15 +85,6 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
     if (headerBox.current) headerBox.current.indeterminate = some
   }, [some])
 
-  // The order of the previous committed render, kept beside the current
-  // one, so a row can tell a reorder (it changed index: the layout
-  // animation on slow / standard, staggered) from a resize of the whole
-  // ledger, as when the drawer opens beside it (every row keeps its index:
-  // no layout animation, the rows follow the reflow, which runs on the
-  // drawer's spring).
-  const [orders, setOrders] = useState({ prev: order, current: order })
-  if (orders.current !== order) setOrders({ prev: orders.current, current: order })
-  const prevOrder = orders.current === order ? orders.prev : orders.current
 
   return (
     <div className={styles.wrap}>
@@ -157,12 +148,22 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               const selected = selection.includes(id)
               // The gate flags a literal inside a timing value, so the index math
               // stays out of the transition object.
-              const moved = prevOrder[i] !== id
               const stagger = Math.min(i, STAGGER_CAP - 1)
               return (
                 <motion.tr
                   key={id}
-                  layout={moved ? 'position' : false}
+                  // A reorder animates; a resize of the whole ledger, as when
+                  // the drawer opens beside it, does not: the rows follow the
+                  // reflow, which runs on the drawer's spring. Framer measures
+                  // and animates a layout change only when layoutDependency
+                  // changes, and a row's index changes on a sort and never on
+                  // a resize. Layout stays on in every render, because Framer
+                  // takes the before-position from the render before: turning
+                  // it on in the render that moves the row (as this did from
+                  // 2026-09-16 to 2026-10-05) left nothing to animate from, and
+                  // the reorder jumped.
+                  layout="position"
+                  layoutDependency={i}
                   transition={{ duration: durations.slow, ease: easings.standard, delay: stagger * delays.short }}
                   className={styles.row}
                   data-selected={selected || undefined}

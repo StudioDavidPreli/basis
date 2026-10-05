@@ -216,3 +216,63 @@ test.describe('the interruption banner, from fixtures', () => {
     await expect(page.getByRole('status')).toHaveCount(0)
   })
 })
+
+// The reorder on sort is the ledger's layout animation (contract: slow /
+// standard, a short stagger). From 2026-09-16 to 2026-10-05 it never ran:
+// layout was switched on only in the render that moved the row, so Framer
+// had no earlier position to animate from (David, 2026-10-05, in Safari on
+// the table-sort embed). A row is tracked frame by frame through a sort.
+async function reorderFrames(page: import('@playwright/test').Page) {
+  return page.evaluate(async () => {
+    const btn = [...document.querySelectorAll('thead button')].find(b => b.textContent?.includes('Level'))!
+    const track = document.querySelectorAll('tbody tr')[5]!
+    const y0 = track.getBoundingClientRect().top
+    const ys: number[] = []
+    ;(btn as HTMLButtonElement).click()
+    for (let i = 0; i < 90; i++) {
+      await new Promise(r => requestAnimationFrame(r))
+      ys.push(Math.round(track.getBoundingClientRect().top - y0))
+    }
+    const end = ys[ys.length - 1]!
+    return { travel: end, between: ys.filter(y => y !== 0 && y !== end).length }
+  })
+}
+
+test.describe('the row reorder on sort', () => {
+  for (const path of ['/', '/embed/table-sort', '/embed/table-sort?preset=cinematic']) {
+    test(`rows travel to their new places on ${path}`, async ({ page }) => {
+      await page.goto(path)
+      await expect(page.locator('tbody tr')).toHaveCount(12)
+      await page.waitForTimeout(500)
+      const { travel, between } = await reorderFrames(page)
+      expect(travel).not.toBe(0)
+      expect(between).toBeGreaterThan(5)
+    })
+  }
+
+  test('under reduced motion the rows land at once', async ({ page }) => {
+    await page.goto('/?reduce=1')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.waitForTimeout(500)
+    const { travel, between } = await reorderFrames(page)
+    expect(travel).not.toBe(0)
+    expect(between).toBeLessThanOrEqual(1)
+  })
+
+  test('opening the drawer moves no row on its own', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    // While the spring resizes the sheet no row carries a layout transform.
+    const transformed = await page.evaluate(async () => {
+      let max = 0
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        max = Math.max(max, [...document.querySelectorAll('tbody tr')].filter(tr => (tr as HTMLElement).style.transform && (tr as HTMLElement).style.transform !== 'none').length)
+      }
+      return max
+    })
+    expect(transformed).toBe(0)
+  })
+})
