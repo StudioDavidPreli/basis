@@ -136,11 +136,15 @@ a row crossing another during a reorder covers it and the text beneath
 never shows through; at rest paper over paper reads as the page. On each
 sort the rows stack by how far they travel, the shortest move on top and
 ties broken by name: the rows that barely move stay legible, and the long
-movers, too fast to read, pass beneath them. Over five real sorts this hid
+movers, too fast to read, pass beneath them. A moving row's content fades
+out as its move starts and back in as it lands, its fill staying opaque
+throughout, so no crossing can slice a row's text at another row's edge
+(David, 2026-10-05, from screenshots of a Name and an Industry sort); a row
+that does not move keeps its content. Over five real sorts this hid
 a crossing row's name 60 times against 118 for a fixed alphabetical order,
 the best of six orders measured (2026-10-05). The table body is its own
 stacking context, so these levels never compete with the sticky header or
-the drawer. No new motion: the reorder row above is unchanged.
+the drawer.
 
 **The theme switch is one crossfade.** It runs as a view transition of the
 root (`document.startViewTransition`): the old page and the new one fade on
@@ -176,6 +180,8 @@ adding a row, in its own commit.
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
+| Row content fade-out as its reorder starts (text, marks, figures; the fill stays) | `fast` | `exit` | `none` |
+| Row content fade-in as it lands | `base` | `enter` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
