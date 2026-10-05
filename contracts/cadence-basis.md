@@ -129,12 +129,16 @@ restate Cadence's durations to undo it
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
-**Rows are opaque, and stack by name.** The bands are each row's own fill
-and move with it (the passbook look David chose over still bands,
-2026-10-05). A row without a band is filled with the paper, so a row
-crossing another during a reorder covers it and the text beneath never
-shows through; at rest paper over paper reads as the page. Rows stack in a
-fixed order, alphabetical by name, set once: the table body is its own
+**Rows are opaque, and the shortest move stacks on top.** The bands are
+each row's own fill and move with it (the passbook look David chose over
+still bands, 2026-10-05). A row without a band is filled with the paper, so
+a row crossing another during a reorder covers it and the text beneath
+never shows through; at rest paper over paper reads as the page. On each
+sort the rows stack by how far they travel, the shortest move on top and
+ties broken by name: the rows that barely move stay legible, and the long
+movers, too fast to read, pass beneath them. Over five real sorts this hid
+a crossing row's name 60 times against 118 for a fixed alphabetical order,
+the best of six orders measured (2026-10-05). The table body is its own
 stacking context, so these levels never compete with the sticky header or
 the drawer. No new motion: the reorder row above is unchanged.
 
