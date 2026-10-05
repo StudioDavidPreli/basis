@@ -1,0 +1,5 @@
+/* The ledger on its paper, nothing around it: the host page frames it. */
+.stage {
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-6) var(--space-8);
+}

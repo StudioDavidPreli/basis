@@ -56,13 +56,16 @@ type Props = {
   metric: string
   range: Range
   series: SeriesSnapshot | null
+  // False in the table-sort embed: a name there is text, because following
+  // it would load the full company page inside the host's frame.
+  links?: boolean
 }
 
 const SPARK = { width: 64, height: 18 }
 
 const STAGGER_CAP = 8
 
-export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series }: Props) {
+export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
@@ -191,21 +194,28 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                           (a same-URL navigation is not intercepted and would
                           swap the sheet for the full page). Focus returns to
                           this link as on every close. */}
-                      <Link
-                        href={row.href}
-                        className={styles.nameLink}
-                        data-entity-link={id}
-                        replace={openId !== null}
-                        aria-current={id === openId ? 'page' : undefined}
-                        onClick={e => {
-                          if (id !== openId) return
-                          e.preventDefault()
-                          router.back()
-                        }}
-                      >
-                        <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
-                        <span className="type-label">{row.name}</span>
-                      </Link>
+                      {links ? (
+                        <Link
+                          href={row.href}
+                          className={styles.nameLink}
+                          data-entity-link={id}
+                          replace={openId !== null}
+                          aria-current={id === openId ? 'page' : undefined}
+                          onClick={e => {
+                            if (id !== openId) return
+                            e.preventDefault()
+                            router.back()
+                          }}
+                        >
+                          <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
+                          <span className="type-label">{row.name}</span>
+                        </Link>
+                      ) : (
+                        <span className={styles.nameLink}>
+                          <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
+                          <span className="type-label">{row.name}</span>
+                        </span>
+                      )}
                       <span className={styles.leader} aria-hidden="true" />
                     </span>
                   </th>

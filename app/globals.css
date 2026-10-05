@@ -20,8 +20,11 @@
 /* The package's media block handles prefers-reduced-motion. This mirrors the
    same resolution for the attribute the inline script sets, so ?reduce=1
    flattens CSS timing exactly as the OS preference would. Same values, same
-   omissions: easing, scale, spring, and the scalar stay as authored. */
-[data-reduce-motion='1'] {
+   omissions: easing, scale, spring, and the scalar stay as authored.
+   `:root` in the selector so it outranks a preset's own block
+   (`:root[data-preset=…]`, styles/presets.css), which loads before this. */
+:root[data-reduce-motion='1'],
+:root[data-reduce-motion='1'][data-preset] {
   --cadence-duration-fast: 10ms;
   --cadence-duration-base: 10ms;
   --cadence-duration-slow: 10ms;

@@ -80,3 +80,39 @@ describe('useMotionTokens', () => {
     expect(result.current.reducedMotion).toBe(false)
   })
 })
+
+// The embeds' ?preset= (decisions/2026-10-05-presets-for-the-embeds.md):
+// the attribute picks the module, and reduced motion flattens every one.
+describe('useMotionTokens with a preset', () => {
+  beforeEach(() => {
+    setFlag('0')
+    document.documentElement.removeAttribute('data-preset')
+  })
+
+  it('reads the preset the attribute names, each from its own module', async () => {
+    const snappy = await import('cadence-tokens/dist/snappy/cadence.motion.js')
+    const cinematic = await import('cadence-tokens/dist/cinematic/cadence.motion.js')
+    document.documentElement.setAttribute('data-preset', 'snappy')
+    expect(renderHook(() => useMotionTokens()).result.current.durations).toEqual(snappy.durations)
+    document.documentElement.setAttribute('data-preset', 'cinematic')
+    const t = renderHook(() => useMotionTokens()).result.current
+    expect(t.durations).toEqual(cinematic.durations)
+    expect(t.spring).toEqual(cinematic.spring)
+    expect(t.transitions.enter).toEqual({ duration: cinematic.durations.base, ease: cinematic.easings.enter })
+  })
+
+  it('an unknown preset, or none, is Standard', () => {
+    document.documentElement.setAttribute('data-preset', 'bouncy')
+    expect(renderHook(() => useMotionTokens()).result.current.durations).toEqual({ fast: 0.1, base: 0.2, slow: 0.4, slower: 0.6 })
+  })
+
+  it('reduced motion flattens every preset the same way', () => {
+    setFlag('1')
+    for (const p of ['standard', 'snappy', 'cinematic']) {
+      document.documentElement.setAttribute('data-preset', p)
+      const t = renderHook(() => useMotionTokens()).result.current
+      expect(t.durations).toEqual({ fast: 0.01, base: 0.01, slow: 0.01, slower: 0.01 })
+      expect(t.spring).toEqual({ duration: 0.01 })
+    }
+  })
+})

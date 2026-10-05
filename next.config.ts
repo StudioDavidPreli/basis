@@ -19,6 +19,26 @@ const nextConfig: NextConfig = {
   // start. The dev server now runs inside the push gate, which must leave
   // the tree clean (decisions/2026-09-17-a-dev-mode-gate.md).
   agentRules: false,
+  // Who may frame Basis (plan.md, M10). The embeds are made to be framed,
+  // by the Cadence "In Practice" page and by Basis itself; everything else
+  // by nobody. frame-ancestors is the rule browsers follow; X-Frame-Options
+  // is the older header, which cannot name an origin, so only the
+  // never-framed routes carry it.
+  async headers() {
+    return [
+      {
+        source: '/((?!embed/).*)',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+        ],
+      },
+      {
+        source: '/embed/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://cadence.davidpreli.com" }],
+      },
+    ]
+  },
 }
 
 export default nextConfig

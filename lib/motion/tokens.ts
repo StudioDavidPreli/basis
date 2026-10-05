@@ -8,20 +8,24 @@
 
 import { useMemo, useSyncExternalStore } from 'react'
 import { MotionGlobalConfig, type Transition } from 'framer-motion'
-import {
-  durations as moduleDurations,
-  easings,
-  delays as moduleDelays,
-  scale,
-  spring as moduleSpring,
-} from 'cadence-tokens/dist/standard/cadence.motion.js'
+import * as standard from 'cadence-tokens/dist/standard/cadence.motion.js'
+import * as snappy from 'cadence-tokens/dist/snappy/cadence.motion.js'
+import * as cinematic from 'cadence-tokens/dist/cinematic/cadence.motion.js'
 import { REDUCED_MOTION_RESOLUTION } from 'cadence-tokens'
 import { REDUCE_KEY } from '@/app/theme-script'
 
-export type Durations = typeof moduleDurations
-export type Delays = typeof moduleDelays
-export type Easings = typeof easings
-export type Scale = typeof scale
+// The three presets (decisions/2026-10-05-presets-for-the-embeds.md). The
+// sheet is always Standard; an embed may name another with ?preset=, which
+// the inline script writes as `data-preset` on <html>.
+export const PRESETS = ['standard', 'snappy', 'cinematic'] as const
+export type Preset = (typeof PRESETS)[number]
+type PresetModule = typeof standard
+const modules: Record<Preset, PresetModule> = { standard, snappy, cinematic }
+
+export type Durations = PresetModule['durations']
+export type Delays = PresetModule['delays']
+export type Easings = PresetModule['easings']
+export type Scale = PresetModule['scale']
 
 export type MotionTokens = {
   durations: Durations // flattened to 0.01 under reduced motion
@@ -49,8 +53,6 @@ function flattened<T extends Record<string, number>>(source: T, value: number): 
   return out as T
 }
 
-const reducedDurations = flattened(moduleDurations, REDUCED_DURATION)
-const reducedDelays = flattened(moduleDelays, REDUCED_DELAY)
 
 // A spring has no duration to flatten. Under reduced motion it becomes a
 // timed transition of the same 10ms, which is the branch the token file
@@ -65,13 +67,13 @@ function criticallyDamped(s: Transition): Transition {
   const { stiffness, mass } = s as { stiffness: number; mass: number }
   return { ...s, damping: 2 * Math.sqrt(stiffness * mass) }
 }
-const moduleSpringDamped = criticallyDamped(moduleSpring)
 
-function build(reducedMotion: boolean): MotionTokens {
-  const durations = reducedMotion ? reducedDurations : moduleDurations
-  const delays = reducedMotion ? reducedDelays : moduleDelays
-  const spring: Transition = reducedMotion ? reducedSpring : moduleSpring
-  const springDamped: Transition = reducedMotion ? reducedSpring : moduleSpringDamped
+function build(m: PresetModule, reducedMotion: boolean): MotionTokens {
+  const { easings, scale } = m
+  const durations = reducedMotion ? flattened(m.durations, REDUCED_DURATION) : m.durations
+  const delays = reducedMotion ? flattened(m.delays, REDUCED_DELAY) : m.delays
+  const spring: Transition = reducedMotion ? reducedSpring : m.spring
+  const springDamped: Transition = reducedMotion ? reducedSpring : criticallyDamped(m.spring)
   return {
     durations,
     delays,
@@ -94,7 +96,10 @@ function build(reducedMotion: boolean): MotionTokens {
 // Both token sets are built once. The hook hands back one of two stable
 // objects, so a consumer's dependency arrays see the same reference until
 // the flag actually changes.
-const tokensByFlag = { off: build(false), on: build(true) }
+const tokensBy = Object.fromEntries(PRESETS.map(p => [p, { off: build(modules[p], false), on: build(modules[p], true) }])) as Record<
+  Preset,
+  { off: MotionTokens; on: MotionTokens }
+>
 
 // ── The reduced-motion flag as an external store ─────────────────────────
 //
@@ -175,7 +180,26 @@ export function toggleReducedMotion(): void {
   } catch {}
 }
 
+// The preset, read from the attribute like the flag above. It is set once,
+// before hydration, and never changes; the store form is for the server
+// snapshot (Standard), so the first client render matches the server's.
+function subscribePreset(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-preset'] })
+  return () => observer.disconnect()
+}
+
+function getPreset(): Preset {
+  const p = document.documentElement.getAttribute('data-preset')
+  return PRESETS.find(x => x === p) ?? 'standard'
+}
+
+export function usePreset(): Preset {
+  return useSyncExternalStore(subscribePreset, getPreset, () => 'standard')
+}
+
 export function useMotionTokens(): MotionTokens {
   const reducedMotion = useReducedMotion()
-  return useMemo(() => (reducedMotion ? tokensByFlag.on : tokensByFlag.off), [reducedMotion])
+  const preset = usePreset()
+  return useMemo(() => (reducedMotion ? tokensBy[preset].on : tokensBy[preset].off), [preset, reducedMotion])
 }

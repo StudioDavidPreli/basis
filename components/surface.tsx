@@ -8,11 +8,11 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { config } from '@/lib/config'
-import { entityName, mutationSentence } from '@/lib/describe'
-import { entityHref } from '@/lib/entity-detail'
+import { mutationSentence } from '@/lib/describe'
 import type { StoredSnapshot } from '@/worker/refresh'
-import type { FigureValue, SeriesSnapshot } from '@/lib/types'
-import { initialState, reduce, sortIds, RANGES } from './surface-state'
+import type { SeriesSnapshot } from '@/lib/types'
+import { initialState, reduce, RANGES } from './surface-state'
+import { entityRows, rowOrder } from './rows'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
 import { useNow } from './use-now'
 import { agentPhase } from '@/lib/agent'
@@ -177,47 +177,9 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
 
   const dataset = config.datasets[state.dataset]!
   const columns = dataset.columns
-  const entities = dataset.entities === 'companies' ? config.companies : config.regions
 
-  // Each entity's latest mutation, for its mark's pulse. The log is newest
-  // first (worker/refresh.ts prepends this run's), so the first entry an
-  // entity appears in is the one, and a run that changed nothing for it
-  // leaves its key alone and its mark still.
-  const pulseKeys = useMemo(() => {
-    const out: Record<string, string> = {}
-    for (const m of snapshot?.mutations ?? []) if (!(m.entity in out)) out[m.entity] = m.at
-    return out
-  }, [snapshot])
-
-  const rows: Row[] = useMemo(
-    () =>
-      entities.map(e => {
-        const snap = snapshot?.entities[e.id]
-        const cells: Record<string, FigureValue | string | undefined> = {}
-        for (const col of columns) {
-          if (col.derive === 'field') cells[col.key] = (e as unknown as Record<string, string>)[col.field!]
-          else cells[col.key] = snap?.metrics[col.key]
-        }
-        return { id: e.id, name: entityName(e.id), href: entityHref(e.id), colors: { light: e.color, dark: e.colorDark }, marker: e.marker, pulseKey: pulseKeys[e.id] ?? null, cells }
-      }),
-    [entities, columns, snapshot, pulseKeys],
-  )
-
-  const order = useMemo(
-    () =>
-      sortIds(
-        rows.map(r => r.id),
-        state.sort,
-        id => {
-          const row = rows.find(r => r.id === id)
-          // The name is the row's own, not a column of the dataset.
-          if (state.sort?.key === 'name') return row?.name
-          const cell = row?.cells[state.sort?.key ?? '']
-          return typeof cell === 'object' ? cell?.value : cell
-        },
-      ),
-    [rows, state.sort],
-  )
+  const rows: Row[] = useMemo(() => entityRows(state.dataset, snapshot), [state.dataset, snapshot])
+  const order = useMemo(() => rowOrder(rows, state.sort), [rows, state.sort])
 
   const onSort = useCallback(
     (key: string) => {

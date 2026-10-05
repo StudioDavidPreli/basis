@@ -7,6 +7,9 @@
 //                       Only "on" is stored: the system's preference is never
 //                       overridden toward motion
 //                       (decisions/2026-09-28-palette-scope.md)
+//   data-preset         "standard" | "snappy" | "cinematic"   from ?preset=,
+//                       on /embed/* only; absent elsewhere, which is Standard
+//                       (decisions/2026-10-05-presets-for-the-embeds.md)
 //   data-theme          "passbook" | "operate"   from ?theme=, then the stored
 //                       choice, then prefers-color-scheme (dark picks the
 //                       green stock; both stocks are light paper)
@@ -30,4 +33,6 @@ var ok=['passbook','operate'],t=q.get('theme');
 if(ok.indexOf(t)<0){try{t=localStorage.getItem('${THEME_KEY}')}catch(e){t=null}}
 if(ok.indexOf(t)<0){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'operate':'passbook'}
 d.setAttribute('data-theme',t);
+var p=q.get('preset');
+if(location.pathname.indexOf('/embed/')===0&&['standard','snappy','cinematic'].indexOf(p)>=0){d.setAttribute('data-preset',p)}
 }catch(e){}})();`

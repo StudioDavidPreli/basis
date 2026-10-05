@@ -1,5 +1,5 @@
 // cadence-tokens ships JavaScript without type declarations. These are the
-// two entry points Basis imports (contracts/cadence-basis.md, "What Basis
+// entry points Basis imports (contracts/cadence-basis.md, "What Basis
 // imports"), typed to the shape the consumer reference documents. Nothing
 // else from the package is declared, on purpose: if a file wants more of it,
 // that is a contract change first.
@@ -21,6 +21,15 @@ declare module 'cadence-tokens/dist/standard/cadence.motion.js' {
     exit: { duration: number; ease: [number, number, number, number] }
     spring: typeof spring
   }
+}
+
+// The other two presets have the same shape (the embeds' ?preset=,
+// decisions/2026-10-05-presets-for-the-embeds.md).
+declare module 'cadence-tokens/dist/snappy/cadence.motion.js' {
+  export * from 'cadence-tokens/dist/standard/cadence.motion.js'
+}
+declare module 'cadence-tokens/dist/cinematic/cadence.motion.js' {
+  export * from 'cadence-tokens/dist/standard/cadence.motion.js'
 }
 
 declare module 'cadence-tokens/dist/standard/cadence.css'

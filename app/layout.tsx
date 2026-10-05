@@ -5,6 +5,10 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, DotGothic16 } from 'next/font/google'
 // as custom properties, one preset, with the package's own reduced-motion
 // media block. Nothing else from Cadence is imported anywhere.
 import 'cadence-tokens/dist/standard/cadence.css'
+// The three presets, scoped to `data-preset`, for the embeds only
+// (decisions/2026-10-05-presets-for-the-embeds.md). Generated from the
+// package; the sheet never sets the attribute and stays on Standard.
+import '@/styles/presets.css'
 import './globals.css'
 import { themeScript } from './theme-script'
 import { DrawerExit } from '@/components/drawer-exit'
