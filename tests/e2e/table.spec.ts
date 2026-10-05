@@ -250,6 +250,26 @@ test.describe('the row reorder on sort', () => {
     })
   }
 
+  test('a sort keeps the page where it was scrolled', async ({ page }) => {
+    // WebKit moved the scroll toward the top on every sort (David,
+    // 2026-10-05); this runs in the webkit project too.
+    await page.setViewportSize({ width: 1280, height: 600 })
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    for (const col of ['Level', 'Level', 'Δ 1d', 'Name']) {
+      await page.evaluate(() => scrollTo(0, Math.min(500, document.documentElement.scrollHeight - innerHeight)))
+      await page.waitForTimeout(200)
+      const before = await page.evaluate(() => Math.round(scrollY))
+      expect(before).toBeGreaterThan(100)
+      const after = await page.evaluate(async col => {
+        ;([...document.querySelectorAll('thead button')].find(b => b.textContent?.trim().startsWith(col)) as HTMLButtonElement).click()
+        for (let i = 0; i < 4; i++) await new Promise(r => requestAnimationFrame(r))
+        return Math.round(scrollY)
+      }, col)
+      expect(after, col).toBe(before)
+    }
+  })
+
   test('under reduced motion the rows land at once', async ({ page }) => {
     await page.goto('/?reduce=1')
     await expect(page.locator('tbody tr')).toHaveCount(12)

@@ -8,7 +8,7 @@
 // slow / standard with a short stagger capped at eight
 // (decisions/2026-09-16-row-reorder-not-spring.md).
 
-import { useEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LayoutGroup, motion } from 'framer-motion'
@@ -88,13 +88,36 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   const all = selection.length === rows.length && rows.length > 0
   const some = selection.length > 0 && !all
   const headerBox = useRef<HTMLInputElement>(null)
+  const wrap = useRef<HTMLDivElement>(null)
+
+  // A sort must not move the page. React moves the rows in one commit, and
+  // WebKit, at a rendering update after a batch of moved table rows, moved
+  // the scroll toward the top: the page jumped on every sort in Safari
+  // (David, 2026-10-05; deployed since M4; Chromium never did). Measured,
+  // not explained: holding the wrapper's height from the click through two
+  // frames prevents it, and a hold released any earlier does not. The hold
+  // is the table's own height, so nothing on screen changes. Released from
+  // the value every time, so a second Strict Mode run finds nothing to undo.
+  const sortBy = (key: string) => {
+    const el = wrap.current
+    if (el) el.style.minHeight = `${el.offsetHeight}px`
+    onSort(key)
+  }
+  useLayoutEffect(() => {
+    const el = wrap.current
+    if (!el || !el.style.minHeight) return
+    let id = requestAnimationFrame(() => {
+      id = requestAnimationFrame(() => (el.style.minHeight = ''))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [order])
   useEffect(() => {
     if (headerBox.current) headerBox.current.indeterminate = some
   }, [some])
 
 
   return (
-    <div className={styles.wrap}>
+    <div ref={wrap} className={styles.wrap}>
       <table className={styles.table}>
         <thead>
           <tr>
@@ -111,7 +134,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               />
             </th>
             <th scope="col" className={`${styles.name} type-label`} aria-sort={sort?.key === 'name' ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" className={styles.sortButton} onClick={() => onSort('name')}>
+              <button type="button" className={styles.sortButton} onClick={() => sortBy('name')}>
                 Name
                 <SortMark active={sort?.key === 'name'} dir={sort?.dir} />
               </button>
@@ -132,7 +155,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   data-metric={c.key === metric || undefined}
                   aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
-                  <button type="button" className={styles.sortButton} onClick={() => onSort(c.key)}>
+                  <button type="button" className={styles.sortButton} onClick={() => sortBy(c.key)}>
                     {c.label}
                     <SortMark active={active} dir={sort?.dir} />
                   </button>
