@@ -8,7 +8,7 @@
 // slow / standard with a short stagger capped at eight
 // (decisions/2026-09-16-row-reorder-not-spring.md).
 
-import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LayoutGroup, motion } from 'framer-motion'
@@ -69,13 +69,26 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
-  // A fixed stacking order, alphabetical by name (contracts/cadence-basis.md,
-  // "Rows are opaque, and stack by name"): a row crossing another during a
-  // reorder always passes over or under it the same way, whatever the sort.
+  // The stacking order for a sort (contracts/cadence-basis.md, "Rows are
+  // opaque, and the shortest move stacks on top"): the rows that barely
+  // move stay on top and legible, the long movers pass beneath them, ties
+  // broken by name. The order of the previous render is kept beside the
+  // current one, set while rendering from the values themselves, so the
+  // distance is known in the render that moves the rows.
+  const [orders, setOrders] = useState({ prev: order, current: order })
+  if (orders.current !== order) setOrders({ prev: orders.current, current: order })
+  const prevOrder = orders.current === order ? orders.prev : orders.current
   const level = useMemo(() => {
-    const names = [...rows].sort((a, b) => a.name.localeCompare(b.name))
-    return new Map(names.map((r, k) => [r.id, names.length - k]))
-  }, [rows])
+    const n = order.length
+    const alpha = new Map([...rows].sort((a, b) => a.name.localeCompare(b.name)).map((r, k) => [r.id, n - k]))
+    return new Map(
+      order.map((id, i) => {
+        const from = prevOrder.indexOf(id)
+        const distance = from < 0 ? 0 : Math.abs(i - from)
+        return [id, (n - distance) * (n + 1) + alpha.get(id)!]
+      }),
+    )
+  }, [order, prevOrder, rows])
   // Every row's path, once per series, metric, or range: a hover re-renders
   // the ledger, and deriving twelve series on each one is wasted work.
   const sparks = useMemo(() => {

@@ -302,21 +302,30 @@ test.describe('the row reorder on sort', () => {
 // stack alphabetically; the levels stay inside the body, under the header
 // and the drawer; and the sort runs at frame rate.
 test.describe('the bands and the row stack', () => {
-  test('every row is opaque, the bands are the even rows, and the levels follow the names', async ({ page }) => {
+  test('every row is opaque, the bands are the even rows, and a sort stacks the shortest move on top', async ({ page }) => {
     await page.goto('/embed/table-sort')
     await expect(page.locator('tbody tr')).toHaveCount(12)
+    const names = () => page.evaluate(() => [...document.querySelectorAll('tbody tr th .type-label')].map(e => e.textContent!))
+    const before = await names()
+    await page.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await expect(page.getByRole('columnheader', { name: /Level/ })).toHaveAttribute('aria-sort', 'ascending')
+    // Let the reorder and the band fade on rows that changed parity settle.
+    await page.waitForTimeout(1500)
     const r = await page.evaluate(() => {
       const rows = [...document.querySelectorAll<HTMLElement>('tbody tr')]
-      const fills = rows.map(tr => getComputedStyle(tr).backgroundColor)
-      const names = rows.map(tr => tr.querySelector('th .type-label')!.textContent!)
-      const levels = rows.map(tr => Number(getComputedStyle(tr).zIndex))
-      return { fills, names, levels, isolated: getComputedStyle(document.querySelector('tbody')!).isolation }
+      return {
+        fills: rows.map(tr => getComputedStyle(tr).backgroundColor),
+        names: rows.map(tr => tr.querySelector('th .type-label')!.textContent!),
+        levels: rows.map(tr => Number(getComputedStyle(tr).zIndex)),
+        isolated: getComputedStyle(document.querySelector('tbody')!).isolation,
+      }
     })
     for (const f of r.fills) expect(f).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/)
     expect(new Set(r.fills.filter((_, k) => k % 2 === 1)).size).toBe(1)
     expect(r.fills[1]).not.toBe(r.fills[0])
-    const byName = r.names.map((n, k) => [n, r.levels[k]!] as const).sort((a, b) => a[0].localeCompare(b[0]))
-    for (let k = 1; k < byName.length; k++) expect(byName[k]![1]).toBeLessThan(byName[k - 1]![1])
+    // The shorter a row's move, the higher it stacks.
+    const moves = r.names.map((name, i) => ({ distance: Math.abs(i - before.indexOf(name)), level: r.levels[i]! }))
+    for (const a of moves) for (const b of moves) if (a.distance < b.distance) expect(a.level).toBeGreaterThan(b.level)
     expect(r.isolated).toBe('isolate')
   })
 
