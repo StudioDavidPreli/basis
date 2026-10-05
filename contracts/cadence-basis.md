@@ -129,22 +129,24 @@ restate Cadence's durations to undo it
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
-**Rows are opaque, and the shortest move stacks on top.** The bands are
-each row's own fill and move with it (the passbook look David chose over
-still bands, 2026-10-05). A row without a band is filled with the paper, so
-a row crossing another during a reorder covers it and the text beneath
-never shows through; at rest paper over paper reads as the page. On each
-sort the rows stack by how far they travel, the shortest move on top and
-ties broken by name: the rows that barely move stay legible, and the long
-movers, too fast to read, pass beneath them. A moving row's content fades
-out as its move starts and back in as it lands, its fill staying opaque
-throughout, so no crossing can slice a row's text at another row's edge
-(David, 2026-10-05, from screenshots of a Name and an Industry sort); a row
-that does not move keeps its content. Over five real sorts this hid
-a crossing row's name 60 times against 118 for a fixed alphabetical order,
-the best of six orders measured (2026-10-05). The table body is its own
-stacking context, so these levels never compete with the sticky header or
-the drawer.
+**Rows are opaque; on a sort they rise over and fall under, in lanes.** The
+bands are each row's own fill and move with it (the passbook look David
+chose over still bands, 2026-10-05). A row without a band is filled with the
+paper, so a crossing row covers what it passes. Two references set the rest
+(2026-10-05): an F1 timing tower, where a driver gaining a place lifts and
+passes over the drivers losing it, and Scott Logic's ranking tables, where
+rising and falling rows step into separate lanes before they travel. On
+each sort a rising row steps a lane to the left and lifts to `scale.lift`, a
+falling row steps a lane to the right, and both step back as they land
+(the two rows above; the lane is Basis spacing, `--space-2`). Rows stack
+rising over still over falling, and within each group the shortest move on
+top, ties broken by name, so the rows that barely move stay legible. Text
+stays visible throughout: the fade of 2026-10-05 is withdrawn, because the
+table went blank and the moves lost their context (David). While a sort
+runs the ledger's horizontal clip is lifted so a lane is not cut at the
+edge; nothing resizes the table during a sort, which is what the clip is
+for. The table body is its own stacking context, so these levels never
+compete with the sticky header or the drawer.
 
 **The theme switch is one crossfade.** It runs as a view transition of the
 root (`document.startViewTransition`): the old page and the new one fade on
@@ -180,8 +182,8 @@ adding a row, in its own commit.
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
-| Row content fade-out as its reorder starts (text, marks, figures; the fill stays) | `fast` | `exit` | `none` |
-| Row content fade-in as it lands | `base` | `enter` | `none` |
+| Row lane step as its reorder starts (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | `none` |
+| Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
