@@ -35,6 +35,7 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
+| Row slip fill while it moves (paper over the fixed bands) | instant: on at the start of its move, off when it lands | | |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |

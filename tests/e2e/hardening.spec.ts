@@ -150,7 +150,9 @@ test.describe('the theme switch is one crossfade', () => {
         const probes: Record<string, () => string> = {
           page: () => getComputedStyle(document.body).backgroundColor,
           drawer: () => getComputedStyle(document.querySelector('dialog')!).backgroundColor,
-          band: () => getComputedStyle(document.querySelectorAll('tbody tr')[1]!).backgroundColor,
+          // The bands are the body's background (contract: "The bands stay
+          // on the page"), so the ledger's band is read there.
+          band: () => getComputedStyle(document.querySelector('tbody')!).backgroundImage,
           figure: () => getComputedStyle(document.querySelector('[aria-label^="Level for Anchor Kaze"]')!).color,
           ribbon: () => getComputedStyle(document.querySelector('path[data-series="ou-tokyo"]')!).stroke,
         }

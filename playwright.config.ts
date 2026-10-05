@@ -19,7 +19,13 @@ export default defineConfig({
     baseURL: 'http://localhost:8787',
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // David reviews in Safari. WebKit runs the motion specs whose failure
+    // would be engine-specific: the ledger's reorder, its slips over still
+    // bands, and the theme crossfade (2026-10-05).
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|bands|one crossfade/ },
+  ],
   webServer: {
     command: 'npm run preview:fixtures',
     url: 'http://localhost:8787',

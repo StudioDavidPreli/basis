@@ -276,3 +276,46 @@ test.describe('the row reorder on sort', () => {
     expect(transformed).toBe(0)
   })
 })
+
+// The bands belong to the slots (contract: "The bands stay on the page"):
+// the body paints them at measured slot positions, a sort leaves them where
+// they are, and a moving row is an opaque slip stacked by destination.
+test.describe('the bands under a sort', () => {
+  test('stay still while every moving row is an opaque slip, and the slips clear on landing', async ({ page }) => {
+    await page.goto('/embed/table-sort?preset=cinematic')
+    await expect(page.locator('tbody[data-bands]')).toHaveCount(1)
+    const r = await page.evaluate(async () => {
+      const tbody = document.querySelector('tbody')!
+      const bands = tbody.style.getPropertyValue('--bands')
+      // The stripes' edges in px. WebKit rounds a row's offsetHeight to a
+      // whole pixel, and the rounding can land a pixel differently after a
+      // reorder; a stripe that moves by more than that has moved.
+      const edges = (g: string) => [...g.matchAll(/([\d.]+)px/g)].map(m => parseFloat(m[1]!))
+      const e0 = edges(bands)
+      const header = getComputedStyle(document.querySelector('thead th')!).boxShadow
+      const btn = [...document.querySelectorAll('thead button')].find(b => b.textContent?.includes('Level'))! as HTMLButtonElement
+      let slips = 0
+      let clear = 0
+      let moved = false
+      btn.click()
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const e = edges(tbody.style.getPropertyValue('--bands'))
+        if (e.length !== e0.length || e.some((v, k) => Math.abs(v - e0[k]!) > 1)) moved = true
+        for (const tr of tbody.querySelectorAll<HTMLElement>('tr[data-moving]')) {
+          slips++
+          if (getComputedStyle(tr).backgroundImage === 'none') clear++
+        }
+      }
+      await new Promise(r => setTimeout(r, 1500))
+      return { stripes: (bands.match(/var\(--band\)/g) ?? []).length / 2, header, moved, slips, clear, left: tbody.querySelectorAll('tr[data-moving]').length }
+    })
+    expect(r.stripes).toBe(6)
+    expect(r.moved).toBe(false)
+    expect(r.slips).toBeGreaterThan(0)
+    expect(r.clear).toBe(0)
+    expect(r.left).toBe(0)
+    // The header's rule is its own, not a border shared with the first row.
+    expect(r.header).toContain('inset')
+  })
+})
