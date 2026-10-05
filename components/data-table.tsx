@@ -69,23 +69,26 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
-  // The stacking order for a sort (contracts/cadence-basis.md, "Rows are
-  // opaque, and the shortest move stacks on top"): the rows that barely
-  // move stay on top and legible, the long movers pass beneath them, ties
-  // broken by name. The order of the previous render is kept beside the
-  // current one, set while rendering from the values themselves, so the
-  // distance is known in the render that moves the rows.
+  // The stacking order and lane for a sort (contracts/cadence-basis.md,
+  // "Rows are opaque; on a sort they rise over and fall under, in lanes"):
+  // a rising row over the still rows over a falling row, and within each,
+  // the shortest move on top, ties broken by name. The order of the
+  // previous render is kept beside the current one, set while rendering
+  // from the values themselves, so each row knows in the render that moves
+  // it which way it goes and how far.
   const [orders, setOrders] = useState({ prev: order, current: order })
   if (orders.current !== order) setOrders({ prev: orders.current, current: order })
   const prevOrder = orders.current === order ? orders.prev : orders.current
-  const level = useMemo(() => {
+  const moves = useMemo(() => {
     const n = order.length
     const alpha = new Map([...rows].sort((a, b) => a.name.localeCompare(b.name)).map((r, k) => [r.id, n - k]))
     return new Map(
       order.map((id, i) => {
         const from = prevOrder.indexOf(id)
+        const dir = from < 0 || from === i ? 'still' : i < from ? 'up' : 'down'
         const distance = from < 0 ? 0 : Math.abs(i - from)
-        return [id, (n - distance) * (n + 1) + alpha.get(id)!]
+        const group = dir === 'up' ? 2 : dir === 'still' ? 1 : 0
+        return [id, { dir, level: (group * (n + 1) + (n - distance)) * (n + 1) + alpha.get(id)! }]
       }),
     )
   }, [order, prevOrder, rows])
@@ -112,11 +115,25 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
   // frames prevents it, and a hold released any earlier does not. The hold
   // is the table's own height, so nothing on screen changes. Released from
   // the value every time, so a second Strict Mode run finds nothing to undo.
+  // While a sort runs the wrapper's horizontal clip is lifted, so a row
+  // stepping into its lane is not cut at the edge: the longest stagger, the
+  // travel, and the step back, all from the tokens. The clip exists for the
+  // drawer's resize, and nothing resizes the table during a sort.
+  const unclip = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sortBy = (key: string) => {
     const el = wrap.current
-    if (el) el.style.minHeight = `${el.offsetHeight}px`
+    if (el) {
+      el.style.minHeight = `${el.offsetHeight}px`
+      el.setAttribute('data-sorting', '')
+      if (unclip.current) clearTimeout(unclip.current)
+      const span = (STAGGER_CAP - 1) * delays.short + durations.slow + durations.base
+      unclip.current = setTimeout(() => el.removeAttribute('data-sorting'), span * 1000)
+    }
     onSort(key)
   }
+  useEffect(() => () => {
+    if (unclip.current) clearTimeout(unclip.current)
+  }, [])
   useLayoutEffect(() => {
     const el = wrap.current
     if (!el || !el.style.minHeight) return
@@ -209,12 +226,12 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   // the reorder jumped.
                   layout="position"
                   layoutDependency={i}
-                  style={{ '--row-z': level.get(id) } as CSSProperties}
-                  // While its reorder runs, a row's content fades out and its
-                  // fill stays (contracts/cadence-basis.md): written straight
-                  // to the element, so a move never re-renders the ledger. A
-                  // row that does not move has no layout animation and keeps
-                  // its content.
+                  style={{ '--row-z': moves.get(id)!.level } as CSSProperties}
+                  data-dir={moves.get(id)!.dir}
+                  // While its reorder runs a row is in its lane, rising rows
+                  // lifted (contracts/cadence-basis.md): written straight to
+                  // the element, so a move never re-renders the ledger. A row
+                  // that does not move has no layout animation and no lane.
                   ref={(el: HTMLTableRowElement | null) => {
                     if (el) rowEls.current.set(id, el)
                     else rowEls.current.delete(id)

@@ -70,7 +70,6 @@
 
 .row {
   border-bottom: var(--hairline) dotted var(--rule);
-  transition: background-color var(--cadence-duration-fast) var(--cadence-ease-standard);
 }
 
 /* The passbook's rhythm: every other row on the band. A row without the
@@ -89,21 +88,39 @@
   background: var(--band);
 }
 
-/* A moving row's content fades out as its move starts and back in as it
-   lands, on the contract's two rows: out on fast / exit, in on base /
-   enter. A CSS transition runs on the target state's timing, so each rule
-   carries the timing of the direction it leads to. The cells fade, not the
-   row: the row's fill is painted under them and stays opaque, so a crossing
-   row still covers what it passes. */
-.row > td,
-.row > th {
-  transition: opacity var(--cadence-duration-base) var(--cadence-ease-enter);
+/* On a sort a rising row steps a lane to the left and lifts, a falling row
+   steps a lane to the right, and both step back as they land (contract:
+   out on fast / standard, back on base / standard). The lane and the lift
+   are the individual translate and scale properties, which compose with
+   the transform Framer writes for the travel and never touch it. A CSS
+   transition runs on the target state's timing, so each rule carries the
+   timing of the direction it leads to. */
+.row {
+  translate: 0 0;
+  scale: 1;
+  transition: background-color var(--cadence-duration-fast) var(--cadence-ease-standard),
+    translate var(--cadence-duration-base) var(--cadence-ease-standard),
+    scale var(--cadence-duration-base) var(--cadence-ease-standard);
 }
 
-.row[data-moving] > td,
-.row[data-moving] > th {
-  opacity: 0;
-  transition: opacity var(--cadence-duration-fast) var(--cadence-ease-exit);
+.row[data-moving][data-dir='up'] {
+  translate: calc(-1 * var(--space-2)) 0;
+  scale: var(--cadence-scale-lift);
+}
+
+.row[data-moving][data-dir='down'] {
+  translate: var(--space-2) 0;
+}
+
+.row[data-moving] {
+  transition: background-color var(--cadence-duration-fast) var(--cadence-ease-standard),
+    translate var(--cadence-duration-fast) var(--cadence-ease-standard),
+    scale var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+/* The clip is lifted while a sort runs, so a lane is not cut at the edge. */
+.wrap[data-sorting] {
+  overflow-x: visible;
 }
 
 /* The rows' levels compete only with each other: the body is its own

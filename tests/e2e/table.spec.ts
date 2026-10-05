@@ -302,7 +302,7 @@ test.describe('the row reorder on sort', () => {
 // stack alphabetically; the levels stay inside the body, under the header
 // and the drawer; and the sort runs at frame rate.
 test.describe('the bands and the row stack', () => {
-  test('every row is opaque, the bands are the even rows, and a sort stacks the shortest move on top', async ({ page }) => {
+  test('every row is opaque, the bands are the even rows, and a sort stacks rising over still over falling', async ({ page }) => {
     await page.goto('/embed/table-sort')
     await expect(page.locator('tbody tr')).toHaveCount(12)
     const names = () => page.evaluate(() => [...document.querySelectorAll('tbody tr th .type-label')].map(e => e.textContent!))
@@ -323,9 +323,14 @@ test.describe('the bands and the row stack', () => {
     for (const f of r.fills) expect(f).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/)
     expect(new Set(r.fills.filter((_, k) => k % 2 === 1)).size).toBe(1)
     expect(r.fills[1]).not.toBe(r.fills[0])
-    // The shorter a row's move, the higher it stacks.
-    const moves = r.names.map((name, i) => ({ distance: Math.abs(i - before.indexOf(name)), level: r.levels[i]! }))
-    for (const a of moves) for (const b of moves) if (a.distance < b.distance) expect(a.level).toBeGreaterThan(b.level)
+    // Rising over still over falling; within a direction, the shorter move higher.
+    const group = (from: number, to: number) => (to < from ? 2 : to === from ? 1 : 0)
+    const moves = r.names.map((name, i) => ({ g: group(before.indexOf(name), i), distance: Math.abs(i - before.indexOf(name)), level: r.levels[i]! }))
+    for (const a of moves)
+      for (const b of moves) {
+        if (a.g > b.g) expect(a.level).toBeGreaterThan(b.level)
+        if (a.g === b.g && a.distance < b.distance) expect(a.level).toBeGreaterThan(b.level)
+      }
     expect(r.isolated).toBe('isolate')
   })
 
@@ -370,42 +375,56 @@ test.describe('the drawer over the ledger', () => {
   })
 })
 
-// A moving row's content fades out and back in, its fill staying opaque, so
-// no crossing slices a row's text at another row's edge (contract; David's
-// screenshots of a Name and an Industry sort, 2026-10-05). The row stack
-// project runs this in WebKit too.
+// On a sort a rising row steps a lane left and lifts, a falling row steps a
+// lane right, and both step back on landing; rising rows stack over still
+// rows over falling rows; text stays (contract; the F1 timing tower and
+// Scott Logic's ranking tables, 2026-10-05). The row stack project runs this
+// in WebKit too.
 test.describe('the row stack during a move', () => {
-  test('moving rows fade their content and keep their fill; still rows keep theirs; all return on landing', async ({ page }) => {
+  test('rising rows lift into the left lane, falling rows take the right, the stack is rising over still over falling, and all return', async ({ page }) => {
     await page.goto('/embed/table-sort?preset=cinematic')
     await expect(page.locator('tbody tr')).toHaveCount(12)
     await page.waitForTimeout(500)
     const r = await page.evaluate(async () => {
       const rows = [...document.querySelectorAll<HTMLElement>('tbody tr')]
-      let faded = 0
-      let fillLost = 0
-      let sliced = 0
+      const wrap = document.querySelector('table')!.parentElement!
+      let lifted = 0
+      let rightLane = 0
+      let wrongStack = 0
+      let hidden = 0
+      let clipLifted = false
       ;([...document.querySelectorAll('thead button')].find(b => b.textContent?.trim().startsWith('Name')) as HTMLButtonElement).click()
       for (let i = 0; i < 90; i++) {
         await new Promise(r => requestAnimationFrame(r))
+        if (wrap.hasAttribute('data-sorting')) clipLifted = true
         for (const tr of rows) {
-          const op = parseFloat(getComputedStyle(tr.querySelector('th')!).opacity)
-          if (tr.hasAttribute('data-moving') && op < 0.05) faded++
-          if (/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(tr).backgroundColor)) fillLost++
-          if (op < 0.3) continue
-          const l = tr.querySelector('th .type-label')!.getBoundingClientRect()
-          const hit = (y: number) => document.elementFromPoint(l.left + 4, y)?.closest('tr') === tr
-          if (hit(l.top + 2) !== hit(l.bottom - 2)) sliced++
+          const cs = getComputedStyle(tr)
+          const moving = tr.hasAttribute('data-moving')
+          if (moving && tr.dataset['dir'] === 'up' && parseFloat(cs.scale) > 1.001 && parseFloat(cs.translate) < -0.5) lifted++
+          if (moving && tr.dataset['dir'] === 'down' && parseFloat(cs.translate) > 0.5) rightLane++
+          if (parseFloat(getComputedStyle(tr.querySelector('th')!).opacity) < 0.99) hidden++
         }
+        const z = (d: string) => rows.filter(tr => tr.dataset['dir'] === d).map(tr => Number(getComputedStyle(tr).zIndex))
+        const [up, still, down] = [z('up'), z('still'), z('down')]
+        if (up.length && still.length && Math.min(...up) < Math.max(...still)) wrongStack++
+        if (still.length && down.length && Math.min(...still) < Math.max(...down)) wrongStack++
+        if (up.length && down.length && Math.min(...up) < Math.max(...down)) wrongStack++
       }
-      await new Promise(r => setTimeout(r, 2000))
-      const after = rows.map(tr => parseFloat(getComputedStyle(tr.querySelector('th')!).opacity))
-      return { faded, fillLost, sliced, after, moving: document.querySelectorAll('tbody tr[data-moving]').length }
+      await new Promise(r => setTimeout(r, 3000))
+      const offLane = rows.filter(tr => {
+        const cs = getComputedStyle(tr)
+        return Math.abs(parseFloat(cs.translate) || 0) > 0.1 || Math.abs((parseFloat(cs.scale) || 1) - 1) > 0.001
+      }).length
+      return { lifted, rightLane, wrongStack, hidden, clipLifted, clipBack: !wrap.hasAttribute('data-sorting'), offLane, moving: document.querySelectorAll('tbody tr[data-moving]').length }
     })
-    expect(r.faded).toBeGreaterThan(0)
-    expect(r.fillLost).toBe(0)
-    // A landed row fading back in can meet a late mover for a frame or two.
-    expect(r.sliced).toBeLessThanOrEqual(3)
+    expect(r.lifted).toBeGreaterThan(0)
+    expect(r.rightLane).toBeGreaterThan(0)
+    expect(r.wrongStack).toBe(0)
+    // Text stays visible: nothing fades.
+    expect(r.hidden).toBe(0)
+    expect(r.clipLifted).toBe(true)
+    expect(r.clipBack).toBe(true)
+    expect(r.offLane).toBe(0)
     expect(r.moving).toBe(0)
-    for (const op of r.after) expect(op).toBe(1)
   })
 })
