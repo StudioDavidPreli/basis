@@ -9,20 +9,9 @@ import type { StoredSnapshot } from '@/worker/refresh'
 import { sortIds, type Sort } from './surface-state'
 import type { Row } from './data-table'
 
-// Each entity's latest mutation, for its mark's pulse. The log is newest
-// first (worker/refresh.ts prepends this run's), so the first entry an
-// entity appears in is the one, and a run that changed nothing for it
-// leaves its key alone and its mark still.
-export function pulseKeys(snapshot: StoredSnapshot | null): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const m of snapshot?.mutations ?? []) if (!(m.entity in out)) out[m.entity] = m.at
-  return out
-}
-
 export function entityRows(datasetId: string, snapshot: StoredSnapshot | null): Row[] {
   const dataset = config.datasets[datasetId]!
   const entities = dataset.entities === 'companies' ? config.companies : config.regions
-  const pulses = pulseKeys(snapshot)
   return entities.map(e => {
     const snap = snapshot?.entities[e.id]
     const cells: Record<string, FigureValue | string | undefined> = {}
@@ -30,7 +19,7 @@ export function entityRows(datasetId: string, snapshot: StoredSnapshot | null): 
       if (col.derive === 'field') cells[col.key] = (e as unknown as Record<string, string>)[col.field!]
       else cells[col.key] = snap?.metrics[col.key]
     }
-    return { id: e.id, name: entityName(e.id), href: entityHref(e.id), colors: { light: e.color, dark: e.colorDark }, marker: e.marker, pulseKey: pulses[e.id] ?? null, cells }
+    return { id: e.id, name: entityName(e.id), href: entityHref(e.id), colors: { light: e.color, dark: e.colorDark }, marker: e.marker, cells }
   })
 }
 

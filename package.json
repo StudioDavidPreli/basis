@@ -9,7 +9,9 @@
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
+    "predev": "node scripts/rive-wasm.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/rive-wasm.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . && eslint -c eslint/css.config.mjs \"**/*.css\"",
@@ -24,6 +26,7 @@
     "test:live": "vitest run -c vitest.live.config.ts"
   },
   "dependencies": {
+    "@rive-app/react-canvas": "^4.36.0",
     "cadence-tokens": "^2.0.1",
     "d3-array": "^3.2.4",
     "d3-scale": "^4.0.2",

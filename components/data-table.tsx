@@ -30,8 +30,6 @@ export type Row = {
   href: string // the row's own page; a client navigation opens the drawer
   colors: { light: string; dark: string }
   marker: string
-  // This entity's latest mutation `at`, or null: the mark pulses on it.
-  pulseKey: string | null
   cells: Record<string, FigureValue | string | undefined>
 }
 
@@ -282,12 +280,12 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                             router.back()
                           }}
                         >
-                          <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
+                          <CompanyLogo entityId={row.id} />
                           <span className="type-label">{row.name}</span>
                         </Link>
                       ) : (
                         <span className={styles.nameLink}>
-                          <CompanyLogo entityId={row.id} pulseKey={row.pulseKey} />
+                          <CompanyLogo entityId={row.id} />
                           <span className="type-label">{row.name}</span>
                         </span>
                       )}

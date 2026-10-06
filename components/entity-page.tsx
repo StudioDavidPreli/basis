@@ -8,7 +8,7 @@ import Link from 'next/link'
 import type { EntityDetail } from '@/lib/entity-detail'
 import type { AgentPhase } from '@/worker/refresh'
 import { EntityDetailBody } from './entity-detail-body'
-import { CompanyLogo } from './company-logo'
+import { CompanyLogo, LOGO_SIZE } from './company-logo'
 import { useNow } from './use-now'
 import styles from './entity-page.module.css'
 
@@ -28,7 +28,7 @@ export function EntityPage({ detail, renderedAt, phase }: Props) {
           {detail.kind === 'company' ? 'Company' : 'Region'} · {detail.datasetLabel}
         </p>
         <h1 className={`${styles.title} type-figure-lg`}>
-          <CompanyLogo entityId={detail.id} pulseKey={detail.mutations[0]?.at ?? null} />
+          <CompanyLogo entityId={detail.id} size={LOGO_SIZE.heading} />
           {detail.name}
         </h1>
       </header>

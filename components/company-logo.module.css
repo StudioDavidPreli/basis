@@ -1,8 +1,50 @@
-/* Not in the layout: the Marker inside is the flex child its call sites have
-   always laid out, so the wrapper can carry the view model's values without
-   moving anything. When the artboard lands this becomes a real box with the
-   canvas's own size, and that is the commit that changes the layout. */
-
-.logo {
+/* A region, or a company with no art yet: the Marker, and the wrapper is not
+   in the layout at all, so the svg is the flex child its call sites have
+   always laid out. */
+.marker {
   display: contents;
+}
+
+/* A company with art: one square box that the poster and the canvas share,
+   its size set inline by the call site. The canvas lies over the poster and
+   shows only once it has drawn; until then, under reduced motion, and if the
+   file fails, the poster is what is there. */
+.logo {
+  position: relative;
+  display: inline-block;
+  flex: none;
+}
+
+.logo > img,
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The theme's poster, by the attribute the inline script sets before first
+   paint, not by the theme hook, which reads its server value until hydrated. */
+.posterDark {
+  display: none;
+}
+
+:global(:root[data-theme='operate']) .posterLight {
+  display: none;
+}
+
+:global(:root[data-theme='operate']) .posterDark {
+  display: block;
+}
+
+.canvas {
+  visibility: hidden;
+}
+
+.logo[data-logo='animated'] > img {
+  visibility: hidden;
+}
+
+.logo[data-logo='animated'] .canvas {
+  visibility: visible;
 }

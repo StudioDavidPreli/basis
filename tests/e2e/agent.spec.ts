@@ -43,23 +43,4 @@ test.describe('the agent mark, one phase at a time', () => {
     await page.goto('/embed/agent?phase=nonsense')
     await expect(page.getByRole('img', { name: 'Agent idle' })).toBeVisible()
   })
-
-  // The third acceptance clause, and the only one that needs the artboards.
-  // It is not a check that six phases look different: it is the check that
-  // the zero advance is deterministic — play, advance by 0, stopRendering,
-  // landing every instance on the same authored pose rather than wherever the
-  // last tick fell under load (contracts/agent-presence.md). Against the text
-  // fallback two runs are identical for free, so this would pass today
-  // without testing anything. Unskip it in the .riv session, with the
-  // artboard behind the mark.
-  test.fixme('every phase holds one pose under reduced motion', async ({ page }) => {
-    for (const phase of Object.keys(PHASES)) {
-      await page.goto(`/embed/agent?phase=${phase}&reduce=1`)
-      const mark = page.locator('[data-phase][role="img"]')
-      const first = await mark.screenshot()
-      await page.reload()
-      const second = await mark.screenshot()
-      expect(second.equals(first), `${phase} rested on two different frames`).toBe(true)
-    }
-  })
 })

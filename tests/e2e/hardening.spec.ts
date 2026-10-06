@@ -92,6 +92,10 @@ test.describe('a tick does not render React per frame', () => {
     })
     await page.goto('/')
     await hydrated(page)
+    // The logos load once, after first paint, and commit as they do: the
+    // runtime, the file, the theme's instance, the first draw. Settled
+    // before the window opens, so what it counts is the tick's alone.
+    for (const logo of await page.locator('[data-riv]').all()) await expect(logo).toHaveAttribute('data-logo', 'animated', { timeout: 15_000 })
     const figure = page.getByRole('button', { name: /^Level for Anchor Kaze/ }).locator('span').first()
     const before = await figure.textContent()
 

@@ -11,3 +11,4 @@ playwright-report/
 .dev.vars
 cloudflare-env.d.ts
 archive/
+public/rive/rive.wasm

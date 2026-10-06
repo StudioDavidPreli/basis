@@ -134,26 +134,22 @@ test.describe('the ledger', () => {
     await expect(page.getByRole('columnheader', { name: /Level/ })).toHaveAttribute('aria-sort', 'ascending')
   })
 
-  // M7: the name cell's mark is a CompanyLogo now, and until the artboards
-  // land it is the same Marker it has drawn since M2, wrapped in a
-  // display:contents span that is not in the layout. Ids are generated, so
-  // this asks the page what they are rather than naming one.
-  test('the name cell mark is decorative, and a region has no artboard', async ({ page }) => {
+  // The name cell's mark (contracts/agent-presence.md, "Company logos"): a
+  // company with art draws it in a square box; a company without, and every
+  // region, keep the Marker in a wrapper that is not in the layout. Either
+  // way the mark is hidden and the row's name is the entity's, once.
+  test('the name cell mark is decorative; art where it has landed, the Marker elsewhere', async ({ page }) => {
     await page.goto('/')
-    const mark = page.getByRole('rowheader').first().locator('[data-entity]')
-    await expect(mark).toHaveAttribute('aria-hidden', 'true')
-    await expect(mark).toHaveAttribute('data-artboard', 'true')
-    await expect(mark).toHaveAttribute('data-entity', /.+/)
-    await expect(mark.locator('svg')).toHaveCount(1)
-    // display: contents — the svg, not the wrapper, is the link's flex child,
-    // which is why nothing moved when the wrapper arrived.
-    expect(await mark.evaluate(el => getComputedStyle(el).display)).toBe('contents')
-    // The row's accessible name is still the entity's, once: the mark is
-    // hidden and adds nothing to it.
+    const logo = page.getByRole('rowheader', { name: /Anchor Kaze/ }).locator('[data-entity]')
+    await expect(logo).toHaveAttribute('aria-hidden', 'true')
+    await expect(logo).toHaveAttribute('data-artboard', 'ou-tokyo')
+    expect(await logo.evaluate(el => [el.clientWidth, el.clientHeight])).toEqual([20, 20])
     await expect(page.getByRole('rowheader', { name: /Anchor Kaze/ })).toHaveCount(1)
 
-    // logos.riv holds one artboard per company. A region is in no artboard's
-    // scope and keeps its Marker for good.
+    const bare = page.locator('[data-entity]:not([data-artboard])').first()
+    await expect(bare.locator('svg')).toHaveCount(1)
+    expect(await bare.evaluate(el => getComputedStyle(el).display)).toBe('contents')
+
     await page.getByRole('button', { name: 'Regions' }).click()
     await expect(page.locator('tbody tr')).toHaveCount(8)
     const regionMark = page.getByRole('rowheader').first().locator('[data-entity]')

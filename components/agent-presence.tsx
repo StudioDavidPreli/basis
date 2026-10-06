@@ -16,10 +16,11 @@ import styles from './agent-presence.module.css'
 // the label, and the fallback — the text mark this component was lifted out of
 // chart-hero.tsx to become, moved without changing a pixel of it.
 //
-// Two of the view model's four properties are read rather than passed, so no
-// call site can disagree with itself: `reduced` from useMotionTokens(), and
-// `theme`, because a canvas cannot read CSS variables and has to be told which
-// palette to bind. `progress` is coarse and therefore a function of `phase`.
+// Reduced motion and the theme are read rather than passed, so no call site
+// can disagree with itself. Neither is a view-model value: under reduced
+// motion the canvas will never mount and the mark is a poster, and the theme
+// picks an instance, `lightMode` or `darkMode` (contracts/agent-presence.md).
+// `progress` is coarse and therefore a function of `phase`.
 
 export const PHASE_LABEL: Record<AgentPhase, string> = {
   idle: 'Agent idle',
