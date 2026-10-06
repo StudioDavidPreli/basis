@@ -281,12 +281,12 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                           }}
                         >
                           <CompanyLogo entityId={row.id} />
-                          <span className="type-label">{row.name}</span>
+                          <span className={`${styles.nameLabel} type-label`}>{row.name}</span>
                         </Link>
                       ) : (
                         <span className={styles.nameLink}>
                           <CompanyLogo entityId={row.id} />
-                          <span className="type-label">{row.name}</span>
+                          <span className={`${styles.nameLabel} type-label`}>{row.name}</span>
                         </span>
                       )}
                       <span className={styles.leader} aria-hidden="true" />

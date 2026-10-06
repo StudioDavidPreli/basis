@@ -149,6 +149,9 @@ test.describe('the ledger', () => {
     const bare = page.locator('[data-entity]:not([data-artboard])').first()
     await expect(bare.locator('svg')).toHaveCount(1)
     expect(await bare.evaluate(el => getComputedStyle(el).display)).toBe('contents')
+    // A logo row is as tall as a Marker row, so the bands stay even.
+    const height = (name: RegExp) => page.locator('tbody tr', { has: page.getByRole('rowheader', { name }) }).evaluate(r => r.getBoundingClientRect().height)
+    expect(Math.abs((await height(/Anchor Kaze/)) - (await height(/Plumb Varsha/)))).toBeLessThan(1)
 
     await page.getByRole('button', { name: 'Regions' }).click()
     await expect(page.locator('tbody tr')).toHaveCount(8)

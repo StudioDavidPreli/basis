@@ -13,6 +13,10 @@
   position: relative;
   display: inline-block;
   flex: none;
+  /* 20 px in a 13 px label's line: the box gives back 2 px above and below,
+     so a logo row is as tall as a Marker row and the mark reaches into the
+     cell's padding instead. */
+  margin-block: -2px;
 }
 
 .logo > img,
