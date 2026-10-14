@@ -88,8 +88,8 @@ Every suite but `test:live` runs on recorded fixtures. Decisions are in `decisio
 
 ## 07 · Limitations
 
-- Two of the twelve logos have landed, Anchor Kaze and Keel London; the other ten, and the agent mark, are placeholders until their artboards do. Under reduced motion a logo is a still poster and the page loads no Rive at all.
+- The agent mark is still its text fallback: the twelve company logos are on Rive, but the presence artboard has not been drawn. Under reduced motion every logo is a still poster and the page loads no Rive at all.
 - The data refreshes hourly, inside the KV free tier's thousand writes a day.
 - The last thirty days of tide data are NOAA's preliminary record, shaded provisional.
 - The chart draws at most 500 points per series at 5Y and Max; the diagnostics use every point.
-- Mobile Lighthouse performance is 92 on PageSpeed Insights.
+- Mobile Lighthouse performance was 92 on PageSpeed Insights on 2026-09-28, before the Rive runtime and the twelve logos landed; it has not been measured since.
