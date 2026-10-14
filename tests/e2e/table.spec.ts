@@ -134,30 +134,31 @@ test.describe('the ledger', () => {
     await expect(page.getByRole('columnheader', { name: /Level/ })).toHaveAttribute('aria-sort', 'ascending')
   })
 
-  // The name cell's mark (contracts/agent-presence.md, "Company logos"): a
-  // company with art draws it in a square box; a company without, and every
-  // region, keep the Marker in a wrapper that is not in the layout. Either
-  // way the mark is hidden and the row's name is the entity's, once.
-  test('the name cell mark is decorative; art where it has landed, the Marker elsewhere', async ({ page }) => {
+  // The name cell's mark (contracts/agent-presence.md, "Company logos"): the
+  // Marker, for every company and every region, hidden, with the row's name
+  // the entity's once. The art is the drawer's: open a row and the logo box
+  // sits above the heading, while the heading keeps its Marker.
+  test('the name cell keeps the Marker; the art is the drawer\'s', async ({ page }) => {
     await page.goto('/')
-    const logo = page.getByRole('rowheader', { name: /Anchor Kaze/ }).locator('[data-entity]')
-    await expect(logo).toHaveAttribute('aria-hidden', 'true')
-    await expect(logo).toHaveAttribute('data-artboard', 'ou-tokyo')
-    expect(await logo.evaluate(el => [el.clientWidth, el.clientHeight])).toEqual([20, 20])
-    await expect(page.getByRole('rowheader', { name: /Anchor Kaze/ })).toHaveCount(1)
-
-    const bare = page.locator('[data-entity]:not([data-artboard])').first()
-    await expect(bare.locator('svg')).toHaveCount(1)
-    expect(await bare.evaluate(el => getComputedStyle(el).display)).toBe('contents')
-    // A logo row is as tall as a Marker row, so the bands stay even.
+    const cell = page.getByRole('rowheader', { name: /Anchor Kaze/ })
+    await expect(cell).toHaveCount(1)
+    await expect(cell.locator('svg')).toHaveCount(1)
+    await expect(cell.locator('[data-artboard]')).toHaveCount(0)
+    await expect(cell.locator('svg')).toHaveAttribute('aria-hidden', 'true')
+    // Every row is a Marker row, so the bands stay even.
     const height = (name: RegExp) => page.locator('tbody tr', { has: page.getByRole('rowheader', { name }) }).evaluate(r => r.getBoundingClientRect().height)
     expect(Math.abs((await height(/Anchor Kaze/)) - (await height(/Plumb Varsha/)))).toBeLessThan(1)
 
+    await cell.getByRole('link').click()
+    const logo = page.locator('dialog [data-artboard="ou-tokyo"]')
+    await expect(logo).toHaveAttribute('aria-hidden', 'true')
+    await expect(page.locator('dialog [data-drawer-heading] svg')).toHaveCount(1)
+    await page.goBack()
+
     await page.getByRole('button', { name: 'Regions' }).click()
     await expect(page.locator('tbody tr')).toHaveCount(8)
-    const regionMark = page.getByRole('rowheader').first().locator('[data-entity]')
-    await expect(regionMark.locator('svg')).toHaveCount(1)
-    expect(await regionMark.getAttribute('data-artboard')).toBeNull()
+    await expect(page.getByRole('rowheader').first().locator('svg')).toHaveCount(1)
+    await expect(page.locator('tbody [data-artboard]')).toHaveCount(0)
   })
 
   test('switching dataset shows the eight regions', async ({ page }) => {

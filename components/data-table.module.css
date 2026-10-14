@@ -186,13 +186,6 @@
   text-decoration: none;
 }
 
-/* The row's baseline is the name's, not the mark's. A logo box has no text,
-   so as the first flex item it would hand the link its bottom edge as a
-   baseline and drop the row by a few pixels against a Marker row. */
-.nameLabel {
-  align-self: baseline;
-}
-
 .nameLink:hover {
   text-decoration: underline;
   text-underline-offset: 3px;

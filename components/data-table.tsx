@@ -20,8 +20,7 @@ import { useMotionTokens } from '@/lib/motion/tokens'
 import type { AgentPhase } from '@/worker/refresh'
 import type { Range, Sort } from './surface-state'
 import { Figure } from './figure'
-import { CompanyLogo } from './company-logo'
-import { entityStyle } from './marker'
+import { Marker, entityStyle } from './marker'
 import styles from './data-table.module.css'
 
 export type Row = {
@@ -280,13 +279,13 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                             router.back()
                           }}
                         >
-                          <CompanyLogo entityId={row.id} />
-                          <span className={`${styles.nameLabel} type-label`}>{row.name}</span>
+                          <Marker shape={row.marker} colors={row.colors} />
+                          <span className="type-label">{row.name}</span>
                         </Link>
                       ) : (
                         <span className={styles.nameLink}>
-                          <CompanyLogo entityId={row.id} />
-                          <span className={`${styles.nameLabel} type-label`}>{row.name}</span>
+                          <Marker shape={row.marker} colors={row.colors} />
+                          <span className="type-label">{row.name}</span>
                         </span>
                       )}
                       <span className={styles.leader} aria-hidden="true" />

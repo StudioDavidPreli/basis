@@ -14,6 +14,8 @@ import type { EntityDetail } from '@/lib/entity-detail'
 import type { AgentPhase } from '@/worker/refresh'
 import { EntityDetailBody } from './entity-detail-body'
 import { Marker } from './marker'
+import { CompanyLogo, LOGO_SIZE } from './company-logo'
+import { logoArt } from '@/lib/logos'
 import { CloseIcon, IconButton } from './icon-button'
 import { ScrambleText, resetScrambleStores } from './scramble-text'
 import { DRAWER_HEADING_ID, DRAWER_SCRAMBLE_KEY, rowLinkSelector } from './drawer-shell'
@@ -59,6 +61,7 @@ export function Drawer({ detail, renderedAt, phase }: Props) {
             <CloseIcon />
           </IconButton>
         </div>
+        {logoArt(detail.id) && <CompanyLogo entityId={detail.id} size={LOGO_SIZE.drawer} />}
         <h2 id={DRAWER_HEADING_ID} ref={heading} tabIndex={-1} className={`${styles.title} type-figure-lg`} data-drawer-heading>
           <Marker shape={detail.marker} colors={detail.colors} />
           <ScrambleText persistKey={`${key}:name`} text={detail.name} />

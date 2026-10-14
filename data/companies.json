@@ -658,9 +658,9 @@
       "industry": "Grain trading",
       "founded": 1921,
       "activity": "buys wheat and rye across Brandenburg and sells it forward",
-      "color": "#577121",
+      "color": "#634628",
       "marker": "circle",
-      "colorDark": "#91c91d"
+      "colorDark": "#fcbc7b"
     },
     {
       "id": "jump-seoul",
@@ -684,9 +684,9 @@
       "industry": "Heat-pump manufacturing",
       "founded": 1979,
       "activity": "makes heat pumps and rooftop chillers for apartment towers",
-      "color": "#227735",
+      "color": "#766e7a",
       "marker": "square",
-      "colorDark": "#1dc943"
+      "colorDark": "#868686"
     },
     {
       "id": "jump-johannesburg",
@@ -710,9 +710,9 @@
       "industry": "Gold mining",
       "founded": 1893,
       "activity": "works deep shafts on the Witwatersrand",
-      "color": "#24727d",
+      "color": "#7c5500",
       "marker": "triangle",
-      "colorDark": "#1db4c9"
+      "colorDark": "#d79700"
     },
     {
       "id": "jump-dubai",
@@ -736,9 +736,9 @@
       "industry": "Desalination",
       "founded": 1998,
       "activity": "turns Gulf seawater into a third of the city's supply",
-      "color": "#1713ec",
+      "color": "#0278b6",
       "marker": "diamond",
-      "colorDark": "#7270db"
+      "colorDark": "#3da7ed"
     }
   ],
   "regions": [

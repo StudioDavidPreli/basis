@@ -29,7 +29,7 @@ const CompanyLogoRive = dynamic(() => import('./company-logo-rive'), { ssr: fals
 
 // Sizes in px, the box the canvas and the poster share. Decided in the build
 // session (docs/logos.md, rule 4): the ledger row and the entity heading.
-export const LOGO_SIZE = { row: 20, heading: 32 } as const
+export const LOGO_SIZE = { drawer: 500, heading: 32 } as const
 
 // true only after hydration. Through hydration the reduced-motion flag still
 // reads its server value, false, and mounting the canvas on that would start
@@ -48,7 +48,7 @@ type Props = {
   size?: number
 }
 
-export function CompanyLogo({ entityId, size = LOGO_SIZE.row }: Props) {
+export function CompanyLogo({ entityId, size = LOGO_SIZE.drawer }: Props) {
   const { reducedMotion } = useMotionTokens()
   const theme = useTheme()
   const hydrated = useHydrated()
@@ -81,7 +81,7 @@ export function CompanyLogo({ entityId, size = LOGO_SIZE.row }: Props) {
       data-artboard={art.artboard}
       data-riv={riv ?? undefined}
       data-logo={animate && state === 'painted' ? 'animated' : 'poster'}
-      style={{ width: size, height: size }}
+      style={{ width: size }}
     >
       {/* Plain <img>: a two-ink SVG has nothing for an image optimiser to do,
           and next/image would need a loader on Workers to do nothing. */}

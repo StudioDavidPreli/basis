@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readdirSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from './config'
 import { companyName } from './describe'
@@ -40,6 +40,20 @@ describe('the delivered art matches public/', () => {
   it('animations', () => {
     const expected = [...ANIMATED].map(id => logoArt(id)!.riv!.replace('/rive/', ''))
     expect(files('rive').filter(f => f.endsWith('.riv')).sort()).toEqual(expected.sort())
+  })
+
+  // A poster is a still of the artboard, not of the drawing: the same
+  // 500×500 frame the .riv is authored on, with the art where the artboard
+  // has it. A poster scaled to its own bounds draws larger or smaller than
+  // the canvas and the swap is a visible cut (2026-10-08, Keel London, a
+  // quarter larger). This holds the frame; the e2e logos spec holds the
+  // drawing by comparing drawn bounds against the canvas.
+  it('every poster is on the 500×500 artboard frame', () => {
+    for (const f of files('fallbacks').filter(f => f.endsWith('.svg'))) {
+      const svg = readFileSync(join(PUBLIC, 'fallbacks', f), 'utf8')
+      const viewBox = /viewBox="([^"]*)"/.exec(svg)?.[1]?.trim().split(/[\s,]+/).map(Number)
+      expect(viewBox, f).toEqual([0, 0, 500, 500])
+    }
   })
 
   it('a region, and a company with nothing delivered, have no art', () => {
