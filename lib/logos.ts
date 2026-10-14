@@ -24,7 +24,7 @@ export function logoKey(name: string): string {
 // is the reduced-motion mark, the placeholder and the load-failure fallback.
 // lib/logos.test.ts holds both lists against public/ in both directions.
 export const POSTERS: ReadonlySet<string> = new Set(['ou-tokyo', 'ou-london', 'ou-mumbai', 'drift-bogota', 'drift-lagos', 'drift-sydney', 'seasonal-toronto', 'seasonal-santiago', 'seasonal-berlin', 'jump-seoul', 'jump-johannesburg', 'jump-dubai'])
-export const ANIMATED: ReadonlySet<string> = new Set(['ou-tokyo', 'ou-london', 'ou-mumbai', 'drift-bogota', 'drift-lagos', 'drift-sydney', 'seasonal-toronto', 'seasonal-santiago', 'seasonal-berlin', 'jump-seoul', 'jump-johannesburg'])
+export const ANIMATED: ReadonlySet<string> = new Set(['ou-tokyo', 'ou-london', 'ou-mumbai', 'drift-bogota', 'drift-lagos', 'drift-sydney', 'seasonal-toronto', 'seasonal-santiago', 'seasonal-berlin', 'jump-seoul', 'jump-johannesburg', 'jump-dubai'])
 
 // The names inside every logo file (contracts/agent-presence.md).
 export const LOGO_STATE_MACHINE = 'logoSM'
