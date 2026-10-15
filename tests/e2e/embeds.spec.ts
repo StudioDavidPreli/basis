@@ -38,7 +38,7 @@ test.describe('who may frame Basis', () => {
     expect(sheet.headers()['x-frame-options']).toBe('DENY')
     for (const path of EMBEDS) {
       const res = await request.get(path)
-      expect(res.headers()['content-security-policy'], path).toBe("frame-ancestors 'self' https://cadence.davidpreli.com")
+      expect(res.headers()['content-security-policy'], path).toBe("frame-ancestors 'self' https://cadence.davidpreli.com http://localhost:8787")
       expect(res.headers()['x-frame-options'], path).toBeUndefined()
     }
   })

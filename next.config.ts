@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
   // by nobody. frame-ancestors is the rule browsers follow; X-Frame-Options
   // is the older header, which cannot name an origin, so only the
   // never-framed routes carry it.
+  // localhost:8787 is Cadence's built-output preview, where its e2e suite
+  // and pre-push gate run; without it the In Practice frame is blank before
+  // deploy. A visitor's own 8787 gains nothing the embed does not already
+  // show (docs/handoffs/2026-10-14-in-practice-embeds-handoff.md).
   async headers() {
     return [
       {
@@ -35,7 +39,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/embed/:path*',
-        headers: [{ key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://cadence.davidpreli.com" }],
+        headers: [{ key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://cadence.davidpreli.com http://localhost:8787" }],
       },
     ]
   },
