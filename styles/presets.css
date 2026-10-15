@@ -49,6 +49,17 @@
   }
 }
 
+:root[data-reduce-motion='0'][data-preset='standard'] {
+  --cadence-duration-fast: 100ms;
+  --cadence-duration-base: 200ms;
+  --cadence-duration-slow: 400ms;
+  --cadence-duration-slower: 600ms;
+  --cadence-delay-none: 0ms;
+  --cadence-delay-short: 50ms;
+  --cadence-delay-medium: 100ms;
+  --cadence-delay-long: 200ms;
+}
+
 /* ── snappy ── */
 :root[data-preset='snappy'] {
   --cadence-duration-fast: 60ms;
@@ -97,6 +108,17 @@
   }
 }
 
+:root[data-reduce-motion='0'][data-preset='snappy'] {
+  --cadence-duration-fast: 60ms;
+  --cadence-duration-base: 120ms;
+  --cadence-duration-slow: 200ms;
+  --cadence-duration-slower: 350ms;
+  --cadence-delay-none: 0ms;
+  --cadence-delay-short: 20ms;
+  --cadence-delay-medium: 40ms;
+  --cadence-delay-long: 80ms;
+}
+
 /* ── cinematic ── */
 :root[data-preset='cinematic'] {
   --cadence-duration-fast: 200ms;
@@ -143,4 +165,15 @@
     --cadence-delay-medium: 0ms;
     --cadence-delay-long: 0ms;
   }
+}
+
+:root[data-reduce-motion='0'][data-preset='cinematic'] {
+  --cadence-duration-fast: 200ms;
+  --cadence-duration-base: 500ms;
+  --cadence-duration-slow: 900ms;
+  --cadence-duration-slower: 1400ms;
+  --cadence-delay-none: 0ms;
+  --cadence-delay-short: 100ms;
+  --cadence-delay-medium: 200ms;
+  --cadence-delay-long: 400ms;
 }

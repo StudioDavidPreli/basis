@@ -11,6 +11,21 @@ describe('styles/presets.css', () => {
   it('scopes every preset, its reduced-motion block included, and leaves no bare :root', () => {
     const css: string = generate()
     for (const id of PRESETS as string[]) expect(css.split(`:root[data-preset='${id}']`).length - 1).toBe(2)
-    expect(css.replace(/:root\[data-preset='[a-z]+'\]/g, '')).not.toContain(':root')
+    expect(css.replace(/:root(\[data-reduce-motion='0'\])?\[data-preset='[a-z]+'\]/g, '')).not.toContain(':root')
+  })
+
+  it('restates each preset\'s own timing for a framed embed asked for motion, and nothing else', () => {
+    const css: string = generate()
+    for (const id of PRESETS as string[]) {
+      const sel = `:root[data-reduce-motion='0'][data-preset='${id}'] {`
+      const block = css.slice(css.indexOf(sel), css.indexOf('}', css.indexOf(sel)))
+      const authored = css.slice(css.indexOf(`:root[data-preset='${id}'] {`))
+      for (const name of ['duration-fast', 'duration-base', 'duration-slow', 'duration-slower', 'delay-none', 'delay-short', 'delay-medium', 'delay-long']) {
+        const line = authored.match(new RegExp(`--cadence-${name}: [^;]+;`))![0]
+        expect(block, `${id} ${name}`).toContain(line)
+      }
+      expect(block).not.toMatch(/--cadence-(ease|scale|spring|duration-scalar)/)
+      expect(block).not.toContain('10ms')
+    }
   })
 })

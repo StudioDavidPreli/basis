@@ -90,6 +90,56 @@ test.describe('inside a frame, theme, reduced motion and preset are honored', ()
   })
 })
 
+// decisions/2026-10-14-reduce-0-on-the-embeds.md: Cadence frames an embed
+// reduced, asks the visitor, and reloads it with ?reduce=0. Under the system
+// preference that parameter has to win, in the attribute, in the CSS timing
+// the package's media block would flatten, and in the rows that run on it.
+// The sheet still never overrides the system toward motion.
+test.describe('a framed embed asked for motion, under the system preference', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+  })
+
+  for (const [query, preset, base] of [
+    ['?reduce=0', 'standard', 200],
+    ['?reduce=0&preset=cinematic', 'cinematic', 500],
+  ] as const) {
+    test(`/embed/table-sort${query} runs ${preset} timing, down to the rows`, async ({ page }) => {
+      const frame = await host(page, `/embed/table-sort${query}`)
+      const html = frame.locator('html')
+      await expect(html).toHaveAttribute('data-reduce-motion', '0')
+      await expect(html).toHaveAttribute('data-preset', preset)
+      for (const [name, value] of [['--cadence-duration-base', base], ['--cadence-delay-none', 0]] as const) {
+        const t = await html.evaluate((e, n) => getComputedStyle(e).getPropertyValue(n).trim(), name)
+        expect(ms(t), name).toBeCloseTo(value)
+      }
+      // The sort is CSS: a row's own transition reads the restated value,
+      // not the media block's 10ms. (The table shows markers, not logos, so
+      // there is no Rive here to check.)
+      const durations = await frame.locator('tbody tr').first().evaluate(e => getComputedStyle(e).transitionDuration)
+      expect(durations.split(', ').map(ms)).toContain(base)
+    })
+  }
+
+  test('without the parameter the embed stays reduced, and the sheet ignores it', async ({ page }) => {
+    const frame = await host(page, '/embed/table-sort')
+    await expect(frame.locator('html')).toHaveAttribute('data-reduce-motion', '1')
+    expect(ms(await frame.locator('html').evaluate(e => getComputedStyle(e).getPropertyValue('--cadence-duration-base').trim()))).toBeCloseTo(10)
+    await page.goto('/?reduce=0')
+    await expect(page.locator('html')).toHaveAttribute('data-reduce-motion', '1')
+    await expect(page.locator('html')).not.toHaveAttribute('data-preset')
+    expect(ms(await page.locator('html').evaluate(e => getComputedStyle(e).getPropertyValue('--cadence-duration-base').trim()))).toBeCloseTo(10)
+  })
+
+  test('?reduce=0 is never stored', async ({ page }) => {
+    let frame = await host(page, '/embed/table-sort?reduce=0')
+    await expect(frame.locator('html')).toHaveAttribute('data-reduce-motion', '0')
+    frame = await host(page, '/embed/table-sort')
+    await expect(frame.locator('html')).toHaveAttribute('data-reduce-motion', '1')
+    expect(await frame.locator('html').evaluate(() => localStorage.getItem('basis-reduce'))).toBeNull()
+  })
+})
+
 test.describe('the table-sort embed', () => {
   test('sorts by keyboard inside the frame, names are text, and a figure’s provenance link is the adapter’s request', async ({ page }) => {
     const frame = await host(page, '/embed/table-sort')
