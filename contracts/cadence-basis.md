@@ -178,6 +178,22 @@ refresh arrow) is removed under `[data-reduce-motion='1']` and holds a
 still pose; its state is carried by what does not move (the tint, the
 disabled button, `aria-busy`). David, 2026-09-28.
 
+## The In Practice stage
+
+`/embed/in-practice` is the stage Cadence's In Practice page frames: the
+chart over the ledger, simplified (David, 2026-10-15,
+`decisions/2026-10-15-the-in-practice-stage.md`). Four companies' Level
+over one year, no controls, above the comps ledger. It takes the embeds'
+`?preset=`, `?theme=` and `?reduce=` and their `frame-ancestors` header
+unchanged, and it adds no interaction, so no row below: the lines draw in on
+load (chart line draw-in), a row and its line light together both ways (row
+hover / line hover), the ledger sorts as on the sheet (reorder, lane step).
+Sort and selection never touch the lines. It reads no Worker and runs no
+refresh: its figures are a committed copy of a live snapshot, read at the
+moment that snapshot was written, which the stage states. From 560 to
+880 px wide it is 820 px tall, and Cadence sizes its frame to that. A
+provenance panel that would lengthen the document opens above its figure.
+
 ## Token assignment for Basis interactions
 
 Every interaction is named here with its token pair. Adding an interaction means
