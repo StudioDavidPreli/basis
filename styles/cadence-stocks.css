@@ -1,0 +1,66 @@
+/* Cadence's four themes as embed-only stocks (decisions/2026-10-14-cadence-
+   stocks-on-the-embeds.md). Values mirror data/companies.json
+   `cadenceStocks`, restated from Cadence's src/tokens/color.css at 57b5e4f;
+   styles/paper.test.ts fails if the two drift. The inline script sets these
+   only on a framed /embed/*, so the sheet never sees them.
+
+   Color roles only. The entity inks, markers and logos stay Basis's: light
+   themes take the passbook inks and art, dark the operate ones. Cadence's
+   surfaces are flat, so no grain. `:root` in the selector so these outrank
+   the :root grain in paper.css whatever the import order. */
+
+:root[data-theme='cadence-light'] {
+  color-scheme: light;
+  --paper: #f5f5f5;
+  --band: #ebebeb;
+  --ink: #1a1a1a;
+  --muted: #666666;
+  --rule: #e2e2e2;
+  --accent: #5a4fcf;
+  --grain: none;
+}
+
+:root[data-theme='cadence-dark'] {
+  color-scheme: dark;
+  --paper: #141414;
+  --band: #1a1a1a;
+  --ink: #e1e1e1;
+  --muted: #909090;
+  --rule: #2e2e2e;
+  --accent: #76c17d;
+  --grain: none;
+}
+
+/* High contrast: Cadence's borders are full black or white, so solid and
+   dotted hairlines keep them. The pinstripes alone take the paper and
+   vanish (David, 2026-10-14). */
+:root[data-theme='cadence-hc-light'] {
+  color-scheme: light;
+  --paper: #ffffff;
+  --band: #f0f0f0;
+  --ink: #000000;
+  --muted: #000000;
+  --rule: #000000;
+  --accent: #855a0d;
+  --grain: none;
+  --pinstripe-ink: var(--paper);
+}
+
+:root[data-theme='cadence-hc-dark'] {
+  color-scheme: dark;
+  --paper: #000000;
+  --band: #0f0f0f;
+  --ink: #ffffff;
+  --muted: #ffffff;
+  --rule: #ffffff;
+  --accent: #aaccf6;
+  --grain: none;
+  --pinstripe-ink: var(--paper);
+}
+
+/* The dark themes take each entity's dark ink, as operate does
+   (styles/paper.css, "An entity's fixed color"). */
+[data-theme='cadence-dark'] .entity,
+[data-theme='cadence-hc-dark'] .entity {
+  --entity-color: var(--entity-dark);
+}

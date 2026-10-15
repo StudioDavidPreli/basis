@@ -137,6 +137,17 @@
   background: color-mix(in srgb, var(--band) 85%, var(--rule));
 }
 
+/* On the Cadence HC stocks the rule is black or white, and mixing it into
+   the band made the tint heavy (one marker fell under 3:1). There the hover
+   is the band itself and a rule outline, Cadence's own HC hover idiom
+   (David, 2026-10-14). */
+:global(:root[data-theme^='cadence-hc']) .row[data-hover],
+:global(:root[data-theme^='cadence-hc']) .row:hover {
+  background: var(--band);
+  outline: var(--hairline) solid var(--rule);
+  outline-offset: calc(var(--hairline) * -1);
+}
+
 .row[data-selected] .name {
   color: var(--ink);
 }
@@ -198,7 +209,7 @@
   flex: 1;
   height: 1px;
   min-width: var(--space-4);
-  background-image: radial-gradient(circle, var(--rule) 0.6px, transparent 0.9px);
+  background-image: radial-gradient(circle, var(--pinstripe-ink, var(--rule)) 0.6px, transparent 0.9px);
   background-size: 4px 1px;
   background-repeat: repeat-x;
   background-position: 0 50%;

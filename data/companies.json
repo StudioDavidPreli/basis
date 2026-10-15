@@ -925,5 +925,52 @@
       "rule": "#3d5245",
       "accent": "#9cc2ff"
     }
+  },
+  "cadenceStocks": {
+    "_source": "Restated from Cadence src/tokens/color.css at commit 57b5e4f (decisions/2026-10-14-cadence-stocks-on-the-embeds.md). Roles: paper --color-bg, band --color-bg2, ink --color-text-base, muted --color-text-muted, rule --color-border, accent --color-accent. Re-copy when Cadence changes them.",
+    "cadence-light": {
+      "title": "Cadence Light",
+      "tone": "light",
+      "cadenceTheme": "light",
+      "paper": "#f5f5f5",
+      "band": "#ebebeb",
+      "ink": "#1a1a1a",
+      "muted": "#666666",
+      "rule": "#e2e2e2",
+      "accent": "#5a4fcf"
+    },
+    "cadence-dark": {
+      "title": "Cadence Dark",
+      "tone": "dark",
+      "cadenceTheme": "dark",
+      "paper": "#141414",
+      "band": "#1a1a1a",
+      "ink": "#e1e1e1",
+      "muted": "#909090",
+      "rule": "#2e2e2e",
+      "accent": "#76c17d"
+    },
+    "cadence-hc-light": {
+      "title": "Cadence High Contrast Light",
+      "tone": "light",
+      "cadenceTheme": "high-contrast-light",
+      "paper": "#ffffff",
+      "band": "#f0f0f0",
+      "ink": "#000000",
+      "muted": "#000000",
+      "rule": "#000000",
+      "accent": "#855a0d"
+    },
+    "cadence-hc-dark": {
+      "title": "Cadence High Contrast Dark",
+      "tone": "dark",
+      "cadenceTheme": "high-contrast-dark",
+      "paper": "#000000",
+      "band": "#0f0f0f",
+      "ink": "#ffffff",
+      "muted": "#ffffff",
+      "rule": "#ffffff",
+      "accent": "#aaccf6"
+    }
   }
 }

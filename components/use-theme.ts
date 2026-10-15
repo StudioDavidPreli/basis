@@ -1,7 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { THEMES, THEME_KEY, type Theme } from '@/app/theme-script'
+import { CADENCE_DARK, THEMES, THEME_KEY, type Theme } from '@/app/theme-script'
 
 // The theme is the `data-theme` attribute the inline script set, read as an
 // external store: the same pattern as the reduced-motion flag in
@@ -21,7 +21,10 @@ function subscribe(onChange: () => void) {
 
 function getSnapshot(): Theme {
   const t = document.documentElement.getAttribute('data-theme')
-  return t === 'operate' ? 'operate' : 'passbook'
+  // The Cadence stocks map to the art they wear: dark ones to operate's
+  // logos and Rive instance, light ones to passbook's. Explicit, so a new
+  // stock cannot fall through to passbook unnoticed.
+  return t === 'operate' || CADENCE_DARK.includes(t ?? '') ? 'operate' : 'passbook'
 }
 
 function getServerSnapshot(): Theme {

@@ -3,6 +3,7 @@
    supplies motion only (cadence.css, imported in layout.tsx). */
 
 @import '../styles/paper.css';
+@import '../styles/cadence-stocks.css';
 @import '../styles/type.css';
 
 :root {

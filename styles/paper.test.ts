@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { config } from '@/lib/config'
+import { config, type CadenceStock } from '@/lib/config'
+import { CADENCE_DARK, CADENCE_THEMES } from '@/app/theme-script'
 
 // The visual language's numbers, pinned. The stocks live in the config (so
 // the chart and the drawer can read them) and are mirrored in paper.css (so
@@ -118,6 +119,72 @@ describe('entity colors', () => {
       for (const b of cs.slice(i + 1)) {
         expect(distance(a.color, b.color), `${a.id} / ${b.id} on passbook`).toBeGreaterThanOrEqual(0.06)
         expect(distance(a.colorDark, b.colorDark), `${a.id} / ${b.id} on operate`).toBeGreaterThanOrEqual(0.06)
+      }
+    }
+  })
+})
+
+// decisions/2026-10-14-cadence-stocks-on-the-embeds.md: Cadence's four themes
+// as embed-only stocks. Mirrored like the Basis stocks, held to the same bars,
+// and the entity inks, which do not change, checked on the new papers.
+describe('the Cadence stocks', () => {
+  const cadenceCss = readFileSync(path.resolve(__dirname, 'cadence-stocks.css'), 'utf8')
+  const cadence = Object.entries(config.cadenceStocks).filter(([k]) => !k.startsWith('_')) as [string, CadenceStock][]
+  const ROLES = ['paper', 'band', 'ink', 'muted', 'rule', 'accent'] as const
+
+  it('are the four Cadence themes, each titled, and the source commit is named', () => {
+    expect(cadence.map(([k]) => k)).toEqual([...CADENCE_THEMES])
+    expect(cadence.map(([, s]) => s.cadenceTheme)).toEqual(['light', 'dark', 'high-contrast-light', 'high-contrast-dark'])
+    for (const [k, s] of cadence) expect(s.title, k).toMatch(/^Cadence /)
+    expect(config.cadenceStocks._source).toContain('57b5e4f')
+  })
+
+  it('cadence-stocks.css mirrors the config, with no grain, and the tone sets the color scheme', () => {
+    for (const [name, s] of cadence) {
+      const block = cadenceCss.slice(cadenceCss.indexOf(`:root[data-theme='${name}'] {`))
+      const body = block.slice(0, block.indexOf('}'))
+      for (const role of ROLES) expect(body, `${name} ${role}`).toContain(`--${role}: ${s[role]};`)
+      expect(body, name).toContain('--grain: none;')
+      expect(body, name).toContain(`color-scheme: ${s.tone};`)
+      expect(body.includes('--pinstripe-ink: var(--paper);'), `${name} pinstripes`).toBe(name.includes('-hc-'))
+    }
+  })
+
+  it('the dark tones are exactly the stocks that take dark inks and operate art', () => {
+    expect(cadence.filter(([, s]) => s.tone === 'dark').map(([k]) => k)).toEqual([...CADENCE_DARK])
+    for (const name of CADENCE_DARK) expect(cadenceCss).toContain(`[data-theme='${name}'] .entity`)
+  })
+
+  it('text and accent clear the same bars as the Basis stocks, accent as text too', () => {
+    for (const [name, s] of cadence) {
+      for (const ground of ['paper', 'band'] as const) {
+        expect(contrast(s.ink, s[ground]), `${name} ink on ${ground}`).toBeGreaterThanOrEqual(7)
+        expect(contrast(s.muted, s[ground]), `${name} muted on ${ground}`).toBeGreaterThanOrEqual(4.5)
+        // Accent is text in the fresh-ink effect (components/figure.module.css).
+        expect(contrast(s.accent, s[ground]), `${name} accent on ${ground}`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('the row hover clears AA: the mixed tint, or on HC the band itself', () => {
+    const weight = Number(tableCss.match(/color-mix\(in srgb, var\(--band\) (\d+)%, var\(--rule\)\)/)![1]) / 100
+    expect(tableCss).toMatch(/data-theme\^='cadence-hc'\]\) \.row:hover \{\s*background: var\(--band\);/)
+    for (const [name, s] of cadence) {
+      const hover = name.includes('-hc-') ? s.band : mix(s.band, s.rule, weight)
+      expect(contrast(s.muted, hover), `${name} muted on hover ${hover}`).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(s.ink, hover), `${name} ink on hover ${hover}`).toBeGreaterThanOrEqual(7)
+    }
+  })
+
+  it('every entity ink, unchanged, clears 3:1 on each Cadence paper, band and hover', () => {
+    const weight = Number(tableCss.match(/color-mix\(in srgb, var\(--band\) (\d+)%, var\(--rule\)\)/)![1]) / 100
+    for (const e of [...config.companies, ...config.regions]) {
+      for (const [name, s] of cadence) {
+        const ink = s.tone === 'dark' ? e.colorDark : e.color
+        const hover = name.includes('-hc-') ? s.band : mix(s.band, s.rule, weight)
+        for (const [ground, hex] of [['paper', s.paper], ['band', s.band], ['hover', hover]] as const) {
+          expect(contrast(ink, hex), `${e.id} on ${name} ${ground}`).toBeGreaterThanOrEqual(3)
+        }
       }
     }
   })

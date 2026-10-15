@@ -59,6 +59,12 @@ export type RegionConfig = EntityStyle & {
 
 export type Stock = { paper: string; band: string; ink: string; muted: string; rule: string; accent: string }
 
+// Cadence's four themes restated as stocks for a framed /embed/* only
+// (decisions/2026-10-14-cadence-stocks-on-the-embeds.md). `tone` picks the
+// company inks and the logo art: light themes take `color` and passbook art,
+// dark take `colorDark` and operate art.
+export type CadenceStock = Stock & { title: string; tone: 'light' | 'dark'; cadenceTheme: string }
+
 export type ColumnConfig = {
   key: string
   label: string
@@ -84,6 +90,7 @@ export type Config = {
   regions: RegionConfig[]
   about: { company: string; region: string }
   stocks: Record<string, Stock>
+  cadenceStocks: { _source: string } & Record<string, CadenceStock | string>
 }
 
 const FAMILIES: ProcessFamily[] = ['ou', 'drift', 'seasonal', 'jump']

@@ -140,6 +140,36 @@ test.describe('a framed embed asked for motion, under the system preference', ()
   })
 })
 
+// decisions/2026-10-14-cadence-stocks-on-the-embeds.md: framed in Cadence,
+// the embed wears Cadence's colors; unframed, or on the sheet, it does not.
+const cadenceStocks = JSON.parse(readFileSync(path.resolve(process.cwd(), 'data/companies.json'), 'utf8')).cadenceStocks as Record<string, { paper: string; ink: string; tone: string }>
+const rgb = (hex: string) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`
+
+test.describe('the Cadence stocks, framed only', () => {
+  for (const [name, stock] of Object.entries(cadenceStocks).filter(([k]) => !k.startsWith('_'))) {
+    test(`${name}: paints Cadence's paper and ink, flat, axe clean, nothing stored`, async ({ page }) => {
+      const frame = await host(page, `/embed/table-sort?theme=${name}`)
+      const html = frame.locator('html')
+      await expect(html).toHaveAttribute('data-theme', name)
+      const body = frame.locator('body')
+      await expect(body).toHaveCSS('background-color', rgb(stock.paper))
+      await expect(body).toHaveCSS('color', rgb(stock.ink))
+      await expect(body).toHaveCSS('background-image', 'none')
+      expect(await html.evaluate(e => getComputedStyle(e).colorScheme)).toBe(stock.tone)
+      expect(await html.evaluate(() => localStorage.getItem('basis-theme'))).toBeNull()
+      const results = await new AxeBuilder({ page }).include('iframe').analyze()
+      expect(results.violations).toEqual([])
+    })
+  }
+
+  test('unframed, the embed ignores ?theme=cadence-*; the sheet ignores it', async ({ page }) => {
+    await page.goto('/embed/table-sort?theme=cadence-dark')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', /^(passbook|operate)$/)
+    await page.goto('/?theme=cadence-dark')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', /^(passbook|operate)$/)
+  })
+})
+
 test.describe('the table-sort embed', () => {
   test('sorts by keyboard inside the frame, names are text, and a figure’s provenance link is the adapter’s request', async ({ page }) => {
     const frame = await host(page, '/embed/table-sort')

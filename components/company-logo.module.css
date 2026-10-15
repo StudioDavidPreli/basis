@@ -33,11 +33,15 @@
   display: none;
 }
 
-:global(:root[data-theme='operate']) .posterLight {
+:global(:root[data-theme='operate']) .posterLight,
+:global(:root[data-theme='cadence-dark']) .posterLight,
+:global(:root[data-theme='cadence-hc-dark']) .posterLight {
   display: none;
 }
 
-:global(:root[data-theme='operate']) .posterDark {
+:global(:root[data-theme='operate']) .posterDark,
+:global(:root[data-theme='cadence-dark']) .posterDark,
+:global(:root[data-theme='cadence-hc-dark']) .posterDark {
   display: block;
 }
 
