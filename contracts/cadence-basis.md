@@ -227,6 +227,7 @@ adding a row, in its own commit.
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
+| Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 
@@ -262,6 +263,12 @@ Progress runs through `standard` before it is compared to any character's
 onset or settle moment, so the churn ramps in, settles mostly in the
 middle, and the last characters resolve in a tail rather than at once.
 Under reduced motion both flatten and the text simply changes.
+
+The welcome dialog (`decisions/2026-10-15-a-welcome-on-landing.md`) enters
+and exits as the command palette does, on `transitions.enter` /
+`transitions.exit`, and its backdrop is there for as long as the element is
+open, with no fade of its own. The Basis title inside it holds its own
+timing, as the logos do.
 
 The drawer's scroll cue (`decisions/2026-10-15-drawer-scroll-cue.md`)
 stands in for the drawer's hidden scrollbar: a ↓ that bounces vertically

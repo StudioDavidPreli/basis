@@ -52,6 +52,7 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
+| Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 <!-- token-table:end -->
