@@ -218,6 +218,26 @@ test.describe('under next dev, with Strict Mode', () => {
     expect(errors).toEqual([])
   })
 
+  // The drawer's scroll cue decides from the scroll container's numbers on
+  // every run of its effect; a decision kept from the first run would be
+  // torn down by Strict Mode's cleanup and leave the cue dark or stuck.
+  test('the drawer scroll cue shows on open, clears at the bottom, and returns', async ({ page }) => {
+    await warm(page)
+    await page.goto('/')
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    const dialog = page.getByRole('dialog', { name: /Anchor Kaze/ })
+    await expect(dialog).toBeVisible()
+    const cue = dialog.locator('[data-drawer-scroll-cue]')
+    await expect(cue).toHaveAttribute('data-more', 'true')
+    await dialog.evaluate(el => el.scrollTo({ top: el.scrollHeight }))
+    await expect(cue).not.toHaveAttribute('data-more')
+    await dialog.evaluate(el => el.scrollTo({ top: 0 }))
+    await expect(cue).toHaveAttribute('data-more', 'true')
+    // An entity switch keeps the cue live on the new content.
+    await page.getByRole('link', { name: /Keel London/ }).click()
+    await expect(page.getByRole('dialog', { name: /Keel London/ }).locator('[data-drawer-scroll-cue]')).toHaveAttribute('data-more', 'true')
+  })
+
   // M9: hydration in every theme × reduced-motion combination. Production
   // reports a mismatch as a minified error number; development names it.
   for (const theme of ['passbook', 'operate'] as const) {

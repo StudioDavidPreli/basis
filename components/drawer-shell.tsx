@@ -28,6 +28,7 @@ import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { useRouter, useSelectedLayoutSegments } from 'next/navigation'
 import { animate } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
+import { DrawerScrollCue } from './drawer-scroll-cue'
 import styles from './drawer.module.css'
 
 export const DRAWER_HEADING_ID = 'drawer-heading'
@@ -97,6 +98,7 @@ export function DrawerShell({ children }: { children: ReactNode }) {
       }}
     >
       <div className={styles.panel}>{children}</div>
+      <DrawerScrollCue />
     </dialog>
   )
 }

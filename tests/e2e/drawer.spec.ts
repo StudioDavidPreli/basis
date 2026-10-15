@@ -265,3 +265,74 @@ test.describe('the full page', () => {
     expect((await request.get('/company/brooklyn')).status()).toBe(404)
   })
 })
+
+// The drawer's scrollbar is hidden and a bouncing ↓ stands in for it
+// (decisions/2026-10-15-drawer-scroll-cue.md; contract, "Drawer scroll cue").
+test.describe('the drawer scroll cue', () => {
+  async function openDrawer(page: Page) {
+    await page.goto('/')
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    const dialog = page.getByRole('dialog', { name: /Anchor Kaze/ })
+    await expect(dialog).toBeVisible()
+    // The open spring has settled when the inline width is cleared.
+    await expect.poll(() => dialog.evaluate(el => (el as HTMLElement).style.width)).toBe('')
+    return dialog
+  }
+
+  test('shows while there is more below, clears at the bottom, and returns on the way up', async ({ page }) => {
+    const dialog = await openDrawer(page)
+    const cue = dialog.locator('[data-drawer-scroll-cue]')
+    await expect(cue).toHaveAttribute('aria-hidden', 'true')
+    await expect(cue).toHaveAttribute('data-more', 'true')
+    // No bar takes width: the scrollport is the box less its left hairline.
+    const gutter = await dialog.evaluate(el => {
+      const border = parseFloat(getComputedStyle(el).borderLeftWidth)
+      return el.getBoundingClientRect().width - border - el.clientWidth
+    })
+    expect(gutter).toBeLessThan(1)
+    // The cue adds nothing to the scroll length.
+    expect(await cue.evaluate(el => el.getBoundingClientRect().height)).toBe(0)
+    await expect(cue.locator('span').first()).toHaveCSS('opacity', '1')
+
+    await dialog.evaluate(el => el.scrollTo({ top: el.scrollHeight }))
+    await expect(cue).not.toHaveAttribute('data-more')
+    await expect(cue.locator('span').first()).toHaveCSS('opacity', '0')
+    await expect(cue.locator('span').first()).toHaveCSS('pointer-events', 'none')
+
+    await dialog.evaluate(el => el.scrollTo({ top: 0 }))
+    await expect(cue).toHaveAttribute('data-more', 'true')
+  })
+
+  test('the keys scroll the drawer with the bar hidden', async ({ page }) => {
+    const dialog = await openDrawer(page)
+    await page.keyboard.press('PageDown')
+    await expect.poll(() => dialog.evaluate(el => el.scrollTop)).toBeGreaterThan(0)
+  })
+
+  test('bounces, stills under a hovering pointer, and holds still under reduced motion', async ({ page }) => {
+    const dialog = await openDrawer(page)
+    const pad = dialog.locator('[data-drawer-scroll-cue] > span')
+    const arrow = pad.locator('span')
+    // CSS Modules scopes the keyframes' name.
+    await expect(arrow).toHaveCSS('animation-name', /scroll-cue-bounce$/)
+    await expect(arrow).toHaveCSS('animation-play-state', 'running')
+    await pad.hover()
+    await expect(arrow).toHaveCSS('animation-play-state', 'paused')
+    await expect(pad).not.toHaveCSS('scale', 'none')
+
+    // A hard load of the company URL is the full page, not the drawer, so
+    // the sheet is loaded again and the drawer opened from it.
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    const still = await openDrawer(page)
+    await expect(page.locator('html')).toHaveAttribute('data-reduce-motion', '1')
+    await expect(still.locator('[data-drawer-scroll-cue]')).toHaveAttribute('data-more', 'true')
+    await expect(still.locator('[data-drawer-scroll-cue] > span > span')).toHaveCSS('animation-name', 'none')
+  })
+
+  test('axe is clean with the cue up', async ({ page }) => {
+    const dialog = await openDrawer(page)
+    await expect(dialog.locator('[data-drawer-scroll-cue]')).toHaveAttribute('data-more', 'true')
+    const results = await new AxeBuilder({ page }).analyze()
+    expect(results.violations).toEqual([])
+  })
+})

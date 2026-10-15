@@ -28,7 +28,12 @@
   color: var(--ink);
   overflow-x: clip; /* clip: nothing may scroll the panel into view while the width runs */
   overflow-y: auto;
+  scrollbar-width: none; /* the scroll cue stands in for the bar (below) */
   z-index: 3; /* above the sticky table header */
+}
+
+.drawer::-webkit-scrollbar {
+  display: none;
 }
 
 .panel {
@@ -63,6 +68,78 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* The scroll cue (drawer-scroll-cue.tsx;
+   decisions/2026-10-15-drawer-scroll-cue.md): a ↓ on a pad of the paper,
+   translucent and blurred so the text it floats over reads as texture, held
+   at the bottom centre of the drawer's view. The holder is sticky with no
+   height, so it adds nothing to the scroll length. Only the pad takes the
+   pointer, and only while it shows. */
+.scrollCue {
+  position: sticky;
+  bottom: 0;
+  width: var(--drawer-w);
+  height: 0;
+  pointer-events: none;
+}
+
+.scrollPad {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-4);
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  backdrop-filter: blur(var(--space-1));
+  color: var(--muted);
+  opacity: 0;
+  transition:
+    opacity var(--cadence-duration-base) var(--cadence-ease-standard),
+    scale var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+.scrollArrow {
+  line-height: 1;
+}
+
+.scrollCue[data-more] .scrollPad {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Vertical only, down and back, while there is more below. */
+.scrollCue[data-more] .scrollArrow {
+  animation: scroll-cue-bounce var(--cadence-duration-slower) var(--cadence-ease-standard) infinite alternate;
+}
+
+@keyframes scroll-cue-bounce {
+  from {
+    translate: 0 calc(var(--space-1) * -0.5);
+  }
+  to {
+    translate: 0 calc(var(--space-1) * 0.5);
+  }
+}
+
+/* A hovering pointer stills the bounce where it is and lifts the pad. */
+@media (hover: hover) and (pointer: fine) {
+  .scrollCue[data-more] .scrollPad:hover {
+    scale: var(--cadence-scale-lift);
+  }
+
+  .scrollCue[data-more] .scrollPad:hover .scrollArrow {
+    animation-play-state: paused;
+  }
+}
+
+/* Loops do not run under reduced motion; the arrow holds still. */
+[data-reduce-motion='1'] .scrollCue[data-more] .scrollArrow {
+  animation: none;
 }
 
 @media (max-width: 900px) {

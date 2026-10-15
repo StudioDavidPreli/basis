@@ -47,6 +47,9 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
+| Drawer scroll cue bounce (while there is more below) | `slower`, looped, alternating | `standard` | `none` |
+| Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
+| Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
