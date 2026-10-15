@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { config, type CadenceStock } from '@/lib/config'
 import { CADENCE_DARK, CADENCE_THEMES } from '@/app/theme-script'
+import { CHARTED } from '@/app/embed/in-practice/charted'
 
 // The visual language's numbers, pinned. The stocks live in the config (so
 // the chart and the drawer can read them) and are mirrored in paper.css (so
@@ -36,6 +37,30 @@ function oklab(hex: string): [number, number, number] {
     0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
   ]
 }
+// The same space from linear RGB, with a colour-vision simulation applied
+// first: Machado, Oliveira and Fernandes (2009), severity 1.
+type Matrix = [number, number, number][]
+const VISION: Record<string, Matrix> = {
+  typical: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+  deuteranopia: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.01182, 0.04294, 0.968881]],
+  protanopia: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+}
+function seen(hex: string, m: Matrix): [number, number, number] {
+  const v = [1, 3, 5].map(i => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  const [r, g, b] = m.map(row => Math.max(0, row[0] * v[0]! + row[1] * v[1]! + row[2] * v[2]!)) as [number, number, number]
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+  const mm = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  return [
+    0.2104542553 * l + 0.793617785 * mm - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * mm + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * mm - 0.808675766 * s,
+  ]
+}
+
 function distance(a: string, b: string): number {
   const [p, q] = [oklab(a), oklab(b)]
   return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
@@ -184,6 +209,30 @@ describe('the Cadence stocks', () => {
         const hover = name.includes('-hc-') ? s.band : mix(s.band, s.rule, weight)
         for (const [ground, hex] of [['paper', s.paper], ['band', s.band], ['hover', hover]] as const) {
           expect(contrast(ink, hex), `${e.id} on ${name} ${ground}`).toBeGreaterThanOrEqual(3)
+        }
+      }
+    }
+  })
+})
+
+// decisions/2026-10-15-the-in-practice-stage.md: the stage charts four lines
+// alone, with no selection to tell them apart, so its four inks are held to
+// more than the ledger's floor: 0.08 apart in OKLab with typical vision and
+// under deuteranopia and protanopia, light inks and dark. Johannesburg and
+// Santiago beside Tokyo fell to 0.012 under deuteranopia (David, 2026-10-15).
+describe('the In Practice stage', () => {
+  it('charts four companies whose inks stay 0.08 apart, under each colour vision', () => {
+    const four = CHARTED.map(id => config.companies.find(c => c.id === id)!)
+    expect(four.every(Boolean)).toBe(true)
+    expect(new Set(four.map(c => c.process.family)).size).toBe(4)
+    for (const ink of ['color', 'colorDark'] as const) {
+      for (const [vision, m] of Object.entries(VISION)) {
+        for (const [i, a] of four.entries()) {
+          for (const b of four.slice(i + 1)) {
+            const [p, q] = [seen(a[ink], m), seen(b[ink], m)]
+            const d = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
+            expect(d, `${a.id} / ${b.id}, ${ink}, ${vision}`).toBeGreaterThanOrEqual(0.08)
+          }
         }
       }
     }

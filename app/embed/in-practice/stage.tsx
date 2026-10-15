@@ -15,16 +15,15 @@ import { Marker } from '@/components/marker'
 import { entityRows, rowOrder } from '@/components/rows'
 import { initialState, reduce, type Range } from '@/components/surface-state'
 import { TimeSeriesChart, type ChartRow, type Readout } from '@/components/time-series-chart'
+import { CHARTED } from './charted'
 import styles from './stage.module.css'
 
 // The sheet's chart over the sheet's ledger, simplified (David, 2026-10-15):
-// four companies, one per corner of the generators' range, their Level over
-// one year, no controls. A row and its line light together both ways; the
+// four companies (./charted.ts), their Level over one year, no controls. A row and its line light together both ways; the
 // sort and the selection are the ledger's own and never touch the lines.
 const DATASET = 'comps'
 const METRIC = 'level'
 const RANGE: Range = '1Y'
-const CHARTED = ['ou-tokyo', 'jump-dubai', 'jump-johannesburg', 'seasonal-santiago']
 
 // The snapshot's own moment, as "15 Oct 2026, 14:00 UTC".
 function stamp(iso: string): string {
