@@ -203,7 +203,7 @@ const STAGE_HEIGHT = 820
 
 test.describe('the in-practice stage', () => {
   for (const width of [560, 880]) {
-    test(`in-practice frame at ${width} px is ${STAGE_HEIGHT} px tall, no inner scroll, the legend on one line`, async ({ page }) => {
+    test(`in-practice frame at ${width} px is ${STAGE_HEIGHT} px tall, no inner scroll`, async ({ page }) => {
       const frame = await host(page, '/embed/in-practice', 'http://localhost:8787', [width, STAGE_HEIGHT])
       await expect(frame.locator('[data-series]')).toHaveCount(4)
       const doc = await frame.locator('html').evaluate(e => ({ h: e.scrollHeight, w: e.scrollWidth, main: document.querySelector('main')!.getBoundingClientRect().height }))
@@ -213,8 +213,6 @@ test.describe('the in-practice stage', () => {
       expect(plot.height).toBeGreaterThanOrEqual(176)
       const last = await frame.locator('tbody tr').last().evaluate(r => r.getBoundingClientRect().bottom)
       expect(last).toBeLessThanOrEqual(STAGE_HEIGHT)
-      const tops = await frame.locator('header li').evaluateAll(lis => new Set(lis.map(li => Math.round(li.getBoundingClientRect().top))).size)
-      expect(tops).toBe(1)
       // The bottom row's provenance opens above it rather than scrolling the frame.
       await frame.getByRole('button', { name: /^Level for Ember Shamal/ }).click()
       await expect(frame.getByRole('dialog', { name: 'Provenance' })).toBeVisible()

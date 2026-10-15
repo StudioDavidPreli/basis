@@ -11,7 +11,6 @@ import type { SeriesSnapshot } from '@/lib/types'
 import type { StoredSnapshot } from '@/worker/refresh'
 import { DataTable } from '@/components/data-table'
 import { LiveRegion, useAnnouncer } from '@/components/live-region'
-import { Marker } from '@/components/marker'
 import { entityRows, rowOrder } from '@/components/rows'
 import { initialState, reduce, type Range } from '@/components/surface-state'
 import { TimeSeriesChart, type ChartRow, type Readout } from '@/components/time-series-chart'
@@ -19,8 +18,10 @@ import { CHARTED } from './charted'
 import styles from './stage.module.css'
 
 // The sheet's chart over the sheet's ledger, simplified (David, 2026-10-15):
-// four companies (./charted.ts), their Level over one year, no controls. A row and its line light together both ways; the
-// sort and the selection are the ledger's own and never touch the lines.
+// four companies (./charted.ts), their Level over one year, no controls and
+// no legend: the endpoint markers and the ledger's rows name the lines. A row
+// and its line light together both ways; the sort and the selection are the
+// ledger's own and never touch the lines.
 const DATASET = 'comps'
 const METRIC = 'level'
 const RANGE: Range = '1Y'
@@ -104,19 +105,9 @@ export function InPracticeStage({ snapshot, series }: { snapshot: StoredSnapshot
       <h1 className="sr-only">
         {column.label} over one year for four companies, above the {ds.label} ledger
       </h1>
-      <header className={styles.head}>
-        <ul className={styles.legend} aria-label="Charted">
-          {charted.map(r => (
-            <li key={r.id} className={`${styles.legendItem} type-label`} data-hover={state.hoveredId === r.id || undefined} onMouseEnter={() => onHover(r.id)} onMouseLeave={() => onHover(null)}>
-              <Marker shape={r.marker} colors={r.colors} />
-              {r.name}
-            </li>
-          ))}
-        </ul>
-        <p className={`${styles.caption} type-micro`}>
-          {column.label}, one year · snapshot of {stamp(snapshot.at)}
-        </p>
-      </header>
+      <p className={`${styles.caption} type-micro`}>
+        {column.label}, one year · snapshot of {stamp(snapshot.at)}
+      </p>
       <div className={styles.chart}>
         <TimeSeriesChart
           rows={chartRows}

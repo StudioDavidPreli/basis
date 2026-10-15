@@ -216,25 +216,30 @@ describe('the Cadence stocks', () => {
 })
 
 // decisions/2026-10-15-the-in-practice-stage.md: the stage charts four lines
-// alone, with no selection to tell them apart, so its four inks are held to
-// more than the ledger's floor: 0.08 apart in OKLab with typical vision and
-// under deuteranopia and protanopia, light inks and dark. Johannesburg and
-// Santiago beside Tokyo fell to 0.012 under deuteranopia (David, 2026-10-15).
+// alone, with no selection to tell them apart, so its four inks are held
+// above the ledger's floor: 0.08 apart in OKLab with typical vision, light
+// inks and dark, and 0.04 under deuteranopia and protanopia, where the
+// markers carry the rest. David's first four (Johannesburg and Santiago
+// beside Tokyo) fell to 0.012 under deuteranopia; the chosen four's closest
+// pair, Anchor Kaze and Plumb Varsha, holds 0.045 (David, 2026-10-15).
+const STAGE_FLOOR: Record<string, number> = { typical: 0.08, deuteranopia: 0.04, protanopia: 0.04 }
+
 describe('the In Practice stage', () => {
-  it('charts four companies whose inks stay 0.08 apart, under each colour vision', () => {
+  it('charts four companies whose inks stay apart under each colour vision', () => {
     const four = CHARTED.map(id => config.companies.find(c => c.id === id)!)
     expect(four.every(Boolean)).toBe(true)
-    expect(new Set(four.map(c => c.process.family)).size).toBe(4)
     for (const ink of ['color', 'colorDark'] as const) {
       for (const [vision, m] of Object.entries(VISION)) {
         for (const [i, a] of four.entries()) {
           for (const b of four.slice(i + 1)) {
             const [p, q] = [seen(a[ink], m), seen(b[ink], m)]
             const d = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
-            expect(d, `${a.id} / ${b.id}, ${ink}, ${vision}`).toBeGreaterThanOrEqual(0.08)
+            expect(d, `${a.id} / ${b.id}, ${ink}, ${vision}`).toBeGreaterThanOrEqual(STAGE_FLOOR[vision]!)
           }
         }
       }
     }
+    // A marker apiece, so no line rests on its ink alone.
+    expect(new Set(four.map(c => c.marker)).size).toBe(4)
   })
 })
