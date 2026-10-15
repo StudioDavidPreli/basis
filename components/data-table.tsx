@@ -56,13 +56,16 @@ type Props = {
   // False in the table-sort embed: a name there is text, because following
   // it would load the full company page inside the host's frame.
   links?: boolean
+  // True on the In Practice stage: the selection is the chart's four and
+  // fixed, so every checkbox shows it and none can change it.
+  locked?: boolean
 }
 
 const SPARK = { width: 64, height: 18 }
 
 const STAGGER_CAP = 8
 
-export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true }: Props) {
+export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true, locked = false }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
@@ -157,8 +160,9 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                 ref={headerBox}
                 type="checkbox"
                 checked={all}
+                disabled={locked}
                 onChange={() => (all || some ? onClear() : onSelectAll())}
-                aria-label={all || some ? 'Deselect all rows' : 'Select all rows'}
+                aria-label={locked ? 'Charted rows, fixed' : all || some ? 'Deselect all rows' : 'Select all rows'}
               />
             </th>
             <th scope="col" className={`${styles.name} type-label`} aria-sort={sort?.key === 'name' ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
@@ -250,6 +254,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                     <input
                       type="checkbox"
                       checked={selected}
+                      disabled={locked}
                       aria-label={`Chart ${row.name}`}
                       onClick={e => onToggle(id, e.shiftKey)}
                       onChange={() => {}}

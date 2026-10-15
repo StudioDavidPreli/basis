@@ -240,11 +240,20 @@ test.describe('the in-practice stage', () => {
     expect(await frame.locator('[data-status]').count()).toBeGreaterThan(0)
     await expect(frame.locator('[data-status="stale"]')).toHaveCount(0)
     await expect(frame.getByText(/snapshot of \d{1,2} \w{3} \d{4}, \d{2}:\d{2} UTC/)).toBeVisible()
-    // Sort moves rows, never lines.
+    // The charted four are selected and locked; every box is disabled.
+    const charted = ['Anchor Kaze', 'Ember Shamal', 'Windward Sydney', 'Plumb Varsha']
+    const boxes = frame.getByRole('checkbox')
+    await expect(boxes).toHaveCount(13)
+    for (const box of await boxes.all()) await expect(box).toBeDisabled()
+    for (const name of charted) await expect(frame.getByRole('checkbox', { name: `Chart ${name}` })).toBeChecked()
+    await expect(frame.locator('tbody input[type="checkbox"]:checked')).toHaveCount(4)
+    await frame.getByRole('checkbox', { name: 'Chart Keel London' }).click({ force: true })
+    await expect(frame.getByRole('checkbox', { name: 'Chart Keel London' })).not.toBeChecked()
+    // Sort moves rows, never lines, and the four stay selected wherever they land.
     const lines = await frame.locator('[data-series]').evaluateAll(ps => ps.map(p => p.getAttribute('d')))
     await frame.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
-    await frame.getByRole('checkbox').nth(3).check()
     expect(await frame.locator('[data-series]').evaluateAll(ps => ps.map(p => p.getAttribute('d')))).toEqual(lines)
+    await expect(frame.locator('tbody tr[data-selected]')).toHaveCount(4)
     // Row to line.
     await frame.locator('tbody tr', { hasText: 'Ember Shamal' }).hover()
     await expect(frame.locator('[data-series="jump-dubai"]')).toHaveAttribute('data-hover', 'true')

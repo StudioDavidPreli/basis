@@ -19,9 +19,9 @@ import styles from './stage.module.css'
 
 // The sheet's chart over the sheet's ledger, simplified (David, 2026-10-15):
 // four companies (./charted.ts), their Level over one year, no controls and
-// no legend: the endpoint markers and the ledger's rows name the lines. A row
-// and its line light together both ways; the sort and the selection are the
-// ledger's own and never touch the lines.
+// no legend: the endpoint markers and the ledger's rows name the lines. The
+// four rows are selected and locked, so the ledger says what is charted. A
+// row and its line light together both ways; the sort never touches them.
 const DATASET = 'comps'
 const METRIC = 'level'
 const RANGE: Range = '1Y'
@@ -133,10 +133,11 @@ export function InPracticeStage({ snapshot, series }: { snapshot: StoredSnapshot
           const label = key === 'name' ? 'Name' : (ds.columns.find(c => c.key === key)?.label ?? key)
           announce(`Sorted by ${label}, ${next.sort ? (next.sort.dir === 'asc' ? 'ascending' : 'descending') : 'file order'}`)
         }}
-        selection={state.selection}
-        onToggle={(id, range) => setState(s => reduce(s, { type: 'toggle', id, order, range }))}
-        onSelectAll={() => setState(s => reduce(s, { type: 'selectAll', ids: order }))}
-        onClear={() => setState(s => reduce(s, { type: 'clear' }))}
+        selection={CHARTED}
+        locked
+        onToggle={() => {}}
+        onSelectAll={() => {}}
+        onClear={() => {}}
         hoveredId={state.hoveredId}
         onHover={onHover}
         parentheses
