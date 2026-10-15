@@ -16,6 +16,11 @@
   font-weight: 400;
 }
 
+.panel[data-above] {
+  top: auto;
+  bottom: calc(100% + var(--space-2));
+}
+
 .panel:focus {
   outline: 2px solid var(--ink);
   outline-offset: 2px;

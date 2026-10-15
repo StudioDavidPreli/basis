@@ -11,7 +11,8 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
-  height: clamp(220px, 44dvh, 520px);
+  /* The In Practice stage sets its own: its frame has a fixed height. */
+  height: var(--plot-height, clamp(220px, 44dvh, 520px));
 }
 
 .yAxis {
@@ -292,6 +293,6 @@
 
 @media (max-width: 900px) {
   .plot {
-    height: clamp(180px, 34dvh, 320px);
+    height: var(--plot-height, clamp(180px, 34dvh, 320px));
   }
 }

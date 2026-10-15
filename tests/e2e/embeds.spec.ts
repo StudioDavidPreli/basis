@@ -20,12 +20,12 @@ test.beforeEach(async ({ request }) => {
 // A CSS time in ms: the built stylesheet is minified, so 200ms arrives as .2s.
 const ms = (t: string) => (t.endsWith('ms') ? parseFloat(t) : parseFloat(t) * 1000)
 
-const EMBEDS = ['/embed/figure?status=agent-updated', '/embed/agent?phase=reading', '/embed/table-sort']
+const EMBEDS = ['/embed/figure?status=agent-updated', '/embed/agent?phase=reading', '/embed/table-sort', '/embed/in-practice']
 
 // A host page on Basis's own origin, served by Playwright, framing one URL.
-async function host(page: Page, src: string, origin = 'http://localhost:8787'): Promise<FrameLocator> {
+async function host(page: Page, src: string, origin = 'http://localhost:8787', size: [number, number] = [900, 700]): Promise<FrameLocator> {
   await page.route(`${origin}/__host`, route =>
-    route.fulfill({ contentType: 'text/html', body: `<!doctype html><html lang="en"><title>host</title><body><iframe title="embed" src="${src}" width="900" height="700"></iframe></body></html>` }),
+    route.fulfill({ contentType: 'text/html', body: `<!doctype html><html lang="en"><title>host</title><body><iframe title="embed" src="${src}" width="${size[0]}" height="${size[1]}"></iframe></body></html>` }),
   )
   await page.goto(`${origin}/__host`)
   return page.frameLocator('iframe[title="embed"]')
@@ -193,5 +193,70 @@ test.describe('the table-sort embed', () => {
     const links = frame.getByRole('dialog', { name: 'Provenance' }).getByRole('link')
     await expect(links.first()).toBeVisible()
     for (const href of await links.evaluateAll(as => as.map(a => (a as HTMLAnchorElement).href))) expect(known).toContain(href)
+  })
+})
+
+// decisions/2026-10-15-the-in-practice-stage.md: the stage Cadence frames.
+// Its height is the number Cadence sizes the frame to, so it is pinned here
+// at both ends of the width range, in Chromium and WebKit.
+const STAGE_HEIGHT = 820
+
+test.describe('the in-practice stage', () => {
+  for (const width of [560, 880]) {
+    test(`in-practice frame at ${width} px is ${STAGE_HEIGHT} px tall, no inner scroll, the legend on one line`, async ({ page }) => {
+      const frame = await host(page, '/embed/in-practice', 'http://localhost:8787', [width, STAGE_HEIGHT])
+      await expect(frame.locator('[data-series]')).toHaveCount(4)
+      const doc = await frame.locator('html').evaluate(e => ({ h: e.scrollHeight, w: e.scrollWidth, main: document.querySelector('main')!.getBoundingClientRect().height }))
+      expect(doc).toEqual({ h: STAGE_HEIGHT, w: width, main: STAGE_HEIGHT })
+      // The plot takes what the ledger leaves; the ledger is never clipped.
+      const plot = (await frame.locator('[role="img"]').boundingBox())!
+      expect(plot.height).toBeGreaterThanOrEqual(176)
+      const last = await frame.locator('tbody tr').last().evaluate(r => r.getBoundingClientRect().bottom)
+      expect(last).toBeLessThanOrEqual(STAGE_HEIGHT)
+      const tops = await frame.locator('header li').evaluateAll(lis => new Set(lis.map(li => Math.round(li.getBoundingClientRect().top))).size)
+      expect(tops).toBe(1)
+      // The bottom row's provenance opens above it rather than scrolling the frame.
+      await frame.getByRole('button', { name: /^Level for Ember Shamal/ }).click()
+      await expect(frame.getByRole('dialog', { name: 'Provenance' })).toBeVisible()
+      expect(await frame.locator('html').evaluate(e => [e.scrollHeight, window.scrollY])).toEqual([STAGE_HEIGHT, 0])
+    })
+  }
+
+  test('reads nothing but its own origin: no Worker read, no refresh, no source', async ({ page }) => {
+    const requests: string[] = []
+    page.on('request', r => requests.push(r.url()))
+    const frame = await host(page, '/embed/in-practice?reduce=0')
+    await expect(frame.locator('[data-series]')).toHaveCount(4)
+    await frame.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await frame.locator('tbody tr').first().hover()
+    for (const url of requests) {
+      expect(new URL(url).origin, url).toBe('http://localhost:8787')
+      expect(new URL(url).pathname, url).not.toMatch(/^\/api\//)
+    }
+  })
+
+  test('the frozen figures read as of their snapshot, and a row and its line light together', async ({ page }) => {
+    const frame = await host(page, '/embed/in-practice')
+    // A frozen copy aged to today would read stale; read at its own moment,
+    // no Level is.
+    expect(await frame.locator('[data-status]').count()).toBeGreaterThan(0)
+    await expect(frame.locator('[data-status="stale"]')).toHaveCount(0)
+    await expect(frame.getByText(/snapshot of \d{1,2} \w{3} \d{4}, \d{2}:\d{2} UTC/)).toBeVisible()
+    // Sort moves rows, never lines.
+    const lines = await frame.locator('[data-series]').evaluateAll(ps => ps.map(p => p.getAttribute('d')))
+    await frame.getByRole('columnheader', { name: /Level/ }).getByRole('button').click()
+    await frame.getByRole('checkbox').nth(3).check()
+    expect(await frame.locator('[data-series]').evaluateAll(ps => ps.map(p => p.getAttribute('d')))).toEqual(lines)
+    // Row to line.
+    await frame.locator('tbody tr', { hasText: 'Ember Shamal' }).hover()
+    await expect(frame.locator('[data-series="jump-dubai"]')).toHaveAttribute('data-hover', 'true')
+    await expect(frame.locator('[data-series="ou-tokyo"]')).not.toHaveAttribute('data-hover')
+    // No brush: a drag across the plot sets no window.
+    const box = (await frame.locator('[data-series]').first().boundingBox())!
+    await page.mouse.move(box.x + 40, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + 160, box.y + box.height / 2)
+    await expect(frame.locator('[data-dragging]')).toHaveCount(0)
+    await page.mouse.up()
   })
 })

@@ -5,7 +5,7 @@
 // and the Figure returns focus to its trigger. The sources themselves are
 // the SourceList the drawer shares.
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import type { FigureStatus, Source } from '@/lib/types'
 import { SourceList, when } from './source-list'
@@ -46,6 +46,18 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [mode, onClose])
+
+  // Below the figure, unless that would make the document longer: in a
+  // frame of fixed height (the embeds) the bottom rows' panels would
+  // otherwise scroll the frame, so there they open above. On the sheet the
+  // footnotes follow the ledger and nothing flips. Decided from the
+  // measurement each time, after clearing what a previous run set.
+  useLayoutEffect(() => {
+    const el = panel.current
+    if (!el) return
+    el.removeAttribute('data-above')
+    if (el.getBoundingClientRect().bottom > document.body.getBoundingClientRect().bottom) el.setAttribute('data-above', '')
+  }, [])
 
   const dialog = mode === 'dialog'
   return (

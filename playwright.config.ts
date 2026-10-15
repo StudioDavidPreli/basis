@@ -23,8 +23,9 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     // David reviews in Safari. WebKit runs the motion specs whose failure
     // would be engine-specific: the ledger's reorder, its opaque rows and
-    // their stack, and the theme crossfade (2026-10-05).
-    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade/ },
+    // their stack, and the theme crossfade (2026-10-05); and the In Practice
+    // stage's height, which Cadence sizes its frame to (2026-10-15).
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame/ },
   ],
   webServer: {
     command: 'npm run preview:fixtures',

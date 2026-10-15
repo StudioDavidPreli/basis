@@ -69,6 +69,7 @@ Chromeless routes for Cadence's "In Practice" page, frameable only by Basis and 
 - `/embed/figure?status=current|stale|refreshing|agent-updated|unverified`
 - `/embed/agent?phase=idle|reading|building|waiting|done|error`
 - `/embed/table-sort?dataset=comps|regions`
+- `/embed/in-practice`: the chart over the ledger, four companies' Level over one year, from a committed copy of a live snapshot (`scripts/freeze-in-practice.mjs`); 820 px tall from 560 to 880 px wide
 
 Each takes `theme=passbook|operate`, `reduce=1`, and `preset=standard|snappy|cinematic`.
 

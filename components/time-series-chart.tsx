@@ -95,7 +95,9 @@ type Props = {
   summary: string
   readout: Readout
   window: WindowMs | null // the analysis window when set; null follows the view
-  onWindow: (window: Window | null) => void
+  // Absent on the In Practice stage, which has no diagnostics: a press
+  // there sets nothing, so it starts no brush.
+  onWindow?: (window: Window | null) => void
 }
 
 // A measurement debounce, not a motion value: the frame is committed once
@@ -266,7 +268,7 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     setDrag(null)
     // A press without a drag, or a window narrower than a day, is a click.
     if (!drag.moved || b - a < DAY_MS) return
-    onWindow({ from: isoDate(a), to: isoDate(b) })
+    onWindow?.({ from: isoDate(a), to: isoDate(b) })
   }
 
   // Draw-in stagger by selection order among the ribbons arriving together:
@@ -290,7 +292,7 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
         <div className={styles.yAxis} aria-hidden="true">
           {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={format(v)} />)}
         </div>
-        <div ref={box} className={styles.box} data-dragging={drag ? '' : undefined} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <div ref={box} className={styles.box} data-dragging={drag ? '' : undefined} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave} onPointerDown={onWindow ? onPointerDown : undefined} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <svg ref={svg} className={styles.svg} viewBox={`0 0 ${frame.width} ${frame.height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
             {target && yTicks(target, Y_TICKS).map(v => <GridLine key={v} value={v} dom={dom} frame={frame} />)}
             {target && provisionalMs !== null && <Provisional from={provisionalMs} dom={dom} frame={frame} />}
