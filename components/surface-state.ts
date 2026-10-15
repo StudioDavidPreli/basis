@@ -7,7 +7,7 @@ export type SortDir = 'asc' | 'desc'
 export type Sort = { key: string; dir: SortDir } | null
 export type Range = '1M' | '3M' | '1Y' | '5Y' | 'Max'
 export const RANGES: Range[] = ['1M', '3M', '1Y', '5Y', 'Max']
-export const DEFAULT_RANGE: Range = '1Y'
+export const DEFAULT_RANGE: Range = '3M' // decisions/2026-10-15-the-chart-lands-on-3m.md
 
 export type Window = { from: string; to: string } // ISO dates, inclusive; the analysis window (docs/spec.md, Diagnostics)
 

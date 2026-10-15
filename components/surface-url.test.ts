@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { encodeUrlState, mergeUrlSearch, parseUrlState, type UrlState } from './surface-url'
 
-const bare: UrlState = { dataset: 'comps', sort: null, metric: 'level', range: '1Y', window: null, tool: null }
+const bare: UrlState = { dataset: 'comps', sort: null, metric: 'level', range: '3M', window: null, tool: null }
 
 describe('the URL codec', () => {
   it('parses nothing as the defaults and encodes the defaults as nothing', () => {
@@ -19,7 +19,7 @@ describe('the URL codec', () => {
 
   it('omits an ascending dir, the default metric of the dataset, and the default range', () => {
     expect(encodeUrlState({ ...bare, sort: { key: 'name', dir: 'asc' } })).toBe('?sort=name')
-    expect(encodeUrlState({ dataset: 'regions', sort: null, metric: 'index', range: '1Y', window: null, tool: null })).toBe('?dataset=regions')
+    expect(encodeUrlState({ dataset: 'regions', sort: null, metric: 'index', range: '3M', window: null, tool: null })).toBe('?dataset=regions')
   })
 
   it('the window needs both dates in order, and the tool must be one of the six', () => {
@@ -31,9 +31,9 @@ describe('the URL codec', () => {
   it('falls back on unknown values instead of throwing', () => {
     expect(parseUrlState({ dataset: 'nope', sort: 'nope', dir: 'sideways', metric: 'nope', range: '9Y' })).toEqual(bare)
     // A metric or sort key from the other dataset is unknown here.
-    expect(parseUrlState({ dataset: 'regions', metric: 'multiple', sort: 'multiple' })).toEqual({ dataset: 'regions', sort: null, metric: 'index', range: '1Y', window: null, tool: null })
+    expect(parseUrlState({ dataset: 'regions', metric: 'multiple', sort: 'multiple' })).toEqual({ dataset: 'regions', sort: null, metric: 'index', range: '3M', window: null, tool: null })
     // The driver column is sortable but not chartable.
-    expect(parseUrlState({ dataset: 'regions', metric: 'driver', sort: 'driver' })).toEqual({ dataset: 'regions', sort: { key: 'driver', dir: 'asc' }, metric: 'index', range: '1Y', window: null, tool: null })
+    expect(parseUrlState({ dataset: 'regions', metric: 'driver', sort: 'driver' })).toEqual({ dataset: 'regions', sort: { key: 'driver', dir: 'asc' }, metric: 'index', range: '3M', window: null, tool: null })
   })
 
   it('ignores repeated params and treats dir without sort as nothing', () => {

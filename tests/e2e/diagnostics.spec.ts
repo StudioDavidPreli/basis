@@ -77,8 +77,8 @@ test.describe('the diagnostics strip', () => {
     await expect(page.getByTestId('diagnostics-panel')).toContainText('80 d · Level')
     await page.mouse.move(5, 5)
     // The view changes; the window does not.
-    await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '3M' }).click()
-    await expect(page).toHaveURL(/range=3M&from=2026-06-12&to=2026-08-30/)
+    await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1Y' }).click()
+    await expect(page).toHaveURL(/range=1Y&from=2026-06-12&to=2026-08-30/)
     await expect(page.getByTestId('window-days')).toHaveText('80 d')
     await page.getByRole('button', { name: '[ Reset ]' }).click()
     await expect(page).not.toHaveURL(/from=/)

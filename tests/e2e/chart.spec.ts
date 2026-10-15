@@ -27,7 +27,7 @@ test.describe('the chart', () => {
     // frame after the drawer's spring never clips it.
     await expect(ribbon).not.toHaveAttribute('clip-path')
     await expect(page.locator('[data-endpoint="ou-tokyo"]')).toBeVisible()
-    await expect(plot(page)).toHaveAttribute('aria-label', /^Level over 1Y, 1 row: Anchor Kaze [\d.,]+\. History from 2026-06-01\. Values from \d{4}-\d{2}-\d{2} are provisional\. The table below is the accessible alternative\.$/)
+    await expect(plot(page)).toHaveAttribute('aria-label', /^Level over 3M, 1 row: Anchor Kaze [\d.,]+\. History from 2026-06-01\. Values from \d{4}-\d{2}-\d{2} are provisional\. The table below is the accessible alternative\.$/)
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     await expect(ribbon).toHaveCount(0)
     await expect(page.locator('[data-endpoint="ou-tokyo"]')).toHaveCount(0)
@@ -201,7 +201,7 @@ test.describe('the chart', () => {
     await page.getByRole('checkbox', { name: 'Chart Brooklyn' }).click()
     const ribbon = page.locator('path[data-series="brooklyn"]')
     await expect(ribbon).toHaveAttribute('data-drawn')
-    await expect(plot(page)).toHaveAttribute('aria-label', /^Index over 1Y, 1 row: Brooklyn/)
+    await expect(plot(page)).toHaveAttribute('aria-label', /^Index over 3M, 1 row: Brooklyn/)
   })
 
   test('the other dataset reads its series again once the snapshot has advanced', async ({ page }) => {
