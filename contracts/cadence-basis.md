@@ -222,6 +222,9 @@ adding a row, in its own commit.
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
+| Drawer scroll cue bounce (while there is more below) | `slower`, looped, alternating | `standard` | `none` |
+| Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
+| Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
@@ -259,6 +262,14 @@ Progress runs through `standard` before it is compared to any character's
 onset or settle moment, so the churn ramps in, settles mostly in the
 middle, and the last characters resolve in a tail rather than at once.
 Under reduced motion both flatten and the text simply changes.
+
+The drawer's scroll cue (`decisions/2026-10-15-drawer-scroll-cue.md`)
+stands in for the drawer's hidden scrollbar: a ↓ that bounces vertically
+while the drawer has more below and clears at the bottom. It is not a
+control. A hovering pointer stops the bounce where it is and lifts the
+arrow; only where hover exists (`(hover: hover) and (pointer: fine)`).
+Under reduced motion the bounce is removed (loops do not run) and the
+arrow holds still.
 
 Rive artboards (`AgentPresence`, logos) hold their own timing inside the state
 machine; Basis pushes only view-model values. The `reduced` boolean in the
