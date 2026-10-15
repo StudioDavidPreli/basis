@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { landEmpty } from './land'
 
 // M9 on the Worker runtime, fixtures mode: no console error in any of the
 // four theme × reduced-motion combinations, on the sheet and on a drawer
@@ -138,7 +139,7 @@ test.describe('the theme switch is one crossfade', () => {
   for (const reduce of [false, true]) {
     test(`every surface switches in one frame, inside a crossfade of ${reduce ? '10 ms (reduced motion)' : 'base'}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: 'light', reducedMotion: reduce ? 'reduce' : 'no-preference' })
-      await page.goto('/')
+      await landEmpty(page, '/')
       await hydrated(page)
       await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
       await expect(page.locator('path[data-series="ou-tokyo"]')).toHaveAttribute('data-drawn')

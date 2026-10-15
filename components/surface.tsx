@@ -23,6 +23,7 @@ import { ChartHero } from './chart-hero'
 import { DataTable, type Row } from './data-table'
 import { Footnotes } from './footnotes'
 import { CommandPalette, type PaletteItem } from './command-palette'
+import { Welcome, useWelcomeDismissed } from './welcome'
 import { Marker } from './marker'
 import { LiveRegion, useAnnouncer } from './live-region'
 import styles from './surface.module.css'
@@ -33,8 +34,14 @@ type Props = { snapshot: StoredSnapshot | null; cold: boolean; renderedAt: strin
 
 export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) {
   // Seeded from the URL the server parsed, so the first client render is
-  // the server's render and a deep link has nothing to reconcile.
-  const [state, dispatch] = useReducer(reduce, initial, seed => ({ ...initialState(seed.dataset, seed.metric), ...seed }))
+  // the server's render and a deep link has nothing to reconcile. The
+  // dataset's `charted` rows are where the sheet lands; a dataset switch
+  // still clears them (decisions/2026-10-15-four-rows-charted-on-landing.md).
+  const [state, dispatch] = useReducer(reduce, initial, seed => ({
+    ...initialState(seed.dataset, seed.metric),
+    selection: [...(config.datasets[seed.dataset]?.charted ?? [])],
+    ...seed,
+  }))
   const [snapshot, setSnapshot] = useState(served)
   const [busy, setBusy] = useState(false)
   const activeDataset = state.dataset
@@ -211,6 +218,16 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
   // entity's own jump hands focus to the drawer.
   const router = useRouter()
   const [paletteOpen, setPaletteOpen] = useState(false)
+
+  // The welcome opens on landing unless it was dismissed for good
+  // (decisions/2026-10-15-a-welcome-on-landing.md), and again from the
+  // palette. The stored flag is an external store whose server snapshot is
+  // "dismissed", so the server and the hydration render no dialog and the
+  // client's first commit after hydration opens it.
+  const welcomeStored = useWelcomeDismissed()
+  const [welcomeClosed, setWelcomeClosed] = useState(false)
+  const [welcomeAsked, setWelcomeAsked] = useState(false)
+  const welcomeOpen = welcomeAsked || (!welcomeClosed && !welcomeStored)
   const paletteItems: PaletteItem[] = [
     ...order.map(id => {
       const row = rows.find(r => r.id === id)!
@@ -256,6 +273,13 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
       tag: r === state.range ? 'current' : undefined,
       run: () => dispatch({ type: 'range', range: r }),
     })),
+    {
+      id: 'view:welcome',
+      group: 'View',
+      label: 'Show the welcome',
+      keywords: 'welcome help how to intro guide',
+      run: () => setWelcomeAsked(true),
+    },
   ]
 
   return (
@@ -318,6 +342,14 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
         <Footnotes snapshot={snapshot} now={now} />
       </main>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={paletteItems} />
+      <Welcome
+        open={welcomeOpen}
+        dismissed={welcomeStored}
+        onClose={() => {
+          setWelcomeClosed(true)
+          setWelcomeAsked(false)
+        }}
+      />
       <LiveRegion message={message} />
     </div>
   )

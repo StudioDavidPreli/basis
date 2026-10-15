@@ -89,4 +89,10 @@ describe('loadConfig', () => {
     broken.regions[0]!.exposures[0]!.driver = 'temp-atlantis'
     expect(() => loadConfig(broken)).toThrow(/unknown driver/)
   })
+
+  it('refuses a charted row its dataset does not have', () => {
+    const broken = structuredClone(config)
+    broken.datasets.comps!.charted = ['ou-tokyo', 'brooklyn']
+    expect(() => loadConfig(broken)).toThrow(/charted names brooklyn/)
+  })
 })

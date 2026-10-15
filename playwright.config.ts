@@ -18,6 +18,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:8787',
     trace: 'on-first-retry',
+    // The welcome is dismissed for every spec but its own, which starts
+    // from empty storage (tests/e2e/welcome.spec.ts).
+    storageState: { cookies: [], origins: [{ origin: 'http://localhost:8787', localStorage: [{ name: 'basis-welcome', value: 'dismissed' }] }] },
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

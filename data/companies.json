@@ -370,6 +370,7 @@
     "comps": {
       "label": "Comparables",
       "entities": "companies",
+      "charted": ["ou-tokyo", "ou-mumbai", "drift-sydney", "jump-dubai"],
       "columns": [
         {
           "key": "industry",

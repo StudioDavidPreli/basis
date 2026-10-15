@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { landEmpty } from './land'
 
 // M11 acceptance on the Worker runtime, fixtures mode (plan.md): hovering
 // a tool raises its card and clicking pins it, Escape unpins; typing two
@@ -12,7 +13,7 @@ test.beforeEach(async ({ request }) => {
 })
 
 async function chartTwo(page: import('@playwright/test').Page) {
-  await page.goto('/?range=Max')
+  await landEmpty(page, '/?range=Max')
   await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
   await page.getByRole('checkbox', { name: 'Chart Keel London' }).click()
   await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(2)
@@ -107,7 +108,7 @@ test.describe('the diagnostics strip', () => {
   })
 
   test('a deep link restores the window and the pinned tool', async ({ page }) => {
-    await page.goto('/?range=Max&from=2026-06-12&to=2026-08-30&tool=anomalies')
+    await landEmpty(page, '/?range=Max&from=2026-06-12&to=2026-08-30&tool=anomalies')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(1)
     await expect(page.getByTestId('window-days')).toHaveText('80 d')

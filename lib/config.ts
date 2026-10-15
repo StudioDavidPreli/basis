@@ -77,6 +77,9 @@ export type ColumnConfig = {
 export type DatasetConfig = {
   label: string
   entities: 'companies' | 'regions'
+  // The rows the sheet lands with charted, in legend order
+  // (decisions/2026-10-15-four-rows-charted-on-landing.md). Absent: none.
+  charted?: string[]
   columns: ColumnConfig[]
 }
 
@@ -118,6 +121,10 @@ export function loadConfig(input: unknown = raw): Config {
   for (const [family, count] of Object.entries(perFamily)) {
     const words = c.lexicon.process[family as ProcessFamily]?.filter(w => !w.startsWith('_')) ?? []
     if (words.length < count) fail(`lexicon.process.${family} has ${words.length} words for ${count} companies`)
+  }
+  for (const [id, d] of Object.entries(c.datasets)) {
+    const ids = new Set(c[d.entities].map(e => e.id))
+    for (const e of d.charted ?? []) if (!ids.has(e)) fail(`datasets.${id}.charted names ${e}, which is not one of its ${d.entities}`)
   }
   for (const r of c.regions) {
     for (const e of r.exposures) if (!c.drivers[e.driver]) fail(`${r.id} exposes an unknown driver ${e.driver}`)

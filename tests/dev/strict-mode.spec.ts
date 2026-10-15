@@ -113,6 +113,11 @@ test.describe('under next dev, with Strict Mode', () => {
 
   test('the first row charted is on its window from the first frame', async ({ page }) => {
     await warm(page)
+    // On Regions, which lands with nothing charted: Comparables lands with
+    // four (decisions/2026-10-15-four-rows-charted-on-landing.md), and this
+    // is about the chart's very first ribbon.
+    await page.goto('/?dataset=regions')
+    await expect(page.locator('tbody input[type="checkbox"]:checked')).toHaveCount(0)
     // Sample the geometry on every frame from the ribbon's arrival: the
     // path's first x, the endpoint's left offset, and the reveal's width.
     // The Strict Mode bug: the chart jumped the domain values after the
@@ -138,8 +143,14 @@ test.describe('under next dev, with Strict Mode', () => {
       })
       observer.observe(box, { childList: true, subtree: true })
     })
-    await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
-    await expect(page.locator('path[data-series="ou-tokyo"]')).toHaveAttribute('data-drawn')
+    const first = page.locator('tbody input[type="checkbox"]').first()
+    await expect(first).toBeEnabled()
+    await first.evaluate(el => new Promise<void>(done => {
+      const check = () => (Object.keys(el).some(k => k.startsWith('__reactProps')) ? done() : requestAnimationFrame(check))
+      check()
+    }))
+    await first.click()
+    await expect(page.locator('path[data-series]')).toHaveAttribute('data-drawn')
     const samples = await page.evaluate(() => (window as unknown as { samples: { x: number; left: number; width: number }[] }).samples)
     const full = await page.locator('svg[preserveAspectRatio="none"]').evaluate(el => (el as SVGSVGElement).viewBox.baseVal.width)
     expect(samples.length).toBeGreaterThan(20)
@@ -258,4 +269,25 @@ test.describe('under next dev, with Strict Mode', () => {
       })
     }
   }
+})
+
+// The welcome opens from a store read after hydration and is shown from its
+// element's own state; Strict Mode's second run of either must not open it
+// twice, move focus off Close, or leave the page locked once it closes.
+test.describe('the welcome under Strict Mode', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+
+  test('opens once with Close focused, closes cleanly, and nothing reaches the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/')
+    const dialog = page.getByRole('dialog', { name: 'Basis, sourced-data surface' })
+    await expect(dialog).toBeVisible()
+    await expect(page.locator('dialog[data-welcome]')).toHaveCount(1)
+    await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
+    await expect(dialog).toHaveAttribute('data-placement', /chart|centred/)
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden')
+    expect(errors).toEqual([])
+  })
 })

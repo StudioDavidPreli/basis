@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { landEmpty } from './land'
 
 // M6 acceptance on the Worker runtime, fixtures mode: toggling a row draws
 // or removes its ribbon; a range change animates the domain; keyboard focus
@@ -14,7 +15,7 @@ const plot = (page: import('@playwright/test').Page) => page.getByRole('region',
 
 test.describe('the chart', () => {
   test('toggling a row draws its ribbon, its endpoint, and its legend entry; toggling again removes them', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await expect(plot(page)).toHaveAttribute('aria-label', /^No rows charted/)
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     const ribbon = page.locator('path[data-series="ou-tokyo"]')
@@ -34,7 +35,7 @@ test.describe('the chart', () => {
   })
 
   test('the draw-in is a reveal across the plot, visible mid-way', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     // Sample the clip rectangle's width on every frame from the ribbon's
     // arrival. The stroke drawn along the path's length that this replaced
     // spent most of `slower` on history the window clips, and the visible
@@ -77,7 +78,7 @@ test.describe('the chart', () => {
   })
 
   test('the legend removes a ribbon, and the ninth selected row waits', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await page.getByRole('checkbox', { name: 'Select all rows' }).click()
     await expect(page.locator('path[data-series]')).toHaveCount(8)
     await expect(page.getByRole('list', { name: 'Selected rows' })).toContainText('4 more selected, not charted')
@@ -87,7 +88,7 @@ test.describe('the chart', () => {
   })
 
   test('a range change animates the domain and lands on the new window', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     const ribbon = page.locator('path[data-series="ou-tokyo"]')
     await expect(ribbon).toHaveAttribute('data-drawn')
@@ -138,7 +139,7 @@ test.describe('the chart', () => {
   })
 
   test('hovering a ribbon marks its row, and the drawer mutes the others', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     await page.getByRole('checkbox', { name: 'Chart Keel London' }).click()
     await expect(page.locator('path[data-series="ou-london"]')).toHaveAttribute('data-drawn')
@@ -160,7 +161,7 @@ test.describe('the chart', () => {
   test('the pointer in the plot raises a card on the nearest point, a dot on every ribbon, and a rule', async ({ page }) => {
     // Max, so the fixtures' three months fill the window and the card's
     // side can be judged by where the pointer is.
-    await page.goto('/?range=Max')
+    await landEmpty(page, '/?range=Max')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     await page.getByRole('checkbox', { name: 'Chart Keel London' }).click()
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(2)
@@ -224,7 +225,7 @@ test.describe('the chart', () => {
   })
 
   test('passes axe with ribbons drawn, the readout up, and the drawer open', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await page.getByRole('checkbox', { name: 'Select all rows' }).click()
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(8)
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).focus()
@@ -263,7 +264,7 @@ test.describe('the chart', () => {
   })
 
   test('under reduced motion the draw-in and the rescale are instant', async ({ page }) => {
-    await page.goto('/?reduce=1')
+    await landEmpty(page, '/?reduce=1')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
     const ribbon = page.locator('path[data-series="ou-tokyo"]')
     // The draw-in is slower (600 ms) with motion; here it is done at once.

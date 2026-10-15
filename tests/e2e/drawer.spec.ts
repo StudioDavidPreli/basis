@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { landEmpty } from './land'
 
 // M5 acceptance on the Worker runtime, fixtures mode: a deep link renders
 // the same state server-side with no hydration error; the back button
@@ -112,7 +113,7 @@ test.describe('the drawer', () => {
   })
 
   test('the sheet stays live behind it: rows select and sort, and the URL mirrors once back returns', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await page.getByRole('link', { name: /Anchor Kaze/ }).click()
     await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()

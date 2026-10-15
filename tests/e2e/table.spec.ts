@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { landEmpty } from './land'
 
 // M4 acceptance on the Worker runtime, fixtures mode: sort via keyboard with
 // aria-sort updating, Shift-range select, the provenance popover on hover
@@ -56,7 +57,7 @@ test.describe('the ledger', () => {
   })
 
   test('Shift-range selects a run of rows and the legend lists them', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     const boxes = page.locator('tbody input[type="checkbox"]')
     await boxes.nth(1).click()
     await boxes.nth(4).click({ modifiers: ['Shift'] })
@@ -68,7 +69,7 @@ test.describe('the ledger', () => {
   })
 
   test('select-all takes every row; the chart holds eight and the legend says so', async ({ page }) => {
-    await page.goto('/')
+    await landEmpty(page, '/')
     await page.getByRole('checkbox', { name: 'Select all rows' }).click()
     await expect(page.locator('tbody input[type="checkbox"]:checked')).toHaveCount(12)
     const legend = page.getByRole('list', { name: 'Selected rows' })

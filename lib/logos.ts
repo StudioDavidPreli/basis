@@ -51,3 +51,16 @@ export function logoArt(entityId: string, config: Config = defaultConfig): LogoA
     riv: ANIMATED.has(entityId) ? `/rive/${key}.riv` : null,
   }
 }
+
+// The Basis title, the welcome dialog's (contracts/agent-presence.md, "Basis
+// title"): one file, its own names, the logos' instance names.
+export const TITLE = {
+  riv: '/rive/basisModalTitles.riv',
+  artboard: 'basisTitles',
+  stateMachine: 'basisSM',
+  viewModel: 'BasisTitleVM',
+  instances: THEME_INSTANCE,
+  posters: { passbook: '/fallbacks/basisModalTitlesLight.svg', operate: '/fallbacks/basisModalTitlesDark.svg' } satisfies Record<Theme, string>,
+  width: 588,
+  height: 204,
+} as const
