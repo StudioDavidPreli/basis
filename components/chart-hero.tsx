@@ -9,6 +9,7 @@ import { seriesFor } from '@/lib/series'
 import { domainFor, summarize, toPoints, viewPoints } from '@/lib/chart'
 import { config } from '@/lib/config'
 import { sourcesOf } from '@/lib/diff'
+import { chartCsv, chartCsvName } from '@/lib/export-csv'
 import { windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
 import { CHART_CAP, RANGES, type Range } from './surface-state'
 import type { Row } from './data-table'
@@ -122,6 +123,24 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
     provisionalFrom,
   })
 
+  // The chart as a CSV (decisions/2026-10-15-export-the-chart-as-csv.md):
+  // built and handed to the browser on the click, from what the page holds.
+  const exportCsv = () => {
+    const exportedAt = new Date().toISOString()
+    const csv = chartCsv({
+      label: column.label,
+      range,
+      rows: diagnostics.map(d => ({ name: d.name, points: d.points, sources: d.sources, provisionalFrom: series?.entities[d.id]?.provisionalFrom ?? null })),
+      exportedAt,
+    })
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = chartCsvName(column.key, range, exportedAt)
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // The hovered or focused row's point: the row's own figure, which the
   // refresh wrote as the series' last point, so the two cannot disagree.
   const hovered = hoveredId ? rows.find(r => r.id === hoveredId) : undefined
@@ -201,6 +220,13 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
             <li>
               <button type="button" className={`${styles.legendClear} type-action`} onClick={onClear}>
                 [ Clear ]
+              </button>
+            </li>
+          )}
+          {charted.length > 0 && (
+            <li>
+              <button type="button" className={`${styles.legendClear} type-action`} onClick={exportCsv} aria-label={`Export the chart as CSV: ${column.label} over ${range}`}>
+                [ Export ]
               </button>
             </li>
           )}

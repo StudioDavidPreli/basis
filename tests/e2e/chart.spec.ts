@@ -276,3 +276,33 @@ test.describe('the chart', () => {
     await expect(plot(page)).toHaveAttribute('aria-label', /Level over 1M/)
   })
 })
+
+// The chart as a CSV (decisions/2026-10-15-export-the-chart-as-csv.md).
+test.describe('export', () => {
+  test('downloads what the chart shows, with provenance above the header', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('path[data-series]')).toHaveCount(4)
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /^Export the chart as CSV/ }).click()])
+    expect(download.suggestedFilename()).toMatch(/^basis-level-3M-\d{4}-\d{2}-\d{2}\.csv$/)
+    const csv = (await import('node:fs')).readFileSync((await download.path())!, 'utf8')
+    const lines = csv.trimEnd().split('\n')
+    const comments = lines.filter(l => l.startsWith('#'))
+    const table = lines.filter(l => !l.startsWith('#'))
+    expect(comments[0]).toMatch(/^# Basis · Level over 3M, \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/)
+    for (const name of ['Anchor Kaze', 'Plumb Varsha', 'Windward Sydney', 'Ember Shamal']) {
+      expect(comments.some(c => c.startsWith(`# ${name}, latest figure: `))).toBe(true)
+    }
+    expect(comments).toContain('# Companies and regions are simulated; their drivers are real.')
+    expect(table[0]).toBe('date,Anchor Kaze,Plumb Varsha,Windward Sydney,Ember Shamal,provisional')
+    // The view range: no more than 3M of dates, and every line has every column.
+    const dates = table.slice(1).map(l => l.split(',')[0]!)
+    expect(dates.length).toBeGreaterThan(20)
+    expect(Date.parse(dates[dates.length - 1]!) - Date.parse(dates[0]!)).toBeLessThanOrEqual(91 * 86_400_000)
+    for (const l of table.slice(1)) expect(l.split(',')).toHaveLength(6)
+  })
+
+  test('is absent while nothing is charted', async ({ page }) => {
+    await landEmpty(page, '/')
+    await expect(page.getByRole('button', { name: /^Export the chart as CSV/ })).toHaveCount(0)
+  })
+})

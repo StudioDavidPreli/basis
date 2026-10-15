@@ -63,7 +63,7 @@ test.describe('the ledger', () => {
     await boxes.nth(4).click({ modifiers: ['Shift'] })
     for (const i of [1, 2, 3, 4]) await expect(boxes.nth(i)).toBeChecked()
     await expect(boxes.nth(0)).not.toBeChecked()
-    await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('listitem')).toHaveCount(5) // four rows + clear
+    await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('listitem')).toHaveCount(6) // four rows, clear, export
     const headerBox = page.locator('thead input[type="checkbox"]')
     expect(await headerBox.evaluate((el: HTMLInputElement) => el.indeterminate)).toBe(true)
   })
