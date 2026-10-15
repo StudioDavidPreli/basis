@@ -101,6 +101,11 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+// The day the fixture set in public/fixtures/ was recorded. The NOAA
+// water-level range (2026-09-28) was recorded later but is not a daily
+// axis a series ends on; the refresh tests prove the axes stay ascending.
+export const FIXTURE_DAY = '2026-09-16'
+
 function shiftDays(date: string, days: number): string {
   return isoDate(new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS))
 }
@@ -288,7 +293,14 @@ function computeEntity(
   deps: RefreshDeps,
 ): { snapshot: EntitySnapshot; series: EntitySeries } {
   const now = deps.now()
-  const today = isoDate(now)
+  // The series' last date. Under fixtures it is the day the fixtures were
+  // recorded, not the clock's: the recorded history never grows, so a
+  // clock-dated endpoint left a widening gap after the last recorded point,
+  // and from 2026-10-15 UTC the 1M window held one point and the sparkline
+  // drew nothing (decisions/2026-10-15-fixtures-end-on-their-day.md). Run
+  // timestamps stay on the real clock: the agent's done/idle reads them
+  // against the browser's.
+  const today = deps.fixturesOnly ? FIXTURE_DAY : isoDate(now)
   const dominantId = dominantDriver(entity.exposures)
   const dominant = drivers[dominantId]!
   const axis = dominant.history.points.map(p => p[0])

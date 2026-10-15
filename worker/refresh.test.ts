@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { refresh, runRefresh, KEYS, type RefreshDeps, type StoredSnapshot } from './refresh'
+import { refresh, runRefresh, KEYS, FIXTURE_DAY, type RefreshDeps, type StoredSnapshot } from './refresh'
 import { config } from '@/lib/config'
 import type { SeriesSnapshot } from '@/lib/types'
 import { adapters } from '@/sources'
@@ -121,6 +121,20 @@ describe('refresh on fixtures', () => {
     // Stale outranks agent-updated: the fixture rule wins on the status.
     expect(stored.entities['ou-tokyo']!.metrics['level']!.status).toBe('stale')
     expect(stored.entities['ou-tokyo']!.metrics['level']!.prev).toBeDefined()
+  })
+
+  it('under fixtures a series ends on the recording day whatever the clock says', async () => {
+    // The regression: with the clock a month past the recording, the
+    // endpoint used to move with it and leave the 1M window nearly empty.
+    const later = new Date('2026-10-15T01:46:00Z')
+    const mem = memoryKv()
+    await refresh(deps({ kv: mem.kv, now: () => later }))
+    const comps = JSON.parse(mem.store.get(KEYS.series('comps'))!) as SeriesSnapshot
+    expect(Object.keys(comps.entities)).toHaveLength(12)
+    for (const [id, s] of Object.entries(comps.entities)) {
+      expect(s.dates[s.dates.length - 1], id).toBe(FIXTURE_DAY)
+    }
+    expect(comps.at).toBe(later.toISOString())
   })
 
   it('writes one series key per dataset: real dates ending today, the endpoint equal to the figure', async () => {
