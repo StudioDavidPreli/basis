@@ -30,7 +30,7 @@ import { REDUCED_MOTION_RESOLUTION } from 'cadence-tokens'
 ```
 
 Preset is Standard. On `/embed/*` only, `?preset=snappy|cinematic|standard`
-sets `data-preset` on `<html>` from the inline script before hydration, and
+(default `standard`) sets `data-preset` on `<html>` from the inline script before hydration, and
 the hook reads it as it reads `data-reduce-motion`. It never leaks into
 component code: components read `useMotionTokens()` and `--cadence-*`, never
 a module or an attribute. Reduced motion flattens every preset: the override
@@ -43,7 +43,10 @@ specificity, after the presets.
 - `--motion-*` — Cadence's own site CSS. Not in the package.
 - `--feedback-*` — Cadence tool chrome timing. Not tokens, not exported.
 - `deviations` — absent in dist files; if present, ignore.
-- Anything visual. Cadence has none, and Basis must not expect any.
+- Anything visual. Cadence has none, and Basis must not expect any. The one
+  exception is four color stocks restated from Cadence's `color.css` for a
+  framed `/embed/*` (`decisions/2026-10-14-cadence-stocks-on-the-embeds.md`);
+  the package still carries no color.
 
 ## Units and names, as Basis sees them
 
@@ -126,6 +129,13 @@ system does not ask for it: the package's media block flattens CSS timing
 under the system preference whatever the attribute says, and Basis does not
 restate Cadence's durations to undo it
 (`decisions/2026-09-28-palette-scope.md`).
+**Embeds are the exception** (`decisions/2026-10-14-reduce-0-on-the-embeds.md`):
+on `/embed/*`, `?reduce=0` sets the attribute to `0` over the stored choice
+and the system, and is never stored. There the inline script always sets
+`data-preset` (`standard` when absent), and `styles/presets.css` restates each
+preset's own durations and delays at `:root[data-reduce-motion='0'][data-preset]`,
+generated from the package, so the media block cannot flatten what the visitor
+asked to see.
 CSS reads the package's own media block; the `[data-reduce-motion="1"]`
 selector in `app/globals.css` mirrors the same resolution for the override case.
 
