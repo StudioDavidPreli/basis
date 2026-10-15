@@ -72,7 +72,8 @@
 
 /* The scroll cue (drawer-scroll-cue.tsx;
    decisions/2026-10-15-drawer-scroll-cue.md): a ↓ on a pad of the paper,
-   translucent and blurred so the text it floats over reads as texture, held
+   translucent and blurred so the text it floats over reads as texture, and
+   edged with the drawer's hairline, since paper on paper has no edge; held
    at the bottom centre of the drawer's view. The holder is sticky with no
    height, so it adds nothing to the scroll length. Only the pad takes the
    pointer, and only while it shows. */
@@ -93,6 +94,7 @@
   place-items: center;
   width: var(--space-8);
   height: var(--space-8);
+  border: var(--hairline) solid var(--rule);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--paper) 70%, transparent);
   backdrop-filter: blur(var(--space-1));
