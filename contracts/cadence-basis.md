@@ -188,7 +188,9 @@ over one year, no controls, above the comps ledger. It takes the embeds'
 unchanged, and it adds no interaction, so no row below: the lines draw in on
 load (chart line draw-in), a row and its line light together both ways (row
 hover / line hover), the ledger sorts as on the sheet (reorder, lane step).
-Sort and selection never touch the lines. It reads no Worker and runs no
+The four charted rows are selected and stay so: every checkbox, the
+header's included, is disabled, so the selection is the chart's and cannot
+drift from it. Sort never touches the lines. It reads no Worker and runs no
 refresh: its figures are a committed copy of a live snapshot, read at the
 moment that snapshot was written, which the stage states. From 560 to
 880 px wide it is 820 px tall, and Cadence sizes its frame to that. A
