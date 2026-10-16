@@ -13,7 +13,7 @@ import styles from './basis-title.module.css'
 
 RuntimeLoader.setWasmUrl('/rive/rive.wasm')
 
-type Props = {
+export type Props = {
   theme: Theme
   onPainted: () => void
   onFailed: (reason: string) => void
