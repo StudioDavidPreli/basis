@@ -17,10 +17,9 @@
 import { useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
+import { WELCOME_KEY } from '@/app/theme-script'
 import { BasisTitle } from './basis-title'
 import styles from './welcome.module.css'
-
-export const WELCOME_KEY = 'basis-welcome'
 
 // The stored flag, read as an external store like the theme
 // (use-theme.ts). The server snapshot is "dismissed", so nothing renders a

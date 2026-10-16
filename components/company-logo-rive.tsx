@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { RuntimeLoader, useRive, useViewModel, useViewModelInstance, type Rive } from '@rive-app/react-canvas'
 import { LOGO_STATE_MACHINE, LOGO_VIEW_MODEL, THEME_INSTANCE, type LogoArt } from '@/lib/logos'
-import type { Theme } from '@/app/theme-script'
+import { RIVE_WASM, type Theme } from '@/app/theme-script'
 import styles from './company-logo.module.css'
 
 // The canvas half of CompanyLogo, and the only file that imports the Rive
@@ -15,7 +15,7 @@ import styles from './company-logo.module.css'
 // The runtime fetches its WASM from unpkg unless told otherwise; this one is
 // copied from the installed package into public/ before every dev and build
 // (scripts/rive-wasm.mjs). Module scope: set once, before the first load.
-RuntimeLoader.setWasmUrl('/rive/rive.wasm')
+RuntimeLoader.setWasmUrl(RIVE_WASM)
 
 type Props = {
   art: LogoArt & { riv: string }

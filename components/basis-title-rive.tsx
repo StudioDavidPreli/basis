@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { RuntimeLoader, useRive, useViewModel, useViewModelInstance, type Rive } from '@rive-app/react-canvas'
 import { TITLE } from '@/lib/logos'
-import type { Theme } from '@/app/theme-script'
+import { RIVE_WASM, type Theme } from '@/app/theme-script'
 import styles from './basis-title.module.css'
 
 // The Basis title's canvas (contracts/agent-presence.md, "Basis title"). The
@@ -11,7 +11,7 @@ import styles from './basis-title.module.css'
 // (company-logo-rive.tsx): the file is checked against the contract on load,
 // and the wrapper is told once two frames have drawn.
 
-RuntimeLoader.setWasmUrl('/rive/rive.wasm')
+RuntimeLoader.setWasmUrl(RIVE_WASM)
 
 export type Props = {
   theme: Theme

@@ -15,6 +15,14 @@
 //                       styles/presets.css can restate a preset's timing
 //                       under ?reduce=0; absent on the sheet, which is
 //                       Standard (decisions/2026-10-05-presets-for-the-embeds.md)
+//   two <link rel="preload" as="fetch"> in <head>, for the Rive runtime (at
+//                       low fetch priority, so the page's own scripts keep
+//                       the pipe on a slow link) and the Basis title's file,
+//                       on the sheet only, when motion is allowed and the
+//                       welcome will open: the canvas's own fetch then finds
+//                       both in the preload cache instead of starting them
+//                       after hydration. Never under reduced motion, which
+//                       stays outside the runtime (contracts/agent-presence.md)
 //   data-theme          "passbook" | "operate"   from ?theme=, then the stored
 //                       choice, then prefers-color-scheme (dark picks the
 //                       green stock; both stocks are light paper)
@@ -37,6 +45,14 @@ export const CADENCE_THEMES = ['cadence-light', 'cadence-dark', 'cadence-hc-ligh
 export const CADENCE_DARK: readonly string[] = ['cadence-dark', 'cadence-hc-dark']
 export const THEME_KEY = 'basis-theme'
 export const REDUCE_KEY = 'basis-reduce'
+// The welcome's stored flag (components/welcome.tsx). Here because the
+// script reads it: when the welcome will open, it asks for the title's
+// runtime and file at parse time (decisions/2026-10-16-the-titles-runtime-
+// starts-at-parse-time.md). The runtime's WASM is self-hosted at this path
+// (scripts/rive-wasm.mjs); the title's file is lib/logos.ts's TITLE.riv.
+export const WELCOME_KEY = 'basis-welcome'
+export const RIVE_WASM = '/rive/rive.wasm'
+export const TITLE_RIV = '/rive/basisModalTitles.riv'
 
 export const themeScript = `(function(){try{
 var d=document.documentElement,q=new URLSearchParams(location.search);
@@ -52,4 +68,7 @@ if(ok.indexOf(t)<0){t=window.matchMedia('(prefers-color-scheme: dark)').matches?
 d.setAttribute('data-theme',t)}
 var p=q.get('preset');
 if(e){d.setAttribute('data-preset',['standard','snappy','cinematic'].indexOf(p)>=0?p:'standard')}
+if(!e&&location.pathname==='/'&&d.getAttribute('data-reduce-motion')==='0'){var w=null;try{w=localStorage.getItem('${WELCOME_KEY}')}catch(x){}
+if(w!=='dismissed'){var h=document.head,l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';l.setAttribute('fetchpriority','low');l.href='${RIVE_WASM}';h.appendChild(l);
+l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';l.href='${TITLE_RIV}';h.appendChild(l)}}
 }catch(e){}})();`

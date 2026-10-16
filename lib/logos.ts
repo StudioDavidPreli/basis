@@ -6,7 +6,7 @@
 
 import { config as defaultConfig, type Config } from './config'
 import { companyName } from './describe'
-import type { Theme } from '@/app/theme-script'
+import { TITLE_RIV, type Theme } from '@/app/theme-script'
 
 // "Meridian Páramo" → "meridianParamo": diacritics dropped, words joined, the
 // first lower-case and the rest capitalised.
@@ -58,7 +58,7 @@ export function logoArt(entityId: string, config: Config = defaultConfig): LogoA
 // failure; the text alone, frame 0 of the entrance, under the canvas while
 // it loads (decisions/2026-10-16-the-text-poster-is-the-placeholder.md).
 export const TITLE = {
-  riv: '/rive/basisModalTitles.riv',
+  riv: TITLE_RIV,
   artboard: 'basisTitles',
   stateMachine: 'basisSM',
   viewModel: 'BasisTitleVM',
