@@ -10,5 +10,5 @@ export default defineConfig([
     plugins: { css, 'no-inline-motion': noInlineMotion },
     rules: { 'no-inline-motion/css': 'error' },
   },
-  globalIgnores(['.next/**', '.open-next/**', '.wrangler/**', 'node_modules/**', 'eslint/fixtures/**']),
+  globalIgnores(['.next/**', '.open-next/**', '.wrangler/**', 'node_modules/**', '.claude/**', 'eslint/fixtures/**']),
 ])

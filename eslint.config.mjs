@@ -22,6 +22,9 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // Other sessions' worktrees of this repo live here, node_modules and
+    // all (git ignores them through .git/info/exclude).
+    '.claude/**',
     // The fixtures are linted by the rule's own test, never by the app's lint:
     // half of them are planted to fail.
     'eslint/fixtures/**',

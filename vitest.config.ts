@@ -11,7 +11,8 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname) } },
   test: {
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['node_modules/**', '.next/**', '.open-next/**', 'tests/e2e/**'],
+    // .claude/ holds other sessions' worktrees of this repo, node_modules and all.
+    exclude: ['node_modules/**', '.next/**', '.open-next/**', '.claude/**', 'tests/e2e/**'],
     env: { BASIS_FIXTURES: '1' },
   },
 })
