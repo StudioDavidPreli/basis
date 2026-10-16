@@ -37,6 +37,17 @@ a module or an attribute. Reduced motion flattens every preset: the override
 in `app/globals.css` is restated at `:root[data-reduce-motion='1']`
 specificity, after the presets.
 
+One scoped exception, the tool's introduction
+(`decisions/2026-10-16-the-introduction-runs-cinematic.md`): the welcome
+dialog runs Cinematic while the sheet around it runs Standard, because the
+preset belongs to the use, not the product. `styles/presets.css` therefore
+also scopes each preset to any element carrying `data-preset`, under motion
+only (`:root[data-reduce-motion='0'] [data-preset]`), so the element and its
+`::backdrop` inherit that preset's properties and reduced motion still
+flattens them through the root. The hook takes the preset as its one
+argument there, `useMotionTokens('cinematic')`, and reads the root
+everywhere else. Still no module and no value in component code.
+
 ## What Basis does not import
 
 - `presets.<id>.ambient` — the Motion Tiles clock vocabulary. Not interaction motion.
@@ -72,7 +83,9 @@ durations 100/200/400/600 ms · delays 0/50/100/200 ms · ease.standard
 ## `useMotionTokens()` — the Basis-side adapter
 
 `lib/motion/tokens.ts` exports one hook. It is the seam between Cadence and
-every Basis component.
+every Basis component. `useMotionTokens(preset?)`: without an argument the
+preset is the root's; with one, that preset, under the same reduced-motion
+branch (the welcome is the one caller).
 
 ```ts
 type MotionTokens = {
