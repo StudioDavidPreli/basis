@@ -20,10 +20,22 @@ const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variabl
 const sans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-sans', display: 'swap' })
 const dot = DotGothic16({ subsets: ['latin'], weight: '400', variable: '--font-dot', display: 'swap' })
 
+const description = 'A sourced-data surface: simulated companies, real public drivers, provenance on every figure.'
+
+// The share card (decisions/2026-10-15-the-share-card.md): David's two
+// images, the wide one first, which is the one most platforms take; the
+// square is for the apps that crop to one. metadataBase makes their URLs
+// absolute, which crawlers need; entity pages keep their own titles and
+// inherit the card.
+const card = { url: '/og/basis-1200x630.webp', width: 1200, height: 630, alt: 'Basis, sourced-data surface', type: 'image/webp' }
+const square = { url: '/og/basis-630x630.webp', width: 630, height: 630, alt: 'Basis, sourced-data surface', type: 'image/webp' }
+
 export const metadata: Metadata = {
+  metadataBase: new URL('https://basis.davidpreli.com'),
   title: 'Basis',
-  description:
-    'A sourced-data surface: simulated companies, real public drivers, provenance on every figure.',
+  description,
+  openGraph: { type: 'website', siteName: 'Basis', title: 'Basis', description, url: '/', images: [card, square] },
+  twitter: { card: 'summary_large_image', title: 'Basis', description, images: [{ url: card.url, alt: card.alt }] },
 }
 
 // `drawer` is the parallel slot app/@drawer: nothing on the sheet, the
