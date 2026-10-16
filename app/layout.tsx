@@ -20,7 +20,10 @@ const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variabl
 const sans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-sans', display: 'swap' })
 const dot = DotGothic16({ subsets: ['latin'], weight: '400', variable: '--font-dot', display: 'swap' })
 
-const description = 'A sourced-data surface: simulated companies, real public drivers, provenance on every figure.'
+// David's words (decisions/2026-10-15-the-sheet-title.md): the title names
+// what Basis is and what it is built on; the description, what it shows.
+const title = 'Basis · A sourced-data surface built on the Cadence motion system'
+const description = 'Simulated companies, real public data, provenance on every figure.'
 
 // The share card (decisions/2026-10-15-the-share-card.md): David's two
 // images, the wide one first, which is the one most platforms take; the
@@ -32,10 +35,10 @@ const square = { url: '/og/basis-630x630.webp', width: 630, height: 630, alt: 'B
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://basis.davidpreli.com'),
-  title: 'Basis',
+  title,
   description,
-  openGraph: { type: 'website', siteName: 'Basis', title: 'Basis', description, url: '/', images: [card, square] },
-  twitter: { card: 'summary_large_image', title: 'Basis', description, images: [{ url: card.url, alt: card.alt }] },
+  openGraph: { type: 'website', siteName: 'Basis', title, description, url: '/', images: [card, square] },
+  twitter: { card: 'summary_large_image', title, description, images: [{ url: card.url, alt: card.alt }] },
 }
 
 // `drawer` is the parallel slot app/@drawer: nothing on the sheet, the
