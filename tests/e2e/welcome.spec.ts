@@ -139,6 +139,70 @@ test.describe('the welcome', () => {
   // (contracts/agent-presence.md, "Basis title"). At delivery the .riv's
   // art sat 18 px up and left of the poster's; this waits on a re-export.
   test.fixme('the title canvas at rest draws where its poster does', async () => {})
+
+  // The text poster is the placeholder under motion
+  // (decisions/2026-10-16-the-text-poster-is-the-placeholder.md): the canvas's
+  // first frame must put the two lines where the poster has them, or the
+  // handover is a jump. Measured as the logos spec measures its posters: the
+  // poster drawn at the canvas's pixel size against the canvas's own pixels,
+  // in the text's region only (the right four fifths of the frame; the
+  // markers enter in the left fifth while the title holds), sampled across
+  // the first second and a half.
+  //
+  // Measured 2026-10-16 on the delivered files, built output, 494×171
+  // canvas: poster text {l:138, r:475, t:33, b:156}, canvas text
+  // {l:123, r:459, t:18, b:141}. Same width and height, 15 device pixels
+  // up and left, 18 artboard pixels: the offset the October 15 decision
+  // records. The fixme lifts when the re-export lands.
+  test.fixme('the title canvas draws its text where the text poster has it', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto('/')
+    const title = welcome(page).locator('[data-title]')
+    await expect(title).toHaveAttribute('data-title', /pending|animated/)
+    const pendingSrc = await title.locator('img').getAttribute('src')
+    expect(pendingSrc).toMatch(/basisModalTitlesText(Light|Dark)\.svg$/)
+    await expect(title).toHaveAttribute('data-title', 'animated', { timeout: 15_000 })
+    const result = await title.evaluate(async (box: HTMLElement) => {
+      type Bounds = { l: number; r: number; t: number; b: number }
+      const bounds = (data: Uint8ClampedArray, w: number, h: number, from: number): Bounds | null => {
+        let l = w, r = -1, t = h, b = -1
+        for (let y = 0; y < h; y++)
+          for (let x = from; x < w; x++)
+            if (data[(y * w + x) * 4 + 3]! > 40) {
+              if (x < l) l = x
+              if (x > r) r = x
+              if (y < t) t = y
+              if (y > b) b = y
+            }
+        return r < 0 ? null : { l, r, t, b }
+      }
+      const canvas = box.querySelector('canvas')!
+      const w = canvas.width, h = canvas.height
+      const from = Math.round(w * 0.2)
+      const img = box.querySelector('img')!
+      await img.decode()
+      const off = document.createElement('canvas')
+      off.width = w; off.height = h
+      const ctx = off.getContext('2d')!
+      ctx.drawImage(img, 0, 0, w, h)
+      const poster = bounds(ctx.getImageData(0, 0, w, h).data, w, h, from)
+      const cctx = canvas.getContext('2d', { willReadFrequently: true })!
+      const samples: Bounds[] = []
+      for (let i = 0; i < 10; i++) {
+        const s = bounds(cctx.getImageData(0, 0, w, h).data, w, h, from)
+        if (s) samples.push(s)
+        await new Promise(r => setTimeout(r, 150))
+      }
+      if (!poster || samples.length === 0) return { poster, samples: samples.length, worst: null, delta: null, size: [w, h] }
+      const delta = (s: Bounds) => Math.max(Math.abs(s.l - poster.l), Math.abs(s.r - poster.r), Math.abs(s.t - poster.t), Math.abs(s.b - poster.b))
+      // The title holds through the entrance, so every sample has to agree.
+      const worst = samples.reduce((a, s) => (delta(s) > delta(a) ? s : a))
+      return { poster, samples: samples.length, worst, delta: delta(worst), size: [w, h] }
+    })
+    expect(result.poster, 'the text poster drew nothing').not.toBeNull()
+    expect(result.worst, 'the canvas drew nothing').not.toBeNull()
+    expect(result.delta, `text poster ${JSON.stringify(result.poster)} vs the farthest canvas frame ${JSON.stringify(result.worst)} in ${JSON.stringify(result.size)}`).toBeLessThanOrEqual(4)
+  })
 })
 
 test.describe('the sheet lands charted', () => {

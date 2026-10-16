@@ -7,6 +7,7 @@ import { ANIMATED, POSTERS, logoArt, logoKey, TITLE } from './logos'
 
 const PUBLIC = join(__dirname, '..', 'public')
 const files = (dir: string) => readdirSync(join(PUBLIC, dir)).filter(f => !f.startsWith('.'))
+const titlePosters = () => [...Object.values(TITLE.posters), ...Object.values(TITLE.textPosters)]
 
 describe('logoKey', () => {
   it('camel-cases a name and drops its diacritics', () => {
@@ -34,7 +35,7 @@ describe('the delivered art matches public/', () => {
       const art = logoArt(id)!
       return [art.posters.passbook, art.posters.operate].map(p => p.replace('/fallbacks/', ''))
     })
-    expected.push(...Object.values(TITLE.posters).map(p => p.replace('/fallbacks/', '')))
+    expected.push(...titlePosters().map(p => p.replace('/fallbacks/', '')))
     expect(files('fallbacks').sort()).toEqual(expected.sort())
   })
 
@@ -50,7 +51,7 @@ describe('the delivered art matches public/', () => {
   // quarter larger). This holds the frame; the e2e logos spec holds the
   // drawing by comparing drawn bounds against the canvas.
   it('every poster is on the 500×500 artboard frame', () => {
-    const title = Object.values(TITLE.posters).map(p => p.replace('/fallbacks/', ''))
+    const title = titlePosters().map(p => p.replace('/fallbacks/', ''))
     for (const f of files('fallbacks').filter(f => f.endsWith('.svg') && !title.includes(f))) {
       const svg = readFileSync(join(PUBLIC, 'fallbacks', f), 'utf8')
       const viewBox = /viewBox="([^"]*)"/.exec(svg)?.[1]?.trim().split(/[\s,]+/).map(Number)
@@ -58,10 +59,10 @@ describe('the delivered art matches public/', () => {
     }
   })
 
-  // The Basis title's posters are stills of its own artboard, 588×204
-  // (contracts/agent-presence.md, "Basis title").
+  // The Basis title's posters, rest pose and text alone, are stills of its
+  // own artboard, 588×204 (contracts/agent-presence.md, "Basis title").
   it('the title posters are on the title artboard frame', () => {
-    for (const p of Object.values(TITLE.posters)) {
+    for (const p of titlePosters()) {
       const svg = readFileSync(join(PUBLIC, p), 'utf8')
       const viewBox = /viewBox="([^"]*)"/.exec(svg)?.[1]?.trim().split(/[\s,]+/).map(Number)
       expect(viewBox, p).toEqual([0, 0, TITLE.width, TITLE.height])

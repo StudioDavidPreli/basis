@@ -8,15 +8,18 @@ import { useTheme } from './use-theme'
 import styles from './basis-title.module.css'
 
 // The Basis title in the welcome dialog (contracts/agent-presence.md, "Basis
-// title"; decisions/2026-10-15-rive-for-the-basis-title.md). Decorative: the
+// title"; decisions/2026-10-15-rive-for-the-basis-title.md and
+// 2026-10-16-the-text-poster-is-the-placeholder.md). Decorative: the
 // dialog's hidden <h2> carries the same words, so this is aria-hidden.
 //
-// Unlike a logo, the poster is not the placeholder. The animation plays from
-// empty to settled, and the poster is the settled frame, so under motion the
-// box stays empty until the canvas has drawn and the markers' entrance plays
-// from its start. The poster is the title under reduced motion and if the
-// file fails. The dialog mounts this only once open, after hydration, so the
-// reduced-motion flag it reads is the real one.
+// Two posters, one shown at a time. Under motion the text poster, frame 0
+// of the entrance, is on screen from the dialog's first paint until the
+// canvas has drawn its first frame, which is the same two lines in the same
+// place; then the markers enter over the held title. Under reduced motion,
+// and if the file fails, the rest-pose poster is the title, markers in.
+// The dialog mounts this only once open, after hydration, so the theme and
+// the reduced-motion flag it reads are the real ones, and one <img> whose
+// source follows them fetches one file, never the posters that cannot show.
 
 const BasisTitleRive = dynamic(() => import('./basis-title-rive'), { ssr: false })
 
@@ -31,12 +34,11 @@ export function BasisTitle() {
   }, [])
 
   const animate = !reducedMotion && state !== 'failed'
+  const poster = animate ? TITLE.textPosters[theme] : TITLE.posters[theme]
   return (
     <div className={styles.title} aria-hidden="true" data-title={animate ? (state === 'painted' ? 'animated' : 'pending') : 'poster'}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={styles.posterLight} src={TITLE.posters.passbook} alt="" width={TITLE.width} height={TITLE.height} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={styles.posterDark} src={TITLE.posters.operate} alt="" width={TITLE.width} height={TITLE.height} />
+      <img className={styles.poster} src={poster} alt="" width={TITLE.width} height={TITLE.height} />
       {animate && <BasisTitleRive theme={theme} onPainted={onPainted} onFailed={onFailed} />}
     </div>
   )

@@ -53,7 +53,10 @@ export function logoArt(entityId: string, config: Config = defaultConfig): LogoA
 }
 
 // The Basis title, the welcome dialog's (contracts/agent-presence.md, "Basis
-// title"): one file, its own names, the logos' instance names.
+// title"): one file, its own names, the logos' instance names, and two
+// posters per theme: the rest pose, markers in, for reduced motion and
+// failure; the text alone, frame 0 of the entrance, under the canvas while
+// it loads (decisions/2026-10-16-the-text-poster-is-the-placeholder.md).
 export const TITLE = {
   riv: '/rive/basisModalTitles.riv',
   artboard: 'basisTitles',
@@ -61,6 +64,7 @@ export const TITLE = {
   viewModel: 'BasisTitleVM',
   instances: THEME_INSTANCE,
   posters: { passbook: '/fallbacks/basisModalTitlesLight.svg', operate: '/fallbacks/basisModalTitlesDark.svg' } satisfies Record<Theme, string>,
+  textPosters: { passbook: '/fallbacks/basisModalTitlesTextLight.svg', operate: '/fallbacks/basisModalTitlesTextDark.svg' } satisfies Record<Theme, string>,
   width: 588,
   height: 204,
 } as const

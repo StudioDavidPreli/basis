@@ -1,14 +1,14 @@
 /* The title's box: the artboard's aspect at the dialog's width. The canvas
-   lies over the posters. Under motion nothing shows until the canvas has
-   drawn; under reduced motion, and if the file fails, the theme's poster
-   does (basis-title.tsx). */
+   lies over the poster. The poster shows while the canvas loads (the text
+   alone) and under reduced motion or failure (the rest pose); the two swap
+   in one attribute flip once the canvas has drawn (basis-title.tsx). */
 .title {
   position: relative;
   width: 100%;
   aspect-ratio: 588 / 204;
 }
 
-.title > img,
+.poster,
 .canvas {
   position: absolute;
   inset: 0;
@@ -16,24 +16,11 @@
   height: 100%;
 }
 
-/* The theme's poster, by the attribute the inline script sets. */
-.posterDark {
-  display: none;
-}
-
-:global(:root[data-theme='operate']) .posterLight {
-  display: none;
-}
-
-:global(:root[data-theme='operate']) .posterDark {
-  display: block;
-}
-
-.title:not([data-title='poster']) > img {
+.canvas {
   visibility: hidden;
 }
 
-.canvas {
+.title[data-title='animated'] .poster {
   visibility: hidden;
 }
 
