@@ -198,8 +198,13 @@ export function usePreset(): Preset {
   return useSyncExternalStore(subscribePreset, getPreset, () => 'standard')
 }
 
-export function useMotionTokens(): MotionTokens {
+// Without an argument, the root's preset. With one, that preset, under the
+// same reduced-motion branch: the scoped exception the contract allows for
+// the welcome (decisions/2026-10-16-the-introduction-runs-cinematic.md),
+// whose element carries the matching data-preset for its stylesheet.
+export function useMotionTokens(scoped?: Preset): MotionTokens {
   const reducedMotion = useReducedMotion()
-  const preset = usePreset()
+  const root = usePreset()
+  const preset = scoped ?? root
   return useMemo(() => (reducedMotion ? tokensBy[preset].on : tokensBy[preset].off), [preset, reducedMotion])
 }

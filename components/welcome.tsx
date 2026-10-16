@@ -70,13 +70,15 @@ type Props = {
 }
 
 export function Welcome({ open, dismissed, onClose }: Props) {
-  const { durations, easings } = useMotionTokens()
-  // The welcome is a scene change, not a summoned tool, so it does not share
-  // the palette's enter. Panel and backdrop move as one object: in on slow
-  // and standard, out on base and exit, the stylesheet's ::backdrop on the
-  // same tokens (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md).
-  const enter = { duration: durations.slow, ease: easings.standard }
-  const exit = { duration: durations.base, ease: easings.exit }
+  // The introduction runs Cinematic inside a Standard sheet
+  // (decisions/2026-10-16-the-introduction-runs-cinematic.md): the preset
+  // belongs to the use. The dialog carries the matching data-preset so the
+  // stylesheet's ::backdrop reads the same tokens. Panel and backdrop move as
+  // one object: in on slow and enter, out on fast and exit
+  // (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md).
+  const { durations, easings } = useMotionTokens('cinematic')
+  const enter = { duration: durations.slow, ease: easings.enter }
+  const exit = { duration: durations.fast, ease: easings.exit }
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
   const headingId = useId()
@@ -147,6 +149,7 @@ export function Welcome({ open, dismissed, onClose }: Props) {
       className={styles.dialog}
       aria-labelledby={headingId}
       data-welcome
+      data-preset="cinematic"
       // The stylesheet fades the backdrop out with the panel's exit; the
       // element itself stays open until finish() closes it.
       data-open={open ? 'true' : 'false'}

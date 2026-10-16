@@ -90,10 +90,12 @@ test.describe('the welcome', () => {
     expect(await page.evaluate(() => localStorage.getItem('basis-welcome'))).toBeNull()
   })
 
-  // The dim fades in with the panel on slow and standard, and out with it
-  // (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md), so the
-  // colour is polled: a read mid-transition is a read of the wrong frame.
-  test('the backdrop dims with the paper, fades with the panel on slow, and is solid under reduced transparency', async ({ page }) => {
+  // The dim fades in with the panel on Cinematic slow, and out with it
+  // (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md and
+  // 2026-10-16-the-introduction-runs-cinematic.md), so the colour is polled:
+  // a read mid-transition is a read of the wrong frame. The duration is the
+  // dialog's own preset's, inherited by its backdrop, not the root's.
+  test('the backdrop dims with the paper, fades with the panel on Cinematic slow, and is solid under reduced transparency', async ({ page }) => {
     const backdrop = (prop: 'backgroundColor' | 'transitionDuration' | 'transitionProperty') =>
       welcome(page).evaluate((el, prop) => getComputedStyle(el, '::backdrop')[prop], prop)
     await transparency(page, 'no-preference')
@@ -101,10 +103,13 @@ test.describe('the welcome', () => {
     await expect(welcome(page)).toBeVisible()
     await expect.poll(() => backdrop('backgroundColor')).toMatch(/^(rgba|color)\(/)
     expect(await backdrop('transitionProperty')).toBe('background-color')
-    // Both in seconds: the token is written `.4s`, the computed value `0.4s`.
+    // Both in seconds: a token may be written `.4s`, the computed value `0.4s`.
     const seconds = (v: string) => (v.endsWith('ms') ? Number.parseFloat(v) / 1000 : Number.parseFloat(v))
-    const slow = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--cadence-duration-slow').trim())
-    expect(seconds(await backdrop('transitionDuration'))).toBeCloseTo(seconds(slow), 3)
+    const slowOf = (el: Element) => getComputedStyle(el).getPropertyValue('--cadence-duration-slow').trim()
+    const dialogSlow = await welcome(page).evaluate(slowOf)
+    const rootSlow = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--cadence-duration-slow').trim())
+    expect(seconds(dialogSlow), 'the dialog runs Cinematic').toBeGreaterThan(seconds(rootSlow))
+    expect(seconds(await backdrop('transitionDuration'))).toBeCloseTo(seconds(dialogSlow), 3)
     await transparency(page, 'reduce')
     await expect.poll(() => backdrop('backgroundColor')).toBe('rgb(211, 227, 198)')
   })
@@ -124,6 +129,8 @@ test.describe('the welcome', () => {
     const title = welcome(page).locator('[data-title]')
     await expect(title).toHaveAttribute('data-title', 'poster')
     await expect(title.locator('img').first()).toBeVisible()
+    // The dialog's scoped Cinematic preset flattens with everything else.
+    expect(await welcome(page).evaluate(el => getComputedStyle(el).getPropertyValue('--cadence-duration-slow').trim())).toBe('10ms')
     await page.waitForLoadState('networkidle')
     // The ledger's rows show Markers, so nothing else on the sheet asks for
     // the runtime either.

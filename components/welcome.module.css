@@ -20,22 +20,24 @@
 }
 
 /* The rest of the sheet, dimmed with the palette's backdrop. The dim and
-   the panel are one object: up from clear on the panel's own tokens, slow
-   and standard, from the frame showModal() puts it in the top layer, and
-   back to clear on the panel's exit, base and exit-ease, while the panel
-   exits (welcome.tsx keeps the element open until then, and says so with
-   data-open). Without the fade the dim landed in one frame over a sheet
-   that had just painted, which read as a flash
+   the panel are one object, on Cinematic: the dialog carries
+   data-preset="cinematic" and the backdrop inherits its properties
+   (decisions/2026-10-16-the-introduction-runs-cinematic.md). Up from clear
+   on slow and enter from the frame showModal() puts it in the top layer,
+   back to clear on fast and exit while the panel exits (welcome.tsx keeps
+   the element open until then, and says so with data-open). Without the
+   fade the dim landed in one frame over a sheet that had just painted,
+   which read as a flash
    (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md). A browser
    without @starting-style keeps the instant dim. */
 .dialog::backdrop {
   background: color-mix(in srgb, var(--paper) 55%, transparent);
-  transition: background-color var(--cadence-duration-slow) var(--cadence-ease-standard);
+  transition: background-color var(--cadence-duration-slow) var(--cadence-ease-enter);
 }
 
 .dialog[data-open='false']::backdrop {
   background: transparent;
-  transition: background-color var(--cadence-duration-base) var(--cadence-ease-exit);
+  transition: background-color var(--cadence-duration-fast) var(--cadence-ease-exit);
 }
 
 /* Reduced transparency: nothing shows through. The fade stays. */
