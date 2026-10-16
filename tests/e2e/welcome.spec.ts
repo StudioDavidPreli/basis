@@ -90,14 +90,23 @@ test.describe('the welcome', () => {
     expect(await page.evaluate(() => localStorage.getItem('basis-welcome'))).toBeNull()
   })
 
-  test('the backdrop dims with the paper, and is solid under reduced transparency', async ({ page }) => {
-    const backdrop = () => welcome(page).evaluate(el => getComputedStyle(el, '::backdrop').backgroundColor)
+  // The dim fades in with the panel on slow and standard, and out with it
+  // (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md), so the
+  // colour is polled: a read mid-transition is a read of the wrong frame.
+  test('the backdrop dims with the paper, fades with the panel on slow, and is solid under reduced transparency', async ({ page }) => {
+    const backdrop = (prop: 'backgroundColor' | 'transitionDuration' | 'transitionProperty') =>
+      welcome(page).evaluate((el, prop) => getComputedStyle(el, '::backdrop')[prop], prop)
     await transparency(page, 'no-preference')
     await page.goto('/')
     await expect(welcome(page)).toBeVisible()
-    expect(await backdrop()).toMatch(/^(rgba|color)\(/)
+    await expect.poll(() => backdrop('backgroundColor')).toMatch(/^(rgba|color)\(/)
+    expect(await backdrop('transitionProperty')).toBe('background-color')
+    // Both in seconds: the token is written `.4s`, the computed value `0.4s`.
+    const seconds = (v: string) => (v.endsWith('ms') ? Number.parseFloat(v) / 1000 : Number.parseFloat(v))
+    const slow = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--cadence-duration-slow').trim())
+    expect(seconds(await backdrop('transitionDuration'))).toBeCloseTo(seconds(slow), 3)
     await transparency(page, 'reduce')
-    expect(await backdrop()).toBe('rgb(211, 227, 198)')
+    await expect.poll(() => backdrop('backgroundColor')).toBe('rgb(211, 227, 198)')
   })
 
   test('the title paints its canvas under motion, and shows the poster under reduced motion with no runtime fetched', async ({ page }) => {

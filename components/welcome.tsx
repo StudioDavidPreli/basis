@@ -70,7 +70,13 @@ type Props = {
 }
 
 export function Welcome({ open, dismissed, onClose }: Props) {
-  const { transitions } = useMotionTokens()
+  const { durations, easings } = useMotionTokens()
+  // The welcome is a scene change, not a summoned tool, so it does not share
+  // the palette's enter. Panel and backdrop move as one object: in on slow
+  // and standard, out on base and exit, the stylesheet's ::backdrop on the
+  // same tokens (decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md).
+  const enter = { duration: durations.slow, ease: easings.standard }
+  const exit = { duration: durations.base, ease: easings.exit }
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
   const headingId = useId()
@@ -141,6 +147,9 @@ export function Welcome({ open, dismissed, onClose }: Props) {
       className={styles.dialog}
       aria-labelledby={headingId}
       data-welcome
+      // The stylesheet fades the backdrop out with the panel's exit; the
+      // element itself stays open until finish() closes it.
+      data-open={open ? 'true' : 'false'}
       onCancel={e => {
         e.preventDefault()
         dismiss()
@@ -157,7 +166,7 @@ export function Welcome({ open, dismissed, onClose }: Props) {
         className={styles.panel}
         initial={{ opacity: 0, y: -4 }}
         animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }}
-        transition={open ? transitions.enter : transitions.exit}
+        transition={open ? enter : exit}
         onAnimationComplete={finish}
       >
         <h2 id={headingId} className="sr-only">
