@@ -28,22 +28,22 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 <!-- token-table:start -->
 | Interaction | Duration | Easing / transition | Delay |
 |---|---|---|---|
-| Figure value tick (`useAnimatedNumber`) | `slow` | `standard` | `none` |
+| Figure value tick (`useAnimatedNumber`); on refresh, a heat cell's tint, a scatter point's position, and a ledger bar's length move with their number | `slow` | `standard` | `none` |
 | Figure direction color decay | `slower` | `exit` | `none` |
 | Figure shimmer (refreshing) | `slower`, looped | `linear` | `none` |
 | Refresh arrow turn (while a refresh runs) | `slower`, looped | `linear` | `none` |
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
-| Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
+| Table row reorder on sort; the heat view's rows follow the same sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
 | Row lane step as its reorder starts (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | `none` |
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
-| Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
-| Chart domain rescale (time range) | `slow` | `standard` | `none` |
-| Chart cursor: the rule, the dots, and the point card enter / exit | `transitions.enter` / `transitions.exit` | | `none` |
-| Diagnostics card enter / exit (the hover preview and the pinned panel) | `transitions.enter` / `transitions.exit` | | `none` |
-| Window set / reset (the shade, the handles, the axis tags) | `base` | `standard` | `none` |
+| Chart line draw-in / out; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
+| Chart domain rescale (time range); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
+| Chart cursor: the rule, the dots, and the point card enter / exit; the scatter's ring and card; the heat's row and column pick-out and card | `transitions.enter` / `transitions.exit` | | `none` |
+| Diagnostics card enter / exit (the hover preview and the pinned panel), the waterfall's included | `transitions.enter` / `transitions.exit` | | `none` |
+| Window set / reset (the shade, the handles, the axis tags); scatter points, heat cells, and the fan answering a typed or reset window | `base` | `standard` | `none` |
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
@@ -55,6 +55,18 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
+| Hero view switch: the selected marker slides | `base` | `standard` | `none` |
+| Hero view switch: the outgoing view leaves | `fast` | `exit` | `none` |
+| Line ↔ scatter: each charted row's marker travels between its endpoint and its point | `slow` | `standard` | `short` stagger by selection order, capped at 8 |
+| Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
+| Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
+| Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |
+| Ledger bar: first show, growing from zero | `slow` | `enter` | the row's reorder stagger |
+| Ledger bar: the sort moves to another column (the old bar retracts, the new one grows) | `fast` / `slow` | `exit` / `enter` | `none` |
+| Projection fan opens from today, left to right (the 50% band) | `slow` | `enter` | starts on the line draw-in's completion |
+| Projection fan: the 90% tint follows | `slow` | `enter` | `short` |
+| Projection fan closes into the today rule (toggle off) | `base` | `exit` | `none` |
+| Waterfall: steps build in order, each from the last step's level, its connector with it | `base` | `enter` | `medium` stagger, on the card's entry only |
 <!-- token-table:end -->
 
 Basis takes motion from Cadence and nothing visual. Under reduced motion, durations flatten to 10 ms, delays to zero, springs to a timed branch, and loops are removed.
