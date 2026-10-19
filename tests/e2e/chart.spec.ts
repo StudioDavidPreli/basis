@@ -158,6 +158,23 @@ test.describe('the chart', () => {
     }
   })
 
+  // "(1,000 bps)" ran past the frame's left edge (David, 2026-10-19); the
+  // axis writes basis points in thousands (lib/format.ts, formatTick).
+  test('every value-axis label stays inside its column, on every metric', async ({ page }) => {
+    for (const metric of ['level', 'change', 'multiple']) {
+      await page.goto(`/?metric=${metric}&reduce=1`)
+      await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+      const over = await page.evaluate(() => {
+        const axis = document.querySelector('[class*="yAxis"]')!
+        const a = axis.getBoundingClientRect()
+        return [...axis.querySelectorAll('[class*="yTick"]')].filter(t => t.getBoundingClientRect().left < a.left).map(t => t.textContent)
+      })
+      expect(over, metric).toEqual([])
+    }
+    await page.goto('/?metric=change&reduce=1')
+    await expect(page.locator('[class*="yAxis"]')).toContainText('1k bps')
+  })
+
   test('a range change within one metric still rescales, and redraws nothing', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)

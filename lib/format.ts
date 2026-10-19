@@ -49,3 +49,18 @@ export function formatValue(format: FormatKey, value: number | string, options: 
       return signed(whole.format(abs), value, parentheses)
   }
 }
+
+// The chart's value axis is a narrow column, and a full figure such as
+// "(1,000 bps)" ran past the plot's edge (David, 2026-10-19). A tick is a
+// reference line, not a reading, so it may be compact: basis points from a
+// thousand up in thousands, "1k bps", "(1.5k bps)", "+2k bps". Every other
+// format reads as the figure does. The card and the readout keep the full
+// figure.
+const thousands = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
+
+export function formatTick(format: FormatKey, value: number, options: FormatOptions = {}): string {
+  if (format !== 'bps' || !Number.isFinite(value) || Math.abs(value) < 1000) return formatValue(format, value, options)
+  const text = `${thousands.format(Math.abs(value) / 1000)}k bps`
+  if (value > 0) return `+${text}`
+  return signed(text, value, options.parentheses ?? false)
+}

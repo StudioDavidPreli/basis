@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatValue } from './format'
+import { formatTick, formatValue } from './format'
 
 describe('formatValue', () => {
   it('number: two decimals, parentheses for negatives when asked', () => {
@@ -38,5 +38,21 @@ describe('the diagnostics formats', () => {
     expect(formatValue('days', 11.4)).toBe('11 d')
     expect(formatValue('integer', 1831)).toBe('1,831')
     expect(formatValue('integer', -3)).toBe('−3')
+  })
+})
+
+describe('formatTick', () => {
+  it('writes basis points from a thousand up in thousands, signed as the figure is', () => {
+    expect(formatTick('bps', 1000)).toBe('+1k bps')
+    expect(formatTick('bps', -1000, { parentheses: true })).toBe('(1k bps)')
+    expect(formatTick('bps', -1500)).toBe('−1.5k bps')
+    expect(formatTick('bps', 2000)).toBe('+2k bps')
+  })
+
+  it('leaves small basis points, zero, and every other format as the figure reads', () => {
+    expect(formatTick('bps', 500)).toBe('+500 bps')
+    expect(formatTick('bps', 0)).toBe('0 bps')
+    expect(formatTick('number', 12345.6)).toBe(formatValue('number', 12345.6))
+    expect(formatTick('multiple', 22)).toBe('22.0x')
   })
 })

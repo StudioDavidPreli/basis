@@ -3,7 +3,7 @@
 import type { ColumnConfig } from '@/lib/config'
 import type { AgentPhase } from '@/worker/refresh'
 import type { SeriesSnapshot } from '@/lib/types'
-import { formatValue } from '@/lib/format'
+import { formatTick, formatValue } from '@/lib/format'
 import { present } from '@/lib/present'
 import { seriesFor } from '@/lib/series'
 import { domainFor, summarize, toPoints, viewPoints } from '@/lib/chart'
@@ -58,6 +58,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
   const format = (v: number) => formatValue(column.format, v, { parentheses })
+  const tickFormat = (v: number) => formatTick(column.format, v, { parentheses })
 
   const statusOf = (row: Row) => {
     const cell = row.cells[column.key]
@@ -184,6 +185,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
         rows={chartRows}
         range={range}
         format={format}
+        tickFormat={tickFormat}
         provisionalFrom={provisionalFrom}
         hoveredId={hoveredId}
         openId={openId}

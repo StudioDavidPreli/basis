@@ -97,6 +97,9 @@ type Props = {
   rows: ChartRow[] // the charted rows, in selection order
   range: Range
   format: (v: number) => string
+  // The value axis's labels, compact where the figure is long (lib/format.ts,
+  // formatTick); the card and the readout keep `format`. Defaults to it.
+  tickFormat?: (v: number) => string
   provisionalFrom: string | null // ISO date; the band from here to the end
   hoveredId: string | null
   openId: string | null
@@ -128,7 +131,7 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '' }: Props) {
+export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '' }: Props) {
   const { durations, easings } = useMotionTokens()
   const target = domainFor(
     rows.map(r => r.points),
@@ -311,7 +314,7 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
         <div className={styles.yAxis} aria-hidden="true">
           <AnimatePresence initial={false}>
             <motion.div key={metric} className={styles.layer} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
-              {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={format(v)} />)}
+              {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={tickFormat(v)} />)}
             </motion.div>
           </AnimatePresence>
         </div>
