@@ -7,11 +7,20 @@
 //   domain rescale           slow            standard
 //   ribbon hover highlight   fast            standard       (CSS, the stylesheet)
 //
-// The domain is four MotionValues. A range or metric change animates them
-// to the new window and every ribbon's `d`, every tick's position, and the
-// provisional band follow through useTransform, so a rescale is one
-// animation and no React render per frame. Under reduced motion the
-// durations are 10 ms and both are instant.
+// The domain is four MotionValues. A range change animates them to the new
+// window and every ribbon's `d`, every tick's position, and the provisional
+// band follow through useTransform, so a rescale is one animation and no
+// React render per frame. Under reduced motion the durations are 10 ms and
+// both are instant.
+//
+// A metric switch is not a rescale (decisions/2026-10-19-a-metric-switch-
+// redraws.md): the metrics' units differ, and a tween between their domains
+// passes through numbers that belong to neither. The ribbons, gridlines, y
+// ticks, and endpoints sit in groups keyed by the metric. On a switch the old
+// group leaves on fast / exit with the props it was last drawn with, its own
+// domain and points; the domain is made new at the new window, as a first
+// domain is; the new ticks and gridlines fade in on base / enter; and every
+// ribbon draws in again from the left, staggered by selection order.
 //
 // A domain after none (the first row charted, or the first after a clear)
 // is set, not animated, and it is set by making four new values at the
@@ -64,7 +73,7 @@
 // alternative. The readout is a live region so keyboard focus on a row
 // reads the point.
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
@@ -98,6 +107,9 @@ type Props = {
   // Absent on the In Practice stage, which has no diagnostics: a press
   // there sets nothing, so it starts no brush.
   onWindow?: (window: Window | null) => void
+  // The charted metric's key. A change is a redraw, not a rescale. Absent on
+  // the In Practice stage, whose metric never changes.
+  metric?: string
 }
 
 // A measurement debounce, not a motion value: the frame is committed once
@@ -116,7 +128,7 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow }: Props) {
+export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '' }: Props) {
   const { durations, easings } = useMotionTokens()
   const target = domainFor(
     rows.map(r => r.points),
@@ -154,15 +166,16 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     }
   }, [])
 
-  // The animated domain. A window after none is set, not animated: the
-  // four values are made new at it, in this render, decided from the
-  // target itself (the header explains why not a jump). A clear keeps the
-  // last values, so the ribbons draw out on the window they were on. Every
-  // later change animates the values on slow / standard, so a change never
-  // renders per frame.
+  // The animated domain. A window after none, or the first window of a new
+  // metric, is set, not animated: the four values are made new at it, in
+  // this render, decided from the target and the metric themselves (the
+  // header explains why not a jump). The old metric's group keeps the old
+  // values as it leaves. A clear keeps the last values, so the ribbons draw
+  // out on the window they were on. Every later change animates the values
+  // on slow / standard, so a change never renders per frame.
   const hasTarget = target !== null
-  const [held, setHeld] = useState(() => ({ hasTarget, dom: domainValues(target) }))
-  if (held.hasTarget !== hasTarget) setHeld({ hasTarget, dom: hasTarget ? domainValues(target) : held.dom })
+  const [held, setHeld] = useState(() => ({ hasTarget, metric, dom: domainValues(target) }))
+  if (held.hasTarget !== hasTarget || held.metric !== metric) setHeld({ hasTarget, metric, dom: hasTarget ? domainValues(target) : held.dom })
   const dom = held.dom
   const svg = useRef<SVGSVGElement>(null)
   const targetKey = target ? target.join(',') : ''
@@ -275,12 +288,18 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
   // a single toggle draws at once, a Shift-range or select-all cascades.
   // The previous committed set is kept beside the current one, as the
   // ledger keeps its previous order, so an arrival is a ribbon that was not
-  // in the last render.
-  const key = rows.map(r => r.id).join('|')
+  // in the last render. On a metric switch every ribbon arrives.
+  const key = `${metric}#${rows.map(r => r.id).join('|')}`
   const [keys, setKeys] = useState({ prev: key, current: key })
   if (keys.current !== key) setKeys({ prev: keys.current, current: key })
-  const prevIds = new Set((keys.current === key ? keys.prev : keys.current).split('|').filter(Boolean))
+  const [prevMetric, prevList = ''] = (keys.current === key ? keys.prev : keys.current).split('#')
+  const prevIds = new Set(prevMetric === metric ? prevList.split('|').filter(Boolean) : [])
   const arriving = rows.map(r => r.id).filter(id => !prevIds.has(id))
+  // The metric's groups: leave on fast / exit, arrive on base / enter. The
+  // outer presences skip the arrival on the first render, so landing draws
+  // as it always has.
+  const leave = { opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }
+  const arrive = { duration: durations.base, ease: easings.enter }
 
   const focusId = hoveredId && rows.some(r => r.id === hoveredId) ? hoveredId : null
   const provisionalMs = provisionalFrom ? dateMs(provisionalFrom) : null
@@ -290,31 +309,48 @@ export function TimeSeriesChart({ rows, range, format, provisionalFrom, hoveredI
     <div className={styles.wrap}>
       <div className={styles.plot} role="img" aria-label={summary} data-focus={focusId ?? undefined} data-cursor={anchorPoint ? '' : undefined}>
         <div className={styles.yAxis} aria-hidden="true">
-          {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={format(v)} />)}
+          <AnimatePresence initial={false}>
+            <motion.div key={metric} className={styles.layer} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
+              {target && yTicks(target, Y_TICKS).map(v => <YTick key={v} value={v} dom={dom} frame={frame} label={format(v)} />)}
+            </motion.div>
+          </AnimatePresence>
         </div>
         <div ref={box} className={styles.box} data-dragging={drag ? '' : undefined} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave} onPointerDown={onWindow ? onPointerDown : undefined} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <svg ref={svg} className={styles.svg} viewBox={`0 0 ${frame.width} ${frame.height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
-            {target && yTicks(target, Y_TICKS).map(v => <GridLine key={v} value={v} dom={dom} frame={frame} />)}
+            <AnimatePresence initial={false}>
+              <motion.g key={metric} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
+                {target && yTicks(target, Y_TICKS).map(v => <GridLine key={v} value={v} dom={dom} frame={frame} />)}
+              </motion.g>
+            </AnimatePresence>
             {target && provisionalMs !== null && <Provisional from={provisionalMs} dom={dom} frame={frame} />}
             <AnimatePresence>{target && win && !drag && <Shade key="shade" window={win} dom={dom} frame={frame} />}</AnimatePresence>
             {drag && <DragPreview a={dragA} b={dragB} dom={dom} frame={frame} />}
-            <AnimatePresence>
-              {rows.map(r => (
-                <Ribbon
-                  key={r.id}
-                  row={r}
-                  dom={dom}
-                  frame={frame}
-                  delayIndex={Math.max(0, arriving.indexOf(r.id))}
-                  hover={hoveredId === r.id}
-                  muted={openId !== null && openId !== r.id}
-                />
-              ))}
+            <AnimatePresence initial={false}>
+              {/* No arrival fade: the new metric's ribbons draw in. */}
+              <motion.g key={metric} exit={leave}>
+                <AnimatePresence>
+                  {rows.map(r => (
+                    <Ribbon
+                      key={r.id}
+                      row={r}
+                      dom={dom}
+                      frame={frame}
+                      delayIndex={Math.max(0, arriving.indexOf(r.id))}
+                      hover={hoveredId === r.id}
+                      muted={openId !== null && openId !== r.id}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.g>
             </AnimatePresence>
           </svg>
-          {rows.map(r => (
-            <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
-          ))}
+          <AnimatePresence initial={false}>
+            <motion.div key={metric} className={styles.layer} exit={leave}>
+              {rows.map(r => (
+                <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
           <AnimatePresence>
             {anchorRow && anchorPoint && (
               <Cursor key="cursor" rows={rows} anchor={anchorRow} point={anchorPoint} dom={dom} frame={frame} format={format} provisionalMs={provisionalMs} />
@@ -401,7 +437,10 @@ function Ribbon({ row, dom, frame, delayIndex, hover, muted }: Part & { row: Cha
     return () => controls.stop()
   }, [present, safeToRemove, progress, durations.slower, durations.base, easings.enter, easings.exit, delay])
 
-  const clipId = `ribbon-clip-${row.id}`
+  // Unique per instance: on a metric switch the leaving ribbon and the
+  // arriving one are the same row, and a shared id would hand the arriving
+  // path the leaving one's full-width clip.
+  const clipId = `ribbon-clip-${row.id}-${useId().replace(/[^\w-]/g, '')}`
   const clipped = !drawn || !present
   return (
     <g className="entity" style={entityStyle(row.colors)}>

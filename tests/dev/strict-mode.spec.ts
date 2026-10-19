@@ -323,3 +323,40 @@ test.describe('the ledger bar under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// A metric switch makes the domain new while rendering and remounts the
+// ribbons in a group keyed by the metric (decisions/2026-10-19-a-metric-
+// switch-redraws.md). Under Strict Mode's double run the arriving ribbons
+// must still draw in from the left, on the new domain, and land drawn.
+test.describe('the metric switch under Strict Mode', () => {
+  test('redraws from the left on the new domain, with nothing in the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    const seen = await page.evaluate(async () => {
+      const chip = [...document.querySelectorAll('[aria-label="Metric"] button')].find(b => b.textContent?.trim() === 'Δ 1d') as HTMLButtonElement
+      const svg = document.querySelector('svg path[data-series]')!.closest('svg')!
+      let past = 0
+      const clips: number[] = []
+      chip.click()
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const box = svg.getBoundingClientRect()
+        for (const p of svg.querySelectorAll('path[data-series]')) {
+          const b = p.getBoundingClientRect()
+          past = Math.max(past, box.top - b.top, b.bottom - box.bottom)
+          const id = p.getAttribute('clip-path')?.match(/url\(#(.+)\)/)?.[1]
+          const rect = id ? document.getElementById(id)?.firstElementChild : null
+          if (rect) clips.push(parseFloat(rect.getAttribute('width') ?? '0') / box.width)
+        }
+      }
+      return { past: Math.round(past), minClip: clips.length ? Math.min(...clips) : null }
+    })
+    expect(seen.past).toBeLessThanOrEqual(2)
+    expect(seen.minClip).not.toBeNull()
+    expect(seen.minClip!).toBeLessThan(0.5)
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    await expect(page.locator('path[data-series]')).toHaveCount(4)
+    expect(errors).toEqual([])
+  })
+})

@@ -21,6 +21,15 @@
   width: 3.5rem;
 }
 
+/* A metric's own layer of ticks or endpoints, the size of its parent, so
+   two can overlap for the length of a switch and positions by percentage
+   resolve as they did against the parent. */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .yTick {
   position: absolute;
   right: var(--space-2);

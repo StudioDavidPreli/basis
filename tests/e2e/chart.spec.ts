@@ -114,6 +114,59 @@ test.describe('the chart', () => {
     expect(mid).not.toBe(final)
   })
 
+  // A metric switch redraws (decisions/2026-10-19-a-metric-switch-redraws.md):
+  // until then the new metric's values were drawn on the old domain for a
+  // frame, a line thousands of pixels past the plot, and collapsed in.
+  // Sampled per frame: no ribbon ever leaves the plot vertically, the
+  // arriving ribbons draw in from the left, and four are left, drawn.
+  async function switchFrames(page: import('@playwright/test').Page, metric: string) {
+    return page.evaluate(async metric => {
+      const chip = [...document.querySelectorAll('[aria-label="Metric"] button')].find(b => b.textContent?.trim() === metric) as HTMLButtonElement
+      const svg = document.querySelector('svg path[data-series]')!.closest('svg')!
+      const frames: { past: number; clips: number[] }[] = []
+      chip.click()
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const box = svg.getBoundingClientRect()
+        const paths = [...svg.querySelectorAll('path[data-series]')]
+        const past = Math.max(0, ...paths.map(p => {
+          const b = p.getBoundingClientRect()
+          return Math.max(box.top - b.top, b.bottom - box.bottom)
+        }))
+        const clips = paths.flatMap(p => {
+          const id = p.getAttribute('clip-path')?.match(/url\(#(.+)\)/)?.[1]
+          const rect = id ? document.getElementById(id)?.firstElementChild : null
+          return rect ? [parseFloat(rect.getAttribute('width') ?? '0') / box.width] : []
+        })
+        frames.push({ past: Math.round(past), clips })
+      }
+      return { frames, drawn: document.querySelectorAll('path[data-series][data-drawn]').length, total: document.querySelectorAll('path[data-series]').length }
+    }, metric)
+  }
+
+  test('a metric switch redraws: no line leaves the plot, and the lines draw in from the left', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    for (const metric of ['Δ 1d', 'EV/EBITDA', 'Level']) {
+      const { frames, drawn, total } = await switchFrames(page, metric)
+      expect(Math.max(...frames.map(f => f.past)), metric).toBeLessThanOrEqual(2)
+      const clips = frames.flatMap(f => f.clips)
+      expect(clips.length, metric).toBeGreaterThan(0)
+      expect(Math.min(...clips), metric).toBeLessThan(0.5)
+      expect(drawn, metric).toBe(4)
+      expect(total, metric).toBe(4)
+    }
+  })
+
+  test('a range change within one metric still rescales, and redraws nothing', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1M' }).click()
+    await page.waitForTimeout(50)
+    await expect(page.locator('path[data-series]')).toHaveCount(4)
+    expect(await page.locator('path[data-series]:not([data-drawn])').count()).toBe(0)
+  })
+
   test('keyboard focus on a row reads its point, and lifts its ribbon', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).click()
@@ -261,6 +314,16 @@ test.describe('the chart', () => {
     // A stopped animation never resolves; the cleanup owns the flag.
     await page.getByRole('button', { name: '[ Clear ]' }).click()
     await expect.poll(async () => (await svg.getAttribute('data-animating')) === null, { timeout: 250 }).toBe(true)
+  })
+
+  test('under reduced motion a metric switch lands at once', async ({ page }) => {
+    await page.goto('/?reduce=1')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    const { frames } = await switchFrames(page, 'Δ 1d')
+    expect(Math.max(...frames.map(f => f.past))).toBeLessThanOrEqual(2)
+    // Ten frames in, the old lines are gone and the new ones drawn.
+    expect(frames.slice(10).every(f => f.clips.length === 0)).toBe(true)
+    await expect(page.locator('path[data-series]')).toHaveCount(4)
   })
 
   test('under reduced motion the draw-in and the rescale are instant', async ({ page }) => {

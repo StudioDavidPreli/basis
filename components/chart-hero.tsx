@@ -192,6 +192,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
         readout={readout}
         window={viewMs && win ? windowMs(win, viewMs) : null}
         onWindow={onWindow}
+        metric={column.key}
       />
       <div className={styles.strip}>
         <ul className={styles.legend} aria-label="Selected rows">
