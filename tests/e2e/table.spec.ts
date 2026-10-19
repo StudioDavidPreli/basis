@@ -461,6 +461,10 @@ test.describe('the ledger bar', () => {
     await page.goto('/')
     await expect(page.locator('tbody tr')).toHaveCount(12)
     expect((await barColumns(page)).count).toBe(0)
+    // An idle ledger mounts no animated halves: landing pays nothing for
+    // bars it is not showing (Safari's draw-in started ~40 ms late when it
+    // did, David 2026-10-19).
+    await expect(page.locator('tbody [data-bar] span')).toHaveCount(0)
     await clickHeader(page, 'Δ 1d')
     await expect.poll(async () => (await barColumns(page)).on).toEqual(['Δ 1d'])
     expect((await barColumns(page)).count).toBe(12)

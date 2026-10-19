@@ -253,14 +253,18 @@
   height: 0.5em;
   margin-right: auto;
   align-self: center;
-  /* When the ledger widens again (the drawer closes) the tracks return as
-     a fade, an entry with no effect behind it (contract row "the bars
-     return"). Its first paint does too, while every track is still empty. */
+}
+
+/* When the ledger widens again (the drawer closes) the bars return as a
+   fade, an entry with no effect behind it (contract row "the bars
+   return"). Only a track with bars fades: an empty one has nothing to
+   show, and fading all of them cost every landing a transition per cell. */
+.bar[data-bar='on'] {
   transition: opacity var(--cadence-duration-base) var(--cadence-ease-enter);
 }
 
 @starting-style {
-  .bar {
+  .bar[data-bar='on'] {
     opacity: 0;
   }
 }

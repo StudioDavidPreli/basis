@@ -378,6 +378,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                           <Bar
                             geometry={domain ? barGeometry(typeof cell === 'object' ? cell?.value : undefined, domain) : null}
                             active={active}
+                            live={active || barsBefore.includes(c.key)}
                             transition={barTransition}
                           />
                           {cell ? (
@@ -400,10 +401,14 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
 }
 
 // The track is always there, so the column's width never changes with the
-// sort; it is empty until its column is sorted. Decoration: the figure
-// beside it is the reading, so the bar is hidden from assistive tech.
-function Bar({ geometry, active, transition }: { geometry: ReturnType<typeof barGeometry> | null; active: boolean; transition: Transition }) {
+// sort; it is empty until its column is sorted or kept. Decoration: the
+// figure beside it is the reading, so the bar is hidden from assistive tech.
+// The animated halves mount only while the column has bars or is retracting
+// them (`live`): an idle ledger mounts none, so landing pays nothing for
+// bars it is not showing.
+function Bar({ geometry, active, live, transition }: { geometry: ReturnType<typeof barGeometry> | null; active: boolean; live: boolean; transition: Transition }) {
   const zero = geometry?.zero ?? 0
+  if (!live) return <span className={styles.bar} data-bar="off" aria-hidden="true" />
   return (
     <span className={styles.bar} data-bar={active ? 'on' : 'off'} aria-hidden="true">
       {active && zero > 0 && zero < 1 && <span className={styles.barZero} style={{ left: `${zero * 100}%` }} />}
