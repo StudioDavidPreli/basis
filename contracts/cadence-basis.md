@@ -227,8 +227,10 @@ adding a row, in its own commit.
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
-| Chart line draw-in / out; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
-| Chart domain rescale (time range); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
+| Chart line draw-in / out; on a metric switch every charted ribbon draws in again; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
+| Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
+| Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |
+| Chart metric switch: the new y ticks and gridlines arrive at their places, a fade; the y domain is set, not animated | `base` | `enter` | `none` |
 | Chart cursor: the rule, the dots, and the point card enter / exit; the scatter's ring and card; the heat's row and column pick-out and card | `transitions.enter` / `transitions.exit` | | `none` |
 | Diagnostics card enter / exit (the hover preview and the pinned panel), the waterfall's included | `transitions.enter` / `transitions.exit` | | `none` |
 | Window set / reset (the shade, the handles, the axis tags); scatter points, heat cells, and the fan answering a typed or reset window | `base` | `standard` | `none` |
@@ -270,6 +272,19 @@ clips it, so nothing in the drawer rewraps. The ledger's `short` stagger is
 for a reorder only. (The raw spring read as too springy; damping it, not
 removing it; an instant close read as no exit; a translated panel over an
 instant reflow read as a seam. David, 2026-09-16.)
+A metric switch is not a rescale (`decisions/2026-10-19-a-metric-switch-redraws.md`).
+The metrics have different units, Level about 100, Δ 1d in thousands of
+bps, EV/EBITDA in tens, so a tween between their domains passes through
+numbers that belong to neither, and the new values drawn on the old domain
+for its first frame ran a line thousands of pixels past the plot, as it
+had since M6 (David, 2026-10-19). On a switch the old ribbons, gridlines, y ticks,
+and endpoints leave together on `fast` / `exit`, on the domain they were
+drawn on; the domain is made new at the new metric's window, as a first
+domain is, never animated; the new ticks and gridlines fade in at their
+places on `base` / `enter`; and every charted ribbon draws in again from
+the left on the draw-in row, staggered by selection order, its endpoint
+landing as the draw reaches it. A range change within a metric still
+rescales.
 The chart's cursor (docs/spec.md, Chart): the rule, the dots, and the point
 card enter and exit together on `transitions.enter` / `transitions.exit`,
 and their position follows the pointer with no tween, since a tween there

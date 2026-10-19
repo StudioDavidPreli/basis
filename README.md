@@ -39,8 +39,10 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
-| Chart line draw-in / out; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
-| Chart domain rescale (time range); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
+| Chart line draw-in / out; on a metric switch every charted ribbon draws in again; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
+| Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
+| Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |
+| Chart metric switch: the new y ticks and gridlines arrive at their places, a fade; the y domain is set, not animated | `base` | `enter` | `none` |
 | Chart cursor: the rule, the dots, and the point card enter / exit; the scatter's ring and card; the heat's row and column pick-out and card | `transitions.enter` / `transitions.exit` | | `none` |
 | Diagnostics card enter / exit (the hover preview and the pinned panel), the waterfall's included | `transitions.enter` / `transitions.exit` | | `none` |
 | Window set / reset (the shade, the handles, the axis tags); scatter points, heat cells, and the fan answering a typed or reset window | `base` | `standard` | `none` |
