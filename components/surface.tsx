@@ -325,6 +325,12 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           columns={columns}
           sort={state.sort}
           onSort={onSort}
+          kept={state.bars}
+          onKeep={key => {
+            dispatch({ type: 'bars', key })
+            const label = columns.find(c => c.key === key)?.label ?? key
+            announce(state.bars.includes(key) ? `Bars on ${label} follow the sort` : `Bars kept on ${label}`)
+          }}
           selection={state.selection}
           onToggle={(id, range) => dispatch({ type: 'toggle', id, order, range })}
           onSelectAll={() => dispatch({ type: 'selectAll', ids: order })}

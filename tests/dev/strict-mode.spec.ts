@@ -315,6 +315,11 @@ test.describe('the ledger bar under Strict Mode', () => {
     await click('Δ 1d')
     await expect.poll(() => filled('Δ 1d')).toBeGreaterThan(0)
     await expect.poll(() => filled('Level')).toBe(0)
+    // A kept column holds its bars through the next sort.
+    await page.getByRole('checkbox', { name: 'Keep bars on Δ 1d' }).check()
+    await click('EV/EBITDA')
+    await expect.poll(() => filled('EV/EBITDA')).toBe(12)
+    expect(await filled('Δ 1d')).toBeGreaterThan(0)
     expect(errors).toEqual([])
   })
 })

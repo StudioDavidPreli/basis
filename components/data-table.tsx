@@ -6,8 +6,9 @@
 // cell, dotted leaders so every row is a full line, row numbers in the first
 // column aligned to the margin. Row reorder on sort is a layout animation on
 // slow / standard with a short stagger capped at eight
-// (decisions/2026-09-16-row-reorder-not-spring.md). The sorted figure
-// column carries a bar per row, drawn from zero (M12, lib/bars.ts).
+// (decisions/2026-09-16-row-reorder-not-spring.md). A figure column carries
+// a bar per row, drawn from zero, while it is sorted or kept (M12,
+// lib/bars.ts, decisions/2026-10-19-bars-can-be-kept.md).
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
@@ -61,13 +62,18 @@ type Props = {
   // True on the In Practice stage: the selection is the chart's four and
   // fixed, so every checkbox shows it and none can change it.
   locked?: boolean
+  // Figure columns whose bars stay whatever the sort, and the header's keep
+  // box. Without onKeep (the embeds) there is no box and bars follow the
+  // sort alone.
+  kept?: string[]
+  onKeep?: (key: string) => void
 }
 
 const SPARK = { width: 64, height: 18 }
 
 const STAGGER_CAP = 8
 
-export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true, locked = false }: Props) {
+export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true, locked = false, kept = [], onKeep }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
@@ -103,16 +109,18 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
     for (const [id, stored] of Object.entries(series.entities)) out[id] = sparkPath(toPoints(seriesFor(stored, column)), range, SPARK)
     return out
   }, [columns, metric, range, series])
-  // The bar follows the sort (contracts/cadence-basis.md): it lives in the
-  // sorted column when that column holds figures. Every figure column keeps
-  // its domain and its empty track, so the columns never reflow when the
-  // sort moves, and a column the sort leaves retracts its bars in place.
-  // The previous bar column is kept beside the current one, set while
-  // rendering from the values, as the row order is above.
-  const barKey = sort && columns.some(c => c.key === sort.key && c.format !== 'text') ? sort.key : null
-  const [barKeys, setBarKeys] = useState({ prev: barKey, current: barKey })
-  if (barKeys.current !== barKey) setBarKeys({ prev: barKeys.current, current: barKey })
-  const prevBarKey = barKeys.current === barKey ? barKeys.prev : barKeys.current
+  // The bar follows the sort and stays where kept (contracts/cadence-basis.md):
+  // a figure column shows its bars while sorted or while its keep box is
+  // checked. Every figure column keeps its domain and its empty track, so
+  // the columns never reflow when bars come or go, and a column losing them
+  // retracts in place. The previous set is kept beside the current one, set
+  // while rendering from the values, as the row order is above, so a column
+  // knows in the render that brings it in that this is its first show.
+  const barSet = columns.filter(c => c.format !== 'text' && (c.key === sort?.key || kept.includes(c.key))).map(c => c.key).join(' ')
+  const [barSets, setBarSets] = useState({ prev: barSet, current: barSet })
+  if (barSets.current !== barSet) setBarSets({ prev: barSets.current, current: barSet })
+  const barsBefore = (barSets.current === barSet ? barSets.prev : barSets.current).split(' ')
+  const barsNow = barSet.split(' ')
   const domains = useMemo(() => {
     const out = new Map<string, BarDomain | null>()
     for (const c of columns) {
@@ -210,10 +218,29 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   data-metric={c.key === metric || undefined}
                   aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
-                  <button type="button" className={styles.sortButton} onClick={() => sortBy(c.key)}>
-                    {c.label}
-                    <SortMark active={active} dir={sort?.dir} />
-                  </button>
+                  {c.format !== 'text' && onKeep ? (
+                    <span className={styles.figureHead}>
+                      {/* Sits over the column's bar track: checked, the bars
+                          stay whatever the sort. */}
+                      <input
+                        type="checkbox"
+                        className={styles.keep}
+                        checked={kept.includes(c.key)}
+                        onChange={() => onKeep(c.key)}
+                        aria-label={`Keep bars on ${c.label}`}
+                        title={`Keep bars on ${c.label}`}
+                      />
+                      <button type="button" className={styles.sortButton} onClick={() => sortBy(c.key)}>
+                        {c.label}
+                        <SortMark active={active} dir={sort?.dir} />
+                      </button>
+                    </span>
+                  ) : (
+                    <button type="button" className={styles.sortButton} onClick={() => sortBy(c.key)}>
+                      {c.label}
+                      <SortMark active={active} dir={sort?.dir} />
+                    </button>
+                  )}
                 </th>
               )
             })}
@@ -332,27 +359,33 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                       )
                     }
                     const domain = domains.get(c.key)
-                    const active = c.key === barKey && domain != null
+                    const active = barsNow.includes(c.key) && domain != null
                     // Grow on the column's first show with the row's reorder
                     // stagger, follow a refreshed value on the tick's pair,
-                    // retract when the sort leaves (contract rows "Ledger bar").
+                    // retract when the column loses its bars (contract rows
+                    // "Ledger bar").
                     const barTransition: Transition = !active
                       ? { duration: durations.fast, ease: easings.exit }
-                      : prevBarKey !== barKey
+                      : !barsBefore.includes(c.key)
                         ? { duration: durations.slow, ease: easings.enter, delay: stagger * delays.short }
                         : { duration: durations.slow, ease: easings.standard }
                     return (
                       <td key={c.key} className={styles.figureCol} data-metric={c.key === metric || undefined}>
-                        <Bar
-                          geometry={domain ? barGeometry(typeof cell === 'object' ? cell?.value : undefined, domain) : null}
-                          active={active}
-                          transition={barTransition}
-                        />
-                        {cell ? (
-                          <Figure figure={cell} column={c} parentheses={parentheses} phase={phase} now={now} entityName={row.name} />
-                        ) : (
-                          <span className={`${styles.empty} type-figure`}>—</span>
-                        )}
+                        {/* The track at the cell's leading edge, the figure at
+                            its trailing edge: zero is one line down the column
+                            whatever the figure's width. */}
+                        <span className={styles.figureCell}>
+                          <Bar
+                            geometry={domain ? barGeometry(typeof cell === 'object' ? cell?.value : undefined, domain) : null}
+                            active={active}
+                            transition={barTransition}
+                          />
+                          {cell ? (
+                            <Figure figure={cell} column={c} parentheses={parentheses} phase={phase} now={now} entityName={row.name} />
+                          ) : (
+                            <span className={`${styles.empty} type-figure`}>—</span>
+                          )}
+                        </span>
                       </td>
                     )
                   })}

@@ -64,7 +64,7 @@ test.describe('the ledger', () => {
     for (const i of [1, 2, 3, 4]) await expect(boxes.nth(i)).toBeChecked()
     await expect(boxes.nth(0)).not.toBeChecked()
     await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('listitem')).toHaveCount(6) // four rows, clear, export
-    const headerBox = page.locator('thead input[type="checkbox"]')
+    const headerBox = page.getByRole('checkbox', { name: 'Deselect all rows' })
     expect(await headerBox.evaluate((el: HTMLInputElement) => el.indeterminate)).toBe(true)
   })
 
@@ -490,9 +490,62 @@ test.describe('the ledger bar', () => {
     await expect.poll(async () => Math.max(...(await barEnds(page)).map((e, i) => Math.abs(e - want[i]!)))).toBeLessThan(0.01)
   })
 
-  test('the ledger with bars passes axe', async ({ page }) => {
-    await page.goto('/?sort=level&dir=desc')
+  test('every row draws from one zero rule, whatever its figure\'s width', async ({ page }) => {
+    await page.goto('/?sort=change&dir=desc&reduce=1')
     await expect(page.locator('tbody [data-bar="on"]')).toHaveCount(12)
+    const zeros = await page.evaluate(() =>
+      [...document.querySelectorAll('tbody [data-bar="on"]')].map(bar => {
+        const [neg, pos] = [...bar.querySelectorAll('span')].slice(-2).map(h => h.getBoundingClientRect())
+        return Math.round(neg!.right === neg!.left ? pos!.left : neg!.right)
+      }),
+    )
+    expect(new Set(zeros).size).toBe(1)
+  })
+
+  test('a keep box holds a column\'s bars through another sort, in the URL and across a reload', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.getByRole('checkbox', { name: 'Keep bars on Δ 1d' }).check()
+    await expect.poll(async () => (await barColumns(page)).on).toEqual(['Δ 1d'])
+    await clickHeader(page, 'Level')
+    await expect.poll(async () => (await barColumns(page)).on).toEqual(['Level', 'Δ 1d'])
+    await expect(page).toHaveURL('/?sort=level&bars=change')
+    await page.reload()
+    await expect(page.getByRole('checkbox', { name: 'Keep bars on Δ 1d' })).toBeChecked()
+    await expect.poll(async () => (await barColumns(page)).on).toEqual(['Level', 'Δ 1d'])
+    await page.getByRole('checkbox', { name: 'Keep bars on Δ 1d' }).uncheck()
+    await expect.poll(async () => (await barColumns(page)).on).toEqual(['Level'])
+    await expect(page).toHaveURL('/?sort=level')
+  })
+
+  test('the bars give way to the drawer and fade back when it closes', async ({ page }) => {
+    await page.goto('/?sort=change&dir=desc')
+    await expect(page.locator('tbody [data-bar="on"]')).toHaveCount(12)
+    const shown = () => page.evaluate(() => [...document.querySelectorAll('tbody [data-bar="on"]')].filter(b => getComputedStyle(b).display !== 'none').length)
+    await expect.poll(shown).toBe(12)
+    await page.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
+    await expect.poll(shown).toBe(0)
+    // Watch the first track from the close: it returns faded, then whole.
+    const opacities = await page.evaluate(async () => {
+      ;(document.querySelector('dialog[open] button[aria-label^="Close"]') as HTMLButtonElement).click()
+      const seen: number[] = []
+      for (let i = 0; i < 120; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const bar = document.querySelector('tbody [data-bar="on"]')!
+        if (getComputedStyle(bar).display !== 'none') seen.push(Number(getComputedStyle(bar).opacity))
+      }
+      return seen
+    })
+    expect(opacities.length).toBeGreaterThan(0)
+    expect(Math.min(...opacities)).toBeLessThan(1)
+    expect(opacities[opacities.length - 1]).toBe(1)
+    await expect(page).toHaveURL('/?sort=change&dir=desc')
+  })
+
+  test('the ledger with bars passes axe', async ({ page }) => {
+    await page.goto('/?sort=level&dir=desc&bars=change')
+    await expect(page.locator('tbody [data-bar="on"]')).toHaveCount(24)
     const results = await new AxeBuilder({ page }).analyze()
     expect(results.violations).toEqual([])
   })

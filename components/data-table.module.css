@@ -232,18 +232,53 @@
 }
 
 /* The ledger's bar (M12, contracts/cadence-basis.md "The bar follows the
-   sort"): a track before the figure in every figure column, filled only in
-   the sorted one, so the sort never reflows the columns. Two halves meet at
-   zero and scale out from it; Framer runs the scale on the contract's
-   tokens. Neutral ink: the bar is magnitude, and its side of the zero rule
-   is the sign, which the figure's parentheses also carry. */
+   sort, and stays where it is kept"): a track at the leading edge of every
+   figure cell, filled while the column is sorted or kept, so bars coming
+   or going never reflow the columns, and zero is one line down the column
+   whatever the figure's width. Two halves meet at zero and scale out from
+   it; Framer runs the scale on the contract's tokens. Neutral ink: the bar
+   is magnitude, and its side of the zero rule is the sign, which the
+   figure's parentheses also carry. */
+.figureCell {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 .bar {
   position: relative;
-  display: inline-block;
+  flex: none;
   width: 4rem;
   height: 0.5em;
-  margin-right: var(--space-2);
-  vertical-align: 0.05em;
+  margin-right: auto;
+  align-self: center;
+  /* When the ledger widens again (the drawer closes) the tracks return as
+     a fade, an entry with no effect behind it (contract row "the bars
+     return"). Its first paint does too, while every track is still empty. */
+  transition: opacity var(--cadence-duration-base) var(--cadence-ease-enter);
+}
+
+@starting-style {
+  .bar {
+    opacity: 0;
+  }
+}
+
+/* The header of a figure column: the keep box over the bar track, the
+   sort button over the figures. */
+.figureHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.keep {
+  accent-color: var(--ink);
+  width: 13px;
+  height: 13px;
+  margin: 0 auto 0 0;
 }
 
 .barHalf {
@@ -260,9 +295,11 @@
   border-left: var(--hairline) solid var(--ink);
 }
 
-/* Where the ledger gives up columns it gives up the bars first. */
+/* Where the ledger gives up columns it gives up the bars first, and their
+   keep boxes with them. */
 @container (max-width: 46rem) {
-  .bar {
+  .bar,
+  .keep {
     display: none;
   }
 }
@@ -316,7 +353,8 @@
   .figureCol:not([data-metric]) {
     display: none;
   }
-  .bar {
+  .bar,
+  .keep {
     display: none;
   }
 }

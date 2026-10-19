@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { encodeUrlState, mergeUrlSearch, parseUrlState, type UrlState } from './surface-url'
 
-const bare: UrlState = { dataset: 'comps', sort: null, metric: 'level', range: '3M', window: null, tool: null }
+const bare: UrlState = { dataset: 'comps', sort: null, bars: [], metric: 'level', range: '3M', window: null, tool: null }
 
 describe('the URL codec', () => {
   it('parses nothing as the defaults and encodes the defaults as nothing', () => {
@@ -11,15 +11,15 @@ describe('the URL codec', () => {
   })
 
   it('round-trips every field', () => {
-    const state: UrlState = { dataset: 'regions', sort: { key: 'change', dir: 'desc' }, metric: 'change', range: '5Y', window: { from: '2026-06-12', to: '2026-08-30' }, tool: 'summary' }
+    const state: UrlState = { dataset: 'regions', sort: { key: 'change', dir: 'desc' }, bars: ['index', 'change'], metric: 'change', range: '5Y', window: { from: '2026-06-12', to: '2026-08-30' }, tool: 'summary' }
     const qs = encodeUrlState(state)
-    expect(qs).toBe('?dataset=regions&sort=change&dir=desc&metric=change&range=5Y&from=2026-06-12&to=2026-08-30&tool=summary')
+    expect(qs).toBe('?dataset=regions&sort=change&dir=desc&bars=index,change&metric=change&range=5Y&from=2026-06-12&to=2026-08-30&tool=summary')
     expect(parseUrlState(new URLSearchParams(qs))).toEqual(state)
   })
 
   it('omits an ascending dir, the default metric of the dataset, and the default range', () => {
     expect(encodeUrlState({ ...bare, sort: { key: 'name', dir: 'asc' } })).toBe('?sort=name')
-    expect(encodeUrlState({ dataset: 'regions', sort: null, metric: 'index', range: '3M', window: null, tool: null })).toBe('?dataset=regions')
+    expect(encodeUrlState({ dataset: 'regions', sort: null, bars: [], metric: 'index', range: '3M', window: null, tool: null })).toBe('?dataset=regions')
   })
 
   it('the window needs both dates in order, and the tool must be one of the six', () => {
@@ -31,9 +31,9 @@ describe('the URL codec', () => {
   it('falls back on unknown values instead of throwing', () => {
     expect(parseUrlState({ dataset: 'nope', sort: 'nope', dir: 'sideways', metric: 'nope', range: '9Y' })).toEqual(bare)
     // A metric or sort key from the other dataset is unknown here.
-    expect(parseUrlState({ dataset: 'regions', metric: 'multiple', sort: 'multiple' })).toEqual({ dataset: 'regions', sort: null, metric: 'index', range: '3M', window: null, tool: null })
+    expect(parseUrlState({ dataset: 'regions', metric: 'multiple', sort: 'multiple' })).toEqual({ dataset: 'regions', sort: null, bars: [], metric: 'index', range: '3M', window: null, tool: null })
     // The driver column is sortable but not chartable.
-    expect(parseUrlState({ dataset: 'regions', metric: 'driver', sort: 'driver' })).toEqual({ dataset: 'regions', sort: { key: 'driver', dir: 'asc' }, metric: 'index', range: '3M', window: null, tool: null })
+    expect(parseUrlState({ dataset: 'regions', metric: 'driver', sort: 'driver' })).toEqual({ dataset: 'regions', sort: { key: 'driver', dir: 'asc' }, bars: [], metric: 'index', range: '3M', window: null, tool: null })
   })
 
   it('ignores repeated params and treats dir without sort as nothing', () => {
@@ -49,5 +49,12 @@ describe('the URL codec', () => {
     expect(mergeUrlSearch('?sort=level&dir=desc&reduce=1', '?sort=name')).toBe('?reduce=1&sort=name')
     expect(mergeUrlSearch('?sort=level&dir=desc', '')).toBe('')
     expect(mergeUrlSearch('', '')).toBe('')
+  })
+
+  it('keeps bars on figure columns only, once each, in column order, with readable commas', () => {
+    expect(parseUrlState({ bars: 'multiple,industry,nope,level,multiple' }).bars).toEqual(['level', 'multiple'])
+    expect(encodeUrlState({ ...bare, bars: ['multiple', 'change'] })).toBe('?bars=change,multiple')
+    expect(mergeUrlSearch('?reduce=1', '?bars=change,multiple')).toBe('?reduce=1&bars=change,multiple')
+    expect(mergeUrlSearch('?bars=level&reduce=1', '')).toBe('?reduce=1')
   })
 })

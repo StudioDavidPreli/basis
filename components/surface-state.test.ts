@@ -48,8 +48,20 @@ describe('reduce', () => {
     let s = initialState('comps', 'level')
     s = reduce(s, { type: 'toggle', id: 'a', order: ORDER })
     s = reduce(s, { type: 'sort', key: 'level' })
+    s = reduce(s, { type: 'bars', key: 'change' })
     s = reduce(s, { type: 'dataset', dataset: 'regions', defaultMetric: 'index' })
-    expect(s).toMatchObject({ dataset: 'regions', metric: 'index', selection: [], sort: null })
+    expect(s).toMatchObject({ dataset: 'regions', metric: 'index', selection: [], sort: null, bars: [] })
+  })
+
+  it('a keep box toggles its column, and the sort leaves kept bars alone', () => {
+    let s = initialState('comps', 'level')
+    s = reduce(s, { type: 'bars', key: 'change' })
+    s = reduce(s, { type: 'bars', key: 'multiple' })
+    expect(s.bars).toEqual(['change', 'multiple'])
+    s = reduce(s, { type: 'sort', key: 'level' })
+    expect(s.bars).toEqual(['change', 'multiple'])
+    s = reduce(s, { type: 'bars', key: 'change' })
+    expect(s.bars).toEqual(['multiple'])
   })
 
   it('hover is a no-op when unchanged, so it does not churn renders', () => {

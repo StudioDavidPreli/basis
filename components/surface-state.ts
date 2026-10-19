@@ -14,6 +14,7 @@ export type Window = { from: string; to: string } // ISO dates, inclusive; the a
 export type SurfaceState = {
   dataset: string
   sort: Sort
+  bars: string[] // figure columns whose bars stay whatever the sort (decisions/2026-10-19-bars-can-be-kept.md)
   selection: string[] // entity ids, in selection order (the legend order)
   hoveredId: string | null
   metric: string
@@ -31,6 +32,7 @@ export const CHART_CAP = 8
 export type SurfaceAction =
   | { type: 'dataset'; dataset: string; defaultMetric: string }
   | { type: 'sort'; key: string }
+  | { type: 'bars'; key: string }
   | { type: 'toggle'; id: string; order: string[]; range?: boolean }
   | { type: 'selectAll'; ids: string[] }
   | { type: 'clear' }
@@ -41,21 +43,24 @@ export type SurfaceAction =
   | { type: 'tool'; tool: string | null }
 
 export function initialState(dataset: string, metric: string): SurfaceState {
-  return { dataset, sort: null, selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, window: null, tool: null, anchorId: null }
+  return { dataset, sort: null, bars: [], selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, window: null, tool: null, anchorId: null }
 }
 
 export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState {
   switch (action.type) {
     case 'dataset':
       if (action.dataset === state.dataset) return state
-      // A new dataset is a new set of ids: selection and sort do not carry.
-      return { ...state, dataset: action.dataset, metric: action.defaultMetric, selection: [], sort: null, anchorId: null, hoveredId: null }
+      // A new dataset is a new set of ids and columns: selection, sort, and
+      // kept bars do not carry.
+      return { ...state, dataset: action.dataset, metric: action.defaultMetric, selection: [], sort: null, bars: [], anchorId: null, hoveredId: null }
     case 'sort': {
       // asc, then desc, then off: the third click clears the sort.
       if (!state.sort || state.sort.key !== action.key) return { ...state, sort: { key: action.key, dir: 'asc' } }
       if (state.sort.dir === 'asc') return { ...state, sort: { key: action.key, dir: 'desc' } }
       return { ...state, sort: null }
     }
+    case 'bars':
+      return { ...state, bars: state.bars.includes(action.key) ? state.bars.filter(k => k !== action.key) : [...state.bars, action.key] }
     case 'toggle': {
       const selected = new Set(state.selection)
       if (action.range && state.anchorId && state.anchorId !== action.id) {
