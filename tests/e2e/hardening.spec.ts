@@ -59,7 +59,7 @@ test.describe('hydration, every theme × reduced-motion combination', () => {
 })
 
 test.describe('a tick does not render React per frame', () => {
-  test('every figure ticks at once on a new snapshot, and React commits a handful of times', async ({ page }) => {
+  test('every figure ticks at once on a new snapshot, and React commits a handful of times', async ({ page, request }) => {
     // React calls the DevTools hook on every commit, production builds
     // included. Installed before any script runs, it counts commits.
     await page.addInitScript(() => {
@@ -79,17 +79,19 @@ test.describe('a tick does not render React per frame', () => {
       }
     })
     // The poll's read of the snapshot: every metric of every entity moved,
-    // and the snapshot newer, so the sheet takes it.
+    // and the snapshot newer, so the sheet takes it. Built before the page
+    // loads, so the poll is answered from memory: a round trip to the
+    // Worker inside the route once outlasted the frame window under load
+    // (2026-10-19).
+    const snap = await (await request.get('/api/refresh')).json()
+    snap.at = new Date(Date.parse(snap.at) + 60_000).toISOString()
+    for (const e of Object.values(snap.entities) as Array<{ metrics: Record<string, { value: number }> }>) {
+      for (const m of Object.values(e.metrics)) m.value = m.value * 1.1 + 1
+    }
     let bump = false
-    await page.route('**/api/refresh', async route => {
+    await page.route('**/api/refresh', route => {
       if (route.request().method() !== 'GET' || !bump) return route.continue()
-      const res = await route.fetch()
-      const snap = await res.json()
-      snap.at = new Date(Date.parse(snap.at) + 60_000).toISOString()
-      for (const e of Object.values(snap.entities) as Array<{ metrics: Record<string, { value: number }> }>) {
-        for (const m of Object.values(e.metrics)) m.value = m.value * 1.1 + 1
-      }
-      await route.fulfill({ response: res, json: snap })
+      return route.fulfill({ json: snap })
     })
     await page.goto('/')
     await hydrated(page)
@@ -100,24 +102,36 @@ test.describe('a tick does not render React per frame', () => {
     const figure = page.getByRole('button', { name: /^Level for Anchor Kaze/ }).locator('span').first()
     const before = await figure.textContent()
 
-    // Sample the figure's text on every frame from the poll's return, and
-    // count commits over the same frames.
+    // Sample the figure's text on every frame from the poll, and count
+    // commits from the poll on. The window is the 90 frames from the
+    // snapshot's arrival, the last frame before the figure first moves,
+    // however long the read took to land.
     bump = true
     await page.evaluate(() => {
-      const w = window as unknown as { __commits: number; frames: { text: string; commits: number }[] }
+      const w = window as unknown as { __commits: number; frames: { text: string; commits: number }[]; opened: number }
       w.frames = []
+      w.opened = -1
       const el = document.querySelector('[aria-label^="Level for Anchor Kaze"] span')!
+      const before = el.textContent ?? ''
       const start = w.__commits
       const tick = () => {
-        w.frames.push({ text: el.textContent ?? '', commits: w.__commits - start })
-        if (w.frames.length < 90) requestAnimationFrame(tick)
+        const text = el.textContent ?? ''
+        w.frames.push({ text, commits: w.__commits - start })
+        if (w.opened < 0 && text !== before) w.opened = Math.max(0, w.frames.length - 2)
+        if (w.opened < 0 || w.frames.length - w.opened < 90) requestAnimationFrame(tick)
       }
       requestAnimationFrame(tick)
       // The sheet reads the snapshot again when the tab becomes visible.
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    await page.waitForFunction(() => (window as unknown as { frames: unknown[] }).frames.length >= 90)
-    const frames = await page.evaluate(() => (window as unknown as { frames: { text: string; commits: number }[] }).frames)
+    await page.waitForFunction(() => {
+      const w = window as unknown as { frames: unknown[]; opened: number }
+      return w.opened >= 0 && w.frames.length - w.opened >= 90
+    })
+    const frames = await page.evaluate(() => {
+      const w = window as unknown as { frames: { text: string; commits: number }[]; opened: number }
+      return w.frames.slice(w.opened)
+    })
     const texts = new Set(frames.map(f => f.text))
     // The tick ran: the figure passed through values between the two ends.
     expect(frames[frames.length - 1]!.text).not.toBe(before)
@@ -128,6 +142,7 @@ test.describe('a tick does not render React per frame', () => {
     const ticking = frames.filter((f, i) => i > 0 && f.text !== frames[i - 1]!.text).length
     expect(ticking).toBeGreaterThan(10)
     expect(commits).toBeLessThan(10)
+    await page.unrouteAll({ behavior: 'ignoreErrors' })
   })
 })
 
