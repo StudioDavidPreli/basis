@@ -364,3 +364,37 @@ test.describe('the metric switch under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// The hero's views keep the previous view beside the current one, set while
+// rendering, and share each charted marker between the line's endpoint and
+// its Risk / return point (decisions/2026-10-19-views-in-the-hero.md). Under
+// Strict Mode's double run the marker must still travel and land, both ways.
+test.describe('the hero views under Strict Mode', () => {
+  test('a marker travels to Risk / return and back, with nothing in the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    page.on('console', m => {
+      if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
+    })
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    for (const to of ['Risk / return', 'Over time']) {
+      const moved = await page.evaluate(async to => {
+        const btn = [...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => b.textContent?.includes(to)) as HTMLButtonElement
+        const at = () => document.querySelector('[data-point="ou-tokyo"] [data-mark], [data-endpoint="ou-tokyo"] > span')?.getBoundingClientRect().left ?? null
+        const xs = [at()]
+        btn.click()
+        for (let i = 0; i < 70; i++) {
+          await new Promise(r => requestAnimationFrame(r))
+          xs.push(at())
+        }
+        const seen = xs.filter((x): x is number => x !== null)
+        return { distinct: new Set(seen.map(Math.round)).size, travel: Math.abs(seen[seen.length - 1]! - seen[0]!) }
+      }, to)
+      expect(moved.travel, to).toBeGreaterThan(40)
+      expect(moved.distinct, to).toBeGreaterThan(5)
+    }
+    await expect(page.locator('[data-endpoint]')).toHaveCount(4)
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    expect(errors).toEqual([])
+  })
+})

@@ -33,9 +33,12 @@ type Props = {
   now: Date
   phase: AgentPhase
   parentheses: boolean
+  // Said beside the scope while the hero shows more rows than the tools
+  // cover (Risk / return plots every row; the tools take the charted).
+  note?: string
 }
 
-export function DiagnosticsStrip({ series, facts, metric, view, window: win, onWindow, tool, onTool, now, phase, parentheses }: Props) {
+export function DiagnosticsStrip({ series, facts, metric, view, window: win, onWindow, tool, onTool, now, phase, parentheses, note }: Props) {
   const { transitions } = useMotionTokens()
   const [preview, setPreview] = useState<ToolKey | null>(null)
   const panelId = useId()
@@ -67,6 +70,7 @@ export function DiagnosticsStrip({ series, facts, metric, view, window: win, onW
         <span className={`${styles.eyebrow} type-eyebrow`}>Diagnostics</span>
         <span className={`${styles.scope} type-micro`}>
           {series.length} {series.length === 1 ? 'row' : 'rows'} · {metric.label}
+          {note && <span data-strip-note> · {note}</span>}
         </span>
         <div className={styles.tools} role="group" aria-label="Tools">
           {TOOLS.map(t => (

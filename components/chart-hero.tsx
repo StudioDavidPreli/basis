@@ -10,8 +10,13 @@ import { domainFor, summarize, toPoints, viewPoints } from '@/lib/chart'
 import { config } from '@/lib/config'
 import { sourcesOf } from '@/lib/diff'
 import { chartCsv, chartCsvName } from '@/lib/export-csv'
-import { windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
-import { CHART_CAP, RANGES, type Range } from './surface-state'
+import { windowDays, windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
+import { riskReturn } from '@/lib/risk-return'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
+import { useState } from 'react'
+import { useMotionTokens } from '@/lib/motion/tokens'
+import { CHART_CAP, RANGES, VIEWS, VIEW_LABELS, type Range, type View } from './surface-state'
+import { RiskReturn, type RiskRow } from './risk-return'
 import type { Row } from './data-table'
 import { Marker } from './marker'
 import { TimeSeriesChart, type ChartRow, type Readout } from './time-series-chart'
@@ -19,9 +24,14 @@ import { AgentPresence } from './agent-presence'
 import { DiagnosticsStrip } from './diagnostics-strip'
 import styles from './chart-hero.module.css'
 
-// The hero's frame: metric selector, range control, the plot, and the
-// legend strip that doubles as the deselect control, with the agent mark at
-// its right end. The plot is TimeSeriesChart; this assembles what it draws
+// The hero's frame: the view switch, the metric selector, the range
+// control, the plot, and the legend strip that doubles as the deselect
+// control, with the agent mark at its right end. The plot is one of two
+// views (decisions/2026-10-19-views-in-the-hero.md): Over time, or Risk /
+// return, which reads Level for every row and puts a caption where the
+// metric chips stand (decisions/2026-10-19-risk-return-reads-level.md). The
+// outgoing view leaves on fast / exit while the incoming one arrives; the
+// charted rows' markers travel between the two inside one LayoutGroup. The plot is TimeSeriesChart; this assembles what it draws
 // from the rows and the dataset's series (lib/series.ts) and writes the
 // summary and the readout, which are text and so belong to the hero.
 //
@@ -35,6 +45,9 @@ type Props = {
   range: Range
   onRange: (r: Range) => void
   rows: Row[] // every row of the dataset, for the readout
+  order: string[] // the ledger's order: Risk / return's points appear in it
+  view: View
+  onView: (view: View) => void
   selection: Row[]
   onDeselect: (id: string) => void
   onClear: () => void
@@ -53,12 +66,35 @@ type Props = {
   now: Date
 }
 
-export function ChartHero({ columns, metric, onMetric, range, onRange, rows, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
+export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
   const charted = selection.slice(0, CHART_CAP)
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
   const format = (v: number) => formatValue(column.format, v, { parentheses })
   const tickFormat = (v: number) => formatTick(column.format, v, { parentheses })
+  const { durations, easings } = useMotionTokens()
+
+  // The view of the render before, kept beside this one and set while
+  // rendering, so the view arriving knows the markers are travelling in.
+  const [views, setViews] = useState({ prev: heroView, current: heroView })
+  if (views.current !== heroView) setViews({ prev: views.current, current: heroView })
+  const cameFrom = views.current === heroView ? views.prev : views.current
+  const travelled = cameFrom !== heroView
+
+  // Risk / return: every row's Level over the analysis window, or over the
+  // view of every row when no window is set.
+  const levelColumn = columns.find(c => c.derive === 'level') ?? column
+  const levelRows = rows.map(r => {
+    const stored = series?.entities[r.id]
+    return { id: r.id, points: stored ? toPoints(seriesFor(stored, levelColumn)) : [] }
+  })
+  const allView = domainFor(
+    levelRows.map(r => r.points),
+    range,
+  )
+  const riskWindow = allView ? windowMs(win, [allView[0], allView[1]]) : null
+  const riskPoints = heroView === 'risk' && riskWindow ? riskReturn(levelRows, riskWindow) : []
+  const leave = { opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }
 
   const statusOf = (row: Row) => {
     const cell = row.cells[column.key]
@@ -160,18 +196,40 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
     }
   }
 
+  // Risk / return's rows, in the ledger's order, marked as their figures are.
+  const ordered = order.map(id => rows.find(r => r.id === id)).filter((r): r is Row => r !== undefined)
+  const riskRows: RiskRow[] = ordered.map(r => {
+    const status = statusOf(r)
+    return { id: r.id, name: r.name, colors: r.colors, marker: r.marker, hollow: status === 'stale' || status === 'unverified' }
+  })
+
   return (
     <section className={styles.hero} aria-labelledby="chart-title">
       <div className={styles.controls}>
         <h2 id="chart-title" className="sr-only">
           Chart
         </h2>
-        <div className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric">
-          {columns.map(c => (
-            <button key={c.key} type="button" className={`${styles.chip} type-label`} aria-pressed={c.key === metric} onClick={() => onMetric(c.key)}>
-              {c.label}
-            </button>
-          ))}
+        <div className={styles.lead}>
+          <div className={`${styles.group} ${styles.views}`} role="group" aria-label="Chart view">
+            {VIEWS.map(v => (
+              <button key={v} type="button" className={`${styles.chip} type-label`} aria-pressed={v === heroView} onClick={() => onView(v)}>
+                {VIEW_LABELS[v]}
+              </button>
+            ))}
+          </div>
+          {heroView === 'time' ? (
+            <div className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric">
+              {columns.map(c => (
+                <button key={c.key} type="button" className={`${styles.chip} type-label`} aria-pressed={c.key === metric} onClick={() => onMetric(c.key)}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className={`${styles.caption} type-micro`} data-risk-caption>
+              from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, annualized change up
+            </p>
+          )}
         </div>
         <div className={styles.group} role="group" aria-label="Time range">
           {RANGES.map(r => (
@@ -181,21 +239,41 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
           ))}
         </div>
       </div>
-      <TimeSeriesChart
-        rows={chartRows}
-        range={range}
-        format={format}
-        tickFormat={tickFormat}
-        provisionalFrom={provisionalFrom}
-        hoveredId={hoveredId}
-        openId={openId}
-        onHover={onHover}
-        summary={summary}
-        readout={readout}
-        window={viewMs && win ? windowMs(win, viewMs) : null}
-        onWindow={onWindow}
-        metric={column.key}
-      />
+      <LayoutGroup id="hero">
+        <div className={styles.stage}>
+          <AnimatePresence initial={false} mode="popLayout">
+            {heroView === 'time' ? (
+              <motion.div key="time" className={styles.view} exit={leave}>
+                <TimeSeriesChart
+                  rows={chartRows}
+                  range={range}
+                  format={format}
+                  tickFormat={tickFormat}
+                  provisionalFrom={provisionalFrom}
+                  hoveredId={hoveredId}
+                  openId={openId}
+                  onHover={onHover}
+                  summary={summary}
+                  readout={readout}
+                  window={viewMs && win ? windowMs(win, viewMs) : null}
+                  onWindow={onWindow}
+                  metric={column.key}
+                  shareMarkers
+                  travelled={travelled}
+                />
+              </motion.div>
+            ) : (
+              <motion.div key="risk" className={styles.view} exit={leave}>
+                {riskWindow ? (
+                  <RiskReturn rows={riskRows} points={riskPoints} charted={charted.map(r => r.id)} window={riskWindow} range={range} hoveredId={hoveredId} onHover={onHover} travel={travelled} />
+                ) : (
+                  <p className={`${styles.caption} type-micro`}>Risk and return need a series; it is still loading.</p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </LayoutGroup>
       <div className={styles.strip}>
         <ul className={styles.legend} aria-label="Selected rows">
           {charted.map(r => (
@@ -245,6 +323,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, sel
         onWindow={onWindow}
         tool={tool}
         onTool={onTool}
+        note={heroView === 'risk' ? `tools cover the ${charted.length} charted ${charted.length === 1 ? 'row' : 'rows'}` : undefined}
         now={now}
         phase={phase}
         parentheses={parentheses}

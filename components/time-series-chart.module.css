@@ -173,6 +173,11 @@
   pointer-events: none;
 }
 
+/* The endpoint's marker: the element that travels to Risk / return. */
+.markerHold {
+  display: flex;
+}
+
 .xAxis {
   grid-area: 2 / 2;
   position: relative;

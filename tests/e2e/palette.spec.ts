@@ -199,6 +199,7 @@ test.describe('the narrow viewport', () => {
       // The chart keeps the range control only.
       await expect(page.getByRole('group', { name: 'Time range' })).toBeVisible()
       await expect(page.getByRole('group', { name: 'Metric' })).toBeHidden()
+      await expect(page.getByRole('group', { name: 'Chart view' })).toBeHidden()
       await page.screenshot({ path: `test-results/narrow-${theme}.png`, fullPage: true })
       const results = await new AxeBuilder({ page }).analyze()
       expect(results.violations).toEqual([])

@@ -11,7 +11,7 @@ import { config } from '@/lib/config'
 import { mutationSentence } from '@/lib/describe'
 import type { StoredSnapshot } from '@/worker/refresh'
 import type { SeriesSnapshot } from '@/lib/types'
-import { initialState, reduce, RANGES } from './surface-state'
+import { initialState, reduce, RANGES, VIEWS, VIEW_LABELS } from './surface-state'
 import { entityRows, rowOrder } from './rows'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
 import { useNow } from './use-now'
@@ -273,6 +273,15 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
       tag: r === state.range ? 'current' : undefined,
       run: () => dispatch({ type: 'range', range: r }),
     })),
+    // The hero's views (decisions/2026-10-19-views-in-the-hero.md).
+    ...VIEWS.map(v => ({
+      id: `chart-view:${v}`,
+      group: 'Chart view',
+      label: `Show ${VIEW_LABELS[v]}`,
+      keywords: 'chart view scatter risk return volatility over time line',
+      tag: v === state.view ? 'current' : undefined,
+      run: () => dispatch({ type: 'view', view: v }),
+    })),
     {
       id: 'view:welcome',
       group: 'View',
@@ -302,6 +311,12 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           onMetric={m => dispatch({ type: 'metric', metric: m })}
           range={state.range}
           onRange={r => dispatch({ type: 'range', range: r })}
+          order={order}
+          view={state.view}
+          onView={v => {
+            dispatch({ type: 'view', view: v })
+            announce(`Showing ${VIEW_LABELS[v]}`)
+          }}
           window={state.window}
           onWindow={w => dispatch({ type: 'window', window: w })}
           tool={state.tool}

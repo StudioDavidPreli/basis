@@ -3,17 +3,17 @@
 // parses the same search params the client later writes, and a deep link
 // renders the same state on both sides with nothing to reconcile.
 //
-//   /?dataset=regions&sort=level&dir=desc&bars=change,index&metric=index&range=5Y&from=2026-06-12&to=2026-08-30&tool=summary
+//   /?dataset=regions&sort=level&dir=desc&bars=change,index&metric=index&range=5Y&view=risk&from=2026-06-12&to=2026-08-30&tool=summary
 //
 // Defaults are omitted, so the sheet's own URL is bare. An unknown value
 // falls back to the default rather than throwing: a stale link still opens
 // the sheet.
 
 import { config as defaultConfig, type Config, type DatasetConfig } from '@/lib/config'
-import { DEFAULT_RANGE, RANGES, type Range, type Sort, type SurfaceState } from './surface-state'
+import { DEFAULT_RANGE, RANGES, VIEWS, type Range, type Sort, type SurfaceState, type View } from './surface-state'
 import { normalizeWindow, TOOLS } from '@/lib/diagnostics'
 
-export type UrlState = Pick<SurfaceState, 'dataset' | 'sort' | 'bars' | 'metric' | 'range' | 'window' | 'tool'>
+export type UrlState = Pick<SurfaceState, 'dataset' | 'sort' | 'bars' | 'metric' | 'range' | 'view' | 'window' | 'tool'>
 
 type Params = URLSearchParams | Record<string, string | string[] | undefined>
 
@@ -68,11 +68,14 @@ export function parseUrlState(params: Params, config: Config = defaultConfig): U
   const rangeKey = read(params, 'range')
   const range: Range = RANGES.includes(rangeKey as Range) ? (rangeKey as Range) : DEFAULT_RANGE
 
+  const viewKey = read(params, 'view')
+  const view: View = VIEWS.includes(viewKey as View) ? (viewKey as View) : 'time'
+
   const window = normalizeWindow(read(params, 'from'), read(params, 'to'))
   const toolKey = read(params, 'tool')
   const tool = toolKey && TOOLS.some(t => t.key === toolKey) ? toolKey : null
 
-  return { dataset, sort, bars, metric, range, window, tool }
+  return { dataset, sort, bars, metric, range, view, window, tool }
 }
 
 // The search string for a state, '' when everything is the default.
@@ -88,6 +91,7 @@ export function encodeUrlState(state: UrlState, config: Config = defaultConfig):
   if (bars.length) q.set('bars', bars.join(','))
   if (ds && state.metric !== defaultMetric(ds)) q.set('metric', state.metric)
   if (state.range !== DEFAULT_RANGE) q.set('range', state.range)
+  if (state.view !== 'time') q.set('view', state.view)
   if (state.window) {
     q.set('from', state.window.from)
     q.set('to', state.window.to)
@@ -99,7 +103,7 @@ export function encodeUrlState(state: UrlState, config: Config = defaultConfig):
 
 // The keys this codec owns. Everything else in a URL belongs to someone
 // else: `?reduce=1` and `?theme=` to the inline script in app/layout.tsx.
-const OWNED = ['dataset', 'sort', 'dir', 'bars', 'metric', 'range', 'from', 'to', 'tool'] as const
+const OWNED = ['dataset', 'sort', 'dir', 'bars', 'metric', 'range', 'view', 'from', 'to', 'tool'] as const
 
 // The search string to write: the current one with this codec's keys
 // replaced by `owned` (an encodeUrlState result) and every other key kept.

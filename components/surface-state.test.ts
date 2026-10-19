@@ -64,6 +64,16 @@ describe('reduce', () => {
     expect(s.bars).toEqual(['multiple'])
   })
 
+  it('a view switch carries the selection, sort, window, and metric', () => {
+    let s = initialState('comps', 'change')
+    s = reduce(s, { type: 'toggle', id: 'a', order: ORDER })
+    s = reduce(s, { type: 'sort', key: 'level' })
+    s = reduce(s, { type: 'window', window: { from: '2026-07-01', to: '2026-09-01' } })
+    const t = reduce(s, { type: 'view', view: 'risk' })
+    expect(t).toMatchObject({ view: 'risk', selection: ['a'], sort: { key: 'level', dir: 'asc' }, metric: 'change', window: { from: '2026-07-01', to: '2026-09-01' } })
+    expect(reduce(t, { type: 'view', view: 'risk' })).toBe(t)
+  })
+
   it('hover is a no-op when unchanged, so it does not churn renders', () => {
     const s = initialState('comps', 'level')
     expect(reduce(s, { type: 'hover', id: null })).toBe(s)

@@ -1,0 +1,105 @@
+/* The Risk / return view (risk-return.tsx). It sits in the chart's own
+   frame (time-series-chart.module.css: the plot, the axes, the card, the
+   readout); what is here is the scatter's own: its guides, its points, and
+   their labels. Every position is a percentage of the box. */
+.box {
+  cursor: default;
+}
+
+.guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.gridY,
+.zero {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: var(--hairline) dashed var(--rule);
+}
+
+/* The line between gaining and losing: a rule, not a grid line. */
+.zero {
+  border-top-style: solid;
+  border-top-color: var(--muted);
+}
+
+.median {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: var(--hairline) dashed var(--muted);
+}
+
+.medianLabel {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.quadrant {
+  position: absolute;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.topLeft {
+  top: var(--space-2);
+  left: var(--space-2);
+}
+
+.bottomRight {
+  bottom: var(--space-2);
+  right: var(--space-2);
+}
+
+/* A point: placed by its centre. The marker inside is the element that
+   travels between views, so it carries no transform of its own. */
+.point {
+  position: absolute;
+  display: flex;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.mark {
+  position: relative;
+  display: flex;
+  transition: opacity var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+/* Hovered, from the plot or from its ledger row: a ring in ink; the other
+   points recede, as the ribbons do (contract: row hover / line hover). */
+.point[data-hover] .mark::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: var(--hairline) solid var(--ink);
+  border-radius: 50%;
+}
+
+:global([data-focus]) .point:not([data-hover]) .mark {
+  opacity: 0.4;
+}
+
+.label {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.label[data-side='right'] {
+  left: calc(100% + 6px);
+}
+
+.label[data-side='left'] {
+  right: calc(100% + 6px);
+}

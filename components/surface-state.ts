@@ -9,6 +9,12 @@ export type Range = '1M' | '3M' | '1Y' | '5Y' | 'Max'
 export const RANGES: Range[] = ['1M', '3M', '1Y', '5Y', 'Max']
 export const DEFAULT_RANGE: Range = '3M' // decisions/2026-10-15-the-chart-lands-on-3m.md
 
+// The hero's views (decisions/2026-10-19-views-in-the-hero.md). Heat joins
+// in its own step.
+export type View = 'time' | 'risk'
+export const VIEWS: View[] = ['time', 'risk']
+export const VIEW_LABELS: Record<View, string> = { time: 'Over time', risk: 'Risk / return' }
+
 export type Window = { from: string; to: string } // ISO dates, inclusive; the analysis window (docs/spec.md, Diagnostics)
 
 export type SurfaceState = {
@@ -19,6 +25,7 @@ export type SurfaceState = {
   hoveredId: string | null
   metric: string
   range: Range
+  view: View
   window: Window | null // null: follows the view
   tool: string | null // the pinned diagnostics tool
   anchorId: string | null // the last row toggled, for Shift-range selection
@@ -39,11 +46,12 @@ export type SurfaceAction =
   | { type: 'hover'; id: string | null }
   | { type: 'metric'; metric: string }
   | { type: 'range'; range: Range }
+  | { type: 'view'; view: View }
   | { type: 'window'; window: Window | null }
   | { type: 'tool'; tool: string | null }
 
 export function initialState(dataset: string, metric: string): SurfaceState {
-  return { dataset, sort: null, bars: [], selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, window: null, tool: null, anchorId: null }
+  return { dataset, sort: null, bars: [], selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, view: 'time', window: null, tool: null, anchorId: null }
 }
 
 export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState {
@@ -95,6 +103,10 @@ export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState
     case 'range':
       // The window is about the data, not the view: it survives.
       return { ...state, range: action.range }
+    case 'view':
+      // The view is how the rows are shown, not which: selection, sort,
+      // window, and metric all carry.
+      return state.view === action.view ? state : { ...state, view: action.view }
     case 'window':
       return { ...state, window: action.window }
     case 'tool':

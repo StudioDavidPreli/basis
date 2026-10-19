@@ -113,6 +113,12 @@ type Props = {
   // The charted metric's key. A change is a redraw, not a rescale. Absent on
   // the In Practice stage, whose metric never changes.
   metric?: string
+  // The hero's views (decisions/2026-10-19-views-in-the-hero.md): each
+  // endpoint marker shares a layoutId with its point in Risk / return, so
+  // it travels between the two. `travelled`: the hero arrived here from
+  // there, so the markers are already moving in and do not fade in too.
+  shareMarkers?: boolean
+  travelled?: boolean
 }
 
 // A measurement debounce, not a motion value: the frame is committed once
@@ -131,7 +137,7 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '' }: Props) {
+export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', shareMarkers = false, travelled = false }: Props) {
   const { durations, easings } = useMotionTokens()
   const target = domainFor(
     rows.map(r => r.points),
@@ -351,8 +357,8 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
           </svg>
           <AnimatePresence initial={false}>
             <motion.div key={metric} className={styles.layer} initial={false} animate={{ opacity: 1 }} exit={leave}>
-              {rows.map(r => (
-                <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
+              {rows.map((r, i) => (
+                <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} order={i} share={shareMarkers} travelled={travelled} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -572,24 +578,39 @@ function XTag({ ms, dom, frame }: Part & { ms: number }) {
   )
 }
 
-function Endpoint({ row, dom, frame, delayIndex }: Part & { row: ChartRow; delayIndex: number }) {
+function Endpoint({ row, dom, frame, delayIndex, order, share, travelled }: Part & { row: ChartRow; delayIndex: number; order: number; share: boolean; travelled: boolean }) {
   const { durations, easings, delays } = useMotionTokens()
   const last = row.points[row.points.length - 1] ?? null
   const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(last?.[0] ?? 0), frame.width))
   const top = useTransform([dom.y0, dom.y1], ([a, b]: number[]) => pct(yScale([0, 1, a!, b!], frame)(last?.[1] ?? 0), frame.height))
   // The marker lands as its ribbon's draw-in reaches it.
   const delay = delayIndex * delays.short + durations.slower
+  // Travel between views: slow / standard, a short stagger by selection
+  // order capped at eight (contract row "Line ↔ scatter").
+  const travelDelay = Math.min(order, 7) * delays.short
   if (!last) return null
   return (
     <motion.span
       className={styles.endpoint}
       style={{ left, top }}
       data-endpoint={row.id}
-      initial={{ opacity: 0 }}
+      initial={travelled && share && order < 8 ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: durations.base, ease: easings.enter, delay }}
     >
-      <Marker shape={row.marker} colors={row.colors} hollow={row.hollow} />
+      {/* The marker is the shared element; the span above places and
+          centres it, so Framer's layout transform never fights the centring. */}
+      {/* layoutDependency: the marker measures and animates its layout only
+          for a view switch, never for the drawer's reflow, which ran every
+          endpoint's layout animation under the drawer's spring. */}
+      <motion.span
+        className={styles.markerHold}
+        layoutId={share && order < 8 ? `hero-marker-${row.id}` : undefined}
+        layoutDependency="time"
+        transition={{ layout: { duration: durations.slow, ease: easings.standard, delay: travelDelay } }}
+      >
+        <Marker shape={row.marker} colors={row.colors} hollow={row.hollow} />
+      </motion.span>
     </motion.span>
   )
 }

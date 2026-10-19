@@ -11,6 +11,30 @@
   flex-wrap: wrap;
 }
 
+/* The view switch and, beside it, the metric chips or Risk / return's
+   caption. */
+.lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.caption {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* The views share one place: the outgoing one is popped out of the flow
+   (AnimatePresence popLayout) and fades over the arriving one. */
+.stage {
+  position: relative;
+}
+
+.view {
+  width: 100%;
+}
+
 .group {
   display: flex;
   gap: var(--space-1);
@@ -80,8 +104,11 @@
   color: var(--ink);
 }
 
+/* Narrow viewports keep the range control only (docs/spec.md): the view
+   switch and the metric chips are one keystroke away in the palette. */
 @media (max-width: 900px) {
-  .metric {
+  .metric,
+  .views {
     display: none;
   }
 }
