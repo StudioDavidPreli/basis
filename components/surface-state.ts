@@ -9,11 +9,10 @@ export type Range = '1M' | '3M' | '1Y' | '5Y' | 'Max'
 export const RANGES: Range[] = ['1M', '3M', '1Y', '5Y', 'Max']
 export const DEFAULT_RANGE: Range = '3M' // decisions/2026-10-15-the-chart-lands-on-3m.md
 
-// The hero's views (decisions/2026-10-19-views-in-the-hero.md). Heat joins
-// in its own step.
-export type View = 'time' | 'risk'
-export const VIEWS: View[] = ['time', 'risk']
-export const VIEW_LABELS: Record<View, string> = { time: 'Over time', risk: 'Risk / return' }
+// The hero's views (decisions/2026-10-19-views-in-the-hero.md).
+export type View = 'time' | 'risk' | 'heat'
+export const VIEWS: View[] = ['time', 'risk', 'heat']
+export const VIEW_LABELS: Record<View, string> = { time: 'Over time', risk: 'Risk / return', heat: 'Heat' }
 
 export type Window = { from: string; to: string } // ISO dates, inclusive; the analysis window (docs/spec.md, Diagnostics)
 
@@ -47,6 +46,7 @@ export type SurfaceAction =
   | { type: 'metric'; metric: string }
   | { type: 'range'; range: Range }
   | { type: 'view'; view: View }
+  | { type: 'pick'; id: string; window: Window }
   | { type: 'window'; window: Window | null }
   | { type: 'tool'; tool: string | null }
 
@@ -107,6 +107,11 @@ export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState
       // The view is how the rows are shown, not which: selection, sort,
       // window, and metric all carry.
       return state.view === action.view ? state : { ...state, view: action.view }
+    case 'pick':
+      // A Heat cell opens Over time on its row and bucket
+      // (decisions/2026-10-19-heat-measures-moves-in-sigma.md): the row
+      // first in the selection, so it is charted whatever the cap.
+      return { ...state, selection: [action.id, ...state.selection.filter(id => id !== action.id)], window: action.window, view: 'time', anchorId: action.id }
     case 'window':
       return { ...state, window: action.window }
     case 'tool':

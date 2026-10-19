@@ -1,0 +1,153 @@
+/* The Heat view (heat.tsx). The frame is the chart's height, so the three
+   views are one box; the grid fills it, one row per entity, one column per
+   bucket. Every color is the stock's: the accent is up, --down is down,
+   the paper is no move (styles/paper.css). */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.frame {
+  position: relative;
+  height: var(--plot-height, clamp(220px, 44dvh, 520px));
+}
+
+/* One bucket size's grid; a re-bucket crossfades two of these. */
+.layer {
+  position: absolute;
+  inset: 0;
+}
+
+.reveal {
+  height: 100%;
+}
+
+.table {
+  width: 100%;
+  height: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+
+.corner {
+  width: 10rem;
+}
+
+.head {
+  height: 1.25rem;
+  padding: 0;
+  font-weight: 400;
+  text-align: left;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.head[data-col-hover] {
+  color: var(--ink);
+}
+
+.name {
+  padding: 0 var(--space-2) 0 0;
+  font-weight: 400;
+  text-align: left;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+.name > :first-child {
+  margin-right: var(--space-2);
+  vertical-align: -1px;
+}
+
+.row[data-hover] .name {
+  color: var(--ink);
+}
+
+.cell {
+  padding: 0;
+}
+
+/* A bucket: tinted from the paper toward its direction's ink by its share
+   of three spreads. A faint ring keeps a no-move cell on the grid. On a
+   refresh the tint moves on the figure tick's pair. */
+.swatch {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--toward) var(--tint), var(--paper));
+  box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--rule) 45%, transparent);
+  cursor: pointer;
+  transition: background-color var(--cadence-duration-slow) var(--cadence-ease-standard),
+    box-shadow var(--cadence-duration-fast) var(--cadence-ease-standard),
+    opacity var(--cadence-duration-base) var(--cadence-ease-standard);
+}
+
+/* Row and column picked out under the pointer or the focus. */
+.row[data-hover] .swatch,
+.cell[data-col-hover] .swatch {
+  box-shadow: inset 0 0 0 var(--hairline) var(--ink);
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* Outside the analysis window the grid recedes, as the plot does. */
+.cell[data-out] .swatch {
+  opacity: 0.28;
+}
+
+/* The buckets a source may still revise. */
+.cell[data-provisional] .swatch {
+  outline: var(--hairline) dashed var(--muted);
+  outline-offset: -2px;
+}
+
+/* Beyond two spreads: the second cue, so an outlier never rests on color. */
+.dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--paper);
+  translate: -50% -50%;
+}
+
+.status {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-height: 1.5rem;
+  margin: 0;
+  color: var(--ink);
+}
+
+.statusName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.statusMeta {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .corner {
+    width: 6.5rem;
+  }
+}

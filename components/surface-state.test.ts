@@ -74,6 +74,17 @@ describe('reduce', () => {
     expect(reduce(t, { type: 'view', view: 'risk' })).toBe(t)
   })
 
+  it('a Heat pick charts its row first, takes its window, and opens Over time', () => {
+    let s = initialState('comps', 'level')
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) s = reduce(s, { type: 'toggle', id, order: ORDER })
+    s = reduce(s, { type: 'view', view: 'heat' })
+    s = reduce(s, { type: 'pick', id: 'j', window: { from: '2026-09-15', to: '2026-09-21' } })
+    expect(s.view).toBe('time')
+    expect(s.selection[0]).toBe('j')
+    expect(s.window).toEqual({ from: '2026-09-15', to: '2026-09-21' })
+    expect(reduce(s, { type: 'pick', id: 'c', window: { from: '2026-09-15', to: '2026-09-21' } }).selection.slice(0, 2)).toEqual(['c', 'j'])
+  })
+
   it('hover is a no-op when unchanged, so it does not churn renders', () => {
     const s = initialState('comps', 'level')
     expect(reduce(s, { type: 'hover', id: null })).toBe(s)

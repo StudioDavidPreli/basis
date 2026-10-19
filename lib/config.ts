@@ -57,7 +57,7 @@ export type RegionConfig = EntityStyle & {
   exposures: Exposure[]
 }
 
-export type Stock = { paper: string; band: string; ink: string; muted: string; rule: string; accent: string }
+export type Stock = { paper: string; band: string; ink: string; muted: string; rule: string; accent: string; down: string }
 
 // Cadence's four themes restated as stocks for a framed /embed/* only
 // (decisions/2026-10-14-cadence-stocks-on-the-embeds.md). `tone` picks the

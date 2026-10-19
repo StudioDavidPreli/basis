@@ -98,6 +98,15 @@ describe('paper stocks', () => {
     }
   })
 
+  it('Heat\'s down clears 3:1 on paper and weighs within a tenth of the accent, its up', () => {
+    for (const [name, s] of Object.entries(stocks)) {
+      const down = contrast(s['down']!, s['paper']!)
+      const up = contrast(s['accent']!, s['paper']!)
+      expect(down, `${name} down`).toBeGreaterThanOrEqual(3)
+      expect(Math.abs(down - up) / up, `${name} balance`).toBeLessThan(0.1)
+    }
+  })
+
   it('muted text clears AA on the row hover tint, band mixed with rule', () => {
     const m = tableCss.match(/color-mix\(in srgb, var\(--band\) (\d+)%, var\(--rule\)\)/)
     expect(m, 'the hover tint in data-table.module.css').not.toBeNull()

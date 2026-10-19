@@ -916,7 +916,8 @@
       "ink": "#16351f",
       "muted": "#3b5a44",
       "rule": "#8fae86",
-      "accent": "#25508f"
+      "accent": "#25508f",
+      "down": "#8a3d1c"
     },
     "operate": {
       "paper": "#15221b",
@@ -924,7 +925,8 @@
       "ink": "#e4ecdc",
       "muted": "#a9b9a3",
       "rule": "#3d5245",
-      "accent": "#9cc2ff"
+      "accent": "#9cc2ff",
+      "down": "#f4b093"
     }
   },
   "cadenceStocks": {

@@ -10,7 +10,10 @@
      --muted   secondary text              (5.7:1 / 8:1)
      --rule    hairlines and pinstripes    (decorative, under 3:1 on purpose)
      --accent  the stock's second ink: fresh-ink marks, the active tab, the
-               agent mark. 5.9:1 / 9:1 on paper. */
+               agent mark. 5.9:1 / 9:1 on paper. Also Heat's up.
+     --down    Heat's down, the accent's counterweight: rust on passbook,
+               Clay on operate, each within a tenth of the accent's contrast
+               on paper (decisions/2026-10-19-heat-diverges-blue-to-rust.md). */
 
 /* The light stock (id `passbook`, kept for the attribute and the tests):
    the sage green of the Operate reference, dark green ink, blue second
@@ -23,6 +26,7 @@
   --muted: #3b5a44;
   --rule: #8fae86;
   --accent: #25508f;
+  --down: #8a3d1c;
   --grain-seed: 7;
 }
 
@@ -36,6 +40,7 @@
   --muted: #a9b9a3;
   --rule: #3d5245;
   --accent: #9cc2ff;
+  --down: #f4b093;
   --grain-seed: 11;
 }
 

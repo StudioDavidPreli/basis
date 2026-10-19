@@ -313,6 +313,10 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           onRange={r => dispatch({ type: 'range', range: r })}
           order={order}
           view={state.view}
+          onPick={(id, w) => {
+            dispatch({ type: 'pick', id, window: w })
+            announce(`Over time, ${rows.find(r => r.id === id)?.name ?? id}, ${w.from} to ${w.to}`)
+          }}
           onView={v => {
             dispatch({ type: 'view', view: v })
             announce(`Showing ${VIEW_LABELS[v]}`)

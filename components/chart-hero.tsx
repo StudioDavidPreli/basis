@@ -12,11 +12,14 @@ import { sourcesOf } from '@/lib/diff'
 import { chartCsv, chartCsvName } from '@/lib/export-csv'
 import { windowDays, windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
 import { riskReturn } from '@/lib/risk-return'
+import { heatGrid } from '@/lib/heat'
+import { dateMs } from '@/lib/chart'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { useState } from 'react'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { CHART_CAP, RANGES, VIEWS, VIEW_LABELS, type Range, type View } from './surface-state'
 import { RiskReturn, type RiskRow } from './risk-return'
+import { Heat } from './heat'
 import type { Row } from './data-table'
 import { Marker } from './marker'
 import { TimeSeriesChart, type ChartRow, type Readout } from './time-series-chart'
@@ -48,6 +51,9 @@ type Props = {
   order: string[] // the ledger's order: Risk / return's points appear in it
   view: View
   onView: (view: View) => void
+  // A Heat cell: chart its row first, take its bucket as the window, and
+  // open Over time (decisions/2026-10-19-heat-measures-moves-in-sigma.md).
+  onPick: (id: string, window: Window) => void
   selection: Row[]
   onDeselect: (id: string) => void
   onClear: () => void
@@ -66,7 +72,7 @@ type Props = {
   now: Date
 }
 
-export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
+export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, onPick, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
   const charted = selection.slice(0, CHART_CAP)
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
@@ -79,7 +85,8 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   const [views, setViews] = useState({ prev: heroView, current: heroView })
   if (views.current !== heroView) setViews({ prev: views.current, current: heroView })
   const cameFrom = views.current === heroView ? views.prev : views.current
-  const travelled = cameFrom !== heroView
+  // Markers travel only between the two views that draw them.
+  const travelled = (cameFrom === 'time' && heroView === 'risk') || (cameFrom === 'risk' && heroView === 'time')
 
   // Risk / return: every row's Level over the analysis window, or over the
   // view of every row when no window is set.
@@ -94,6 +101,9 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   )
   const riskWindow = allView ? windowMs(win, [allView[0], allView[1]]) : null
   const riskPoints = heroView === 'risk' && riskWindow ? riskReturn(levelRows, riskWindow) : []
+  // Heat: every row's Level over the view of every row, in buckets.
+  const allProvisional = rows.map(r => series?.entities[r.id]?.provisionalFrom).filter((d): d is string => !!d).sort()[0] ?? null
+  const grid = heroView === 'heat' && allView ? heatGrid(levelRows, [allView[0], allView[1]], range, allProvisional ? dateMs(allProvisional) : null) : null
   const leave = { opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }
 
   const statusOf = (row: Row) => {
@@ -196,9 +206,10 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
     }
   }
 
-  // Risk / return's rows, in the ledger's order, marked as their figures are.
+  // Risk / return's and Heat's rows, in the ledger's order, marked as their
+  // figures are.
   const ordered = order.map(id => rows.find(r => r.id === id)).filter((r): r is Row => r !== undefined)
-  const riskRows: RiskRow[] = ordered.map(r => {
+  const viewRows: RiskRow[] = ordered.map(r => {
     const status = statusOf(r)
     return { id: r.id, name: r.name, colors: r.colors, marker: r.marker, hollow: status === 'stale' || status === 'unverified' }
   })
@@ -225,9 +236,21 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
                 </button>
               ))}
             </div>
-          ) : (
+          ) : heroView === 'risk' ? (
             <p className={`${styles.caption} type-micro`} data-risk-caption>
               from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, change over the window up
+            </p>
+          ) : (
+            <p className={`${styles.caption} type-micro`} data-heat-caption>
+              from {levelColumn.label} · each {grid?.unit ?? 'week'}&apos;s move in the row&apos;s own volatility
+              <span className={styles.key} aria-hidden="true">
+                <span>−3σ</span>
+                {[-1, -0.5, 0, 0.5, 1].map(t => (
+                  <span key={t} className={styles.keySwatch} style={{ '--tint': `${Math.abs(t) * 100}%`, '--toward': t < 0 ? 'var(--down)' : 'var(--accent)' } as React.CSSProperties} />
+                ))}
+                <span>+3σ</span>
+              </span>
+              <span>● beyond 2σ</span>
             </p>
           )}
         </div>
@@ -262,10 +285,18 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
                   travelled={travelled}
                 />
               </motion.div>
+            ) : heroView === 'heat' ? (
+              <motion.div key="heat" className={styles.view} exit={leave}>
+                {grid ? (
+                  <Heat rows={viewRows} grid={grid} window={allView && win ? windowMs(win, [allView[0], allView[1]]) : null} hoveredId={hoveredId} onHover={onHover} onPick={onPick} />
+                ) : (
+                  <p className={`${styles.caption} type-micro`}>Heat needs a series; it is still loading.</p>
+                )}
+              </motion.div>
             ) : (
               <motion.div key="risk" className={styles.view} exit={leave}>
                 {riskWindow ? (
-                  <RiskReturn rows={riskRows} points={riskPoints} charted={charted.map(r => r.id)} window={riskWindow} range={range} hoveredId={hoveredId} onHover={onHover} travel={travelled} />
+                  <RiskReturn rows={viewRows} points={riskPoints} charted={charted.map(r => r.id)} window={riskWindow} range={range} hoveredId={hoveredId} onHover={onHover} travel={travelled} />
                 ) : (
                   <p className={`${styles.caption} type-micro`}>Risk and return need a series; it is still loading.</p>
                 )}
@@ -323,7 +354,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
         onWindow={onWindow}
         tool={tool}
         onTool={onTool}
-        note={heroView === 'risk' ? `tools cover the ${charted.length} charted ${charted.length === 1 ? 'row' : 'rows'}` : undefined}
+        note={heroView !== 'time' ? `tools cover the ${charted.length} charted ${charted.length === 1 ? 'row' : 'rows'}` : undefined}
         now={now}
         phase={phase}
         parentheses={parentheses}

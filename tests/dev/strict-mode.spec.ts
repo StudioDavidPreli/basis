@@ -398,3 +398,27 @@ test.describe('the hero views under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// Heat keeps its tab stop and cursor in state and remounts a grid per bucket
+// size; a pick is one reducer action (decisions/2026-10-19-heat-measures-
+// moves-in-sigma.md). Under Strict Mode the grid must reveal whole, and a
+// pick must chart its row and land on Over time.
+test.describe('Heat under Strict Mode', () => {
+  test('reveals whole, picks a cell into Over time, with nothing in the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    page.on('console', m => {
+      if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
+    })
+    await page.goto('/?view=heat')
+    await expect(page.locator('[data-cell][tabindex="0"]')).toHaveCount(1)
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[data-heat]')!.parentElement!).clipPath)).toMatch(/inset\(0(px)? 0(px|%)? 0(px)? 0(px)?\)|none/)
+    await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1M' }).click()
+    await expect(page.locator('[data-heat]')).toHaveCount(1)
+    await expect(page.locator('[data-heat]')).toHaveAttribute('data-unit', 'day')
+    const cell = page.locator('[data-cell]').nth(40)
+    const id = (await cell.getAttribute('data-cell'))!.split(':')[0]
+    await cell.click()
+    await expect(page.locator(`path[data-series="${id}"][data-drawn]`)).toHaveCount(1)
+    expect(errors).toEqual([])
+  })
+})
