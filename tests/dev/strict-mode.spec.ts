@@ -331,6 +331,10 @@ test.describe('the ledger bar under Strict Mode', () => {
 test.describe('the metric switch under Strict Mode', () => {
   test('redraws from the left on the new domain, with nothing in the console', async ({ page }) => {
     const errors = collectErrors(page)
+    // Framer warns, not errors, when an exit has nothing to fade from.
+    page.on('console', m => {
+      if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
+    })
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
     const seen = await page.evaluate(async () => {

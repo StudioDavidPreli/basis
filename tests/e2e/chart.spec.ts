@@ -123,7 +123,7 @@ test.describe('the chart', () => {
     return page.evaluate(async metric => {
       const chip = [...document.querySelectorAll('[aria-label="Metric"] button')].find(b => b.textContent?.trim() === metric) as HTMLButtonElement
       const svg = document.querySelector('svg path[data-series]')!.closest('svg')!
-      const frames: { past: number; clips: number[] }[] = []
+      const frames: { past: number; clips: number[]; fading: boolean }[] = []
       chip.click()
       for (let i = 0; i < 60; i++) {
         await new Promise(r => requestAnimationFrame(r))
@@ -138,7 +138,13 @@ test.describe('the chart', () => {
           const rect = id ? document.getElementById(id)?.firstElementChild : null
           return rect ? [parseFloat(rect.getAttribute('width') ?? '0') / box.width] : []
         })
-        frames.push({ past: Math.round(past), clips })
+        // The leaving group mid-fade: some ribbon under a group whose
+        // opacity is between none and whole.
+        const fading = paths.some(p => {
+          const o = Number(getComputedStyle(p.parentElement!.closest('svg > g')!).opacity)
+          return o > 0 && o < 1
+        })
+        frames.push({ past: Math.round(past), clips, fading })
       }
       return { frames, drawn: document.querySelectorAll('path[data-series][data-drawn]').length, total: document.querySelectorAll('path[data-series]').length }
     }, metric)
@@ -153,6 +159,9 @@ test.describe('the chart', () => {
       const clips = frames.flatMap(f => f.clips)
       expect(clips.length, metric).toBeGreaterThan(0)
       expect(Math.min(...clips), metric).toBeLessThan(0.5)
+      // The old lines fade out; they had vanished in a frame when the group
+      // carried no resting opacity to fade from.
+      expect(frames.some(f => f.fading), metric).toBe(true)
       expect(drawn, metric).toBe(4)
       expect(total, metric).toBe(4)
     }

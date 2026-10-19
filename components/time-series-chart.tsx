@@ -329,8 +329,10 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
             <AnimatePresence>{target && win && !drag && <Shade key="shade" window={win} dom={dom} frame={frame} />}</AnimatePresence>
             {drag && <DragPreview a={dragA} b={dragB} dom={dom} frame={frame} />}
             <AnimatePresence initial={false}>
-              {/* No arrival fade: the new metric's ribbons draw in. */}
-              <motion.g key={metric} exit={leave}>
+              {/* No arrival fade: the new metric's ribbons draw in. The
+                  resting opacity is what the leave fades from; without it
+                  Framer had nothing to animate and the group vanished. */}
+              <motion.g key={metric} initial={false} animate={{ opacity: 1 }} exit={leave}>
                 <AnimatePresence>
                   {rows.map(r => (
                     <Ribbon
@@ -348,7 +350,7 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
             </AnimatePresence>
           </svg>
           <AnimatePresence initial={false}>
-            <motion.div key={metric} className={styles.layer} exit={leave}>
+            <motion.div key={metric} className={styles.layer} initial={false} animate={{ opacity: 1 }} exit={leave}>
               {rows.map(r => (
                 <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
               ))}
