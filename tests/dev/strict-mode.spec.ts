@@ -291,3 +291,30 @@ test.describe('the welcome under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// The ledger bar keeps its previous column beside the current one, set
+// while rendering (M12): Strict Mode's double render must not lose the
+// "first show" that grows a column's bars, or leave a retracted column
+// filled.
+test.describe('the ledger bar under Strict Mode', () => {
+  test('grows on a sort, moves with it, and nothing reaches the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    const filled = (col: string) =>
+      page.evaluate(col => {
+        const i = [...document.querySelectorAll('thead th')].findIndex(th => th.textContent?.includes(col))
+        return [...document.querySelectorAll<HTMLTableRowElement>('tbody tr')].filter(tr => {
+          const halves = [...tr.cells[i]!.querySelectorAll('[data-bar] > span')].slice(-2)
+          return halves.some(h => h.getBoundingClientRect().width > 1)
+        }).length
+      }, col)
+    const click = (col: string) => page.evaluate(col => ([...document.querySelectorAll('thead button')].find(b => b.textContent?.trim().startsWith(col)) as HTMLButtonElement).click(), col)
+    await click('Level')
+    await expect.poll(() => filled('Level')).toBe(12)
+    await click('Δ 1d')
+    await expect.poll(() => filled('Δ 1d')).toBeGreaterThan(0)
+    await expect.poll(() => filled('Level')).toBe(0)
+    expect(errors).toEqual([])
+  })
+})

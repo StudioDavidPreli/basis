@@ -6,15 +6,17 @@
 // cell, dotted leaders so every row is a full line, row numbers in the first
 // column aligned to the margin. Row reorder on sort is a layout animation on
 // slow / standard with a short stagger capped at eight
-// (decisions/2026-09-16-row-reorder-not-spring.md).
+// (decisions/2026-09-16-row-reorder-not-spring.md). The sorted figure
+// column carries a bar per row, drawn from zero (M12, lib/bars.ts).
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LayoutGroup, motion } from 'framer-motion'
+import { LayoutGroup, motion, type Transition } from 'framer-motion'
 import type { ColumnConfig } from '@/lib/config'
 import type { FigureValue, SeriesSnapshot } from '@/lib/types'
 import { sparkPath, toPoints } from '@/lib/chart'
+import { barDomain, barGeometry, type BarDomain } from '@/lib/bars'
 import { seriesFor } from '@/lib/series'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import type { AgentPhase } from '@/worker/refresh'
@@ -101,6 +103,27 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
     for (const [id, stored] of Object.entries(series.entities)) out[id] = sparkPath(toPoints(seriesFor(stored, column)), range, SPARK)
     return out
   }, [columns, metric, range, series])
+  // The bar follows the sort (contracts/cadence-basis.md): it lives in the
+  // sorted column when that column holds figures. Every figure column keeps
+  // its domain and its empty track, so the columns never reflow when the
+  // sort moves, and a column the sort leaves retracts its bars in place.
+  // The previous bar column is kept beside the current one, set while
+  // rendering from the values, as the row order is above.
+  const barKey = sort && columns.some(c => c.key === sort.key && c.format !== 'text') ? sort.key : null
+  const [barKeys, setBarKeys] = useState({ prev: barKey, current: barKey })
+  if (barKeys.current !== barKey) setBarKeys({ prev: barKeys.current, current: barKey })
+  const prevBarKey = barKeys.current === barKey ? barKeys.prev : barKeys.current
+  const domains = useMemo(() => {
+    const out = new Map<string, BarDomain | null>()
+    for (const c of columns) {
+      if (c.format === 'text') continue
+      out.set(c.key, barDomain(rows.map(r => {
+        const cell = r.cells[c.key]
+        return typeof cell === 'object' ? cell?.value : undefined
+      })))
+    }
+    return out
+  }, [columns, rows])
   const all = selection.length === rows.length && rows.length > 0
   const some = selection.length > 0 && !all
   const headerBox = useRef<HTMLInputElement>(null)
@@ -308,8 +331,23 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                         </td>
                       )
                     }
+                    const domain = domains.get(c.key)
+                    const active = c.key === barKey && domain != null
+                    // Grow on the column's first show with the row's reorder
+                    // stagger, follow a refreshed value on the tick's pair,
+                    // retract when the sort leaves (contract rows "Ledger bar").
+                    const barTransition: Transition = !active
+                      ? { duration: durations.fast, ease: easings.exit }
+                      : prevBarKey !== barKey
+                        ? { duration: durations.slow, ease: easings.enter, delay: stagger * delays.short }
+                        : { duration: durations.slow, ease: easings.standard }
                     return (
                       <td key={c.key} className={styles.figureCol} data-metric={c.key === metric || undefined}>
+                        <Bar
+                          geometry={domain ? barGeometry(typeof cell === 'object' ? cell?.value : undefined, domain) : null}
+                          active={active}
+                          transition={barTransition}
+                        />
                         {cell ? (
                           <Figure figure={cell} column={c} parentheses={parentheses} phase={phase} now={now} entityName={row.name} />
                         ) : (
@@ -325,6 +363,32 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
         </LayoutGroup>
       </table>
     </div>
+  )
+}
+
+// The track is always there, so the column's width never changes with the
+// sort; it is empty until its column is sorted. Decoration: the figure
+// beside it is the reading, so the bar is hidden from assistive tech.
+function Bar({ geometry, active, transition }: { geometry: ReturnType<typeof barGeometry> | null; active: boolean; transition: Transition }) {
+  const zero = geometry?.zero ?? 0
+  return (
+    <span className={styles.bar} data-bar={active ? 'on' : 'off'} aria-hidden="true">
+      {active && zero > 0 && zero < 1 && <span className={styles.barZero} style={{ left: `${zero * 100}%` }} />}
+      <motion.span
+        className={styles.barHalf}
+        style={{ left: 0, width: `${zero * 100}%`, originX: 1 }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: active && geometry ? geometry.negative : 0 }}
+        transition={transition}
+      />
+      <motion.span
+        className={styles.barHalf}
+        style={{ left: `${zero * 100}%`, right: 0, originX: 0 }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: active && geometry ? geometry.positive : 0 }}
+        transition={transition}
+      />
+    </span>
   )
 }
 

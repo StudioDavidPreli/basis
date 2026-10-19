@@ -429,3 +429,71 @@ test.describe('the row stack during a move', () => {
     expect(r.moving).toBe(0)
   })
 })
+
+// The bar follows the sort (M12; contracts/cadence-basis.md, "The bar
+// follows the sort"): the sorted figure column fills its tracks, drawn from
+// zero, and a column the sort leaves retracts. Every figure column keeps
+// its track, so the columns never reflow when the sort moves.
+async function barColumns(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const heads = [...document.querySelectorAll('thead th')]
+    const cols = (state: string) => [...new Set([...document.querySelectorAll(`tbody [data-bar="${state}"]`)].map(b => heads[(b.closest('td') as HTMLTableCellElement).cellIndex]!.textContent!.replace(/[▴▾▵]/g, '').trim()))]
+    return { on: cols('on'), off: cols('off'), count: document.querySelectorAll('tbody [data-bar="on"]').length }
+  })
+}
+async function clickHeader(page: import('@playwright/test').Page, col: string) {
+  await page.evaluate(col => ([...document.querySelectorAll('thead button')].find(b => b.textContent?.trim().startsWith(col)) as HTMLButtonElement).click(), col)
+}
+// Where each row's bar ends, as a fraction of its track (negative left of
+// zero), once the scale has landed.
+async function barEnds(page: import('@playwright/test').Page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll('tbody [data-bar="on"]')].map(bar => {
+      const track = bar.getBoundingClientRect()
+      const [neg, pos] = [...bar.querySelectorAll('span')].slice(-2).map(h => h.getBoundingClientRect())
+      return Math.round(((pos!.width - neg!.width) / track.width) * 1000) / 1000
+    }),
+  )
+}
+
+test.describe('the ledger bar', () => {
+  test('lives in the sorted figure column and moves with the sort', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    expect((await barColumns(page)).count).toBe(0)
+    await clickHeader(page, 'Δ 1d')
+    await expect.poll(async () => (await barColumns(page)).on).toEqual(['Δ 1d'])
+    expect((await barColumns(page)).count).toBe(12)
+    expect((await barColumns(page)).off.sort()).toEqual(['EV/EBITDA', 'Level'])
+    const width = await page.locator('thead th', { hasText: 'EV/EBITDA' }).evaluate(th => th.getBoundingClientRect().width)
+    await clickHeader(page, 'Level')
+    await expect.poll(async () => (await barColumns(page)).on).toEqual(['Level'])
+    // The track was always there: the sort moved no column's width.
+    expect(await page.locator('thead th', { hasText: 'EV/EBITDA' }).evaluate(th => th.getBoundingClientRect().width)).toBe(width)
+    await clickHeader(page, 'Name')
+    await expect.poll(async () => (await barColumns(page)).count).toBe(0)
+  })
+
+  test('draws each value from zero, in proportion, with the figure beside it', async ({ page }) => {
+    await page.goto('/?sort=change&dir=desc&reduce=1')
+    await expect(page.locator('tbody [data-bar="on"]')).toHaveCount(12)
+    const values = await page.evaluate(() =>
+      [...document.querySelectorAll('tbody tr')].map(tr => {
+        const text = tr.querySelectorAll('td')[[...document.querySelectorAll('thead th')].findIndex(th => th.textContent?.includes('Δ 1d')) - 1]!.textContent!
+        const m = text.match(/\(?([\d,.]+)\)?\s*bps/)!
+        return (text.includes('(') ? -1 : 1) * Number(m[1]!.replace(/,/g, ''))
+      }),
+    )
+    const lo = Math.min(0, ...values)
+    const hi = Math.max(0, ...values)
+    const want = values.map(v => v / (hi - lo))
+    await expect.poll(async () => Math.max(...(await barEnds(page)).map((e, i) => Math.abs(e - want[i]!)))).toBeLessThan(0.01)
+  })
+
+  test('the ledger with bars passes axe', async ({ page }) => {
+    await page.goto('/?sort=level&dir=desc')
+    await expect(page.locator('tbody [data-bar="on"]')).toHaveCount(12)
+    const results = await new AxeBuilder({ page }).analyze()
+    expect(results.violations).toEqual([])
+  })
+})

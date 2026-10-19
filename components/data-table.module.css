@@ -231,6 +231,42 @@
   color: var(--muted);
 }
 
+/* The ledger's bar (M12, contracts/cadence-basis.md "The bar follows the
+   sort"): a track before the figure in every figure column, filled only in
+   the sorted one, so the sort never reflows the columns. Two halves meet at
+   zero and scale out from it; Framer runs the scale on the contract's
+   tokens. Neutral ink: the bar is magnitude, and its side of the zero rule
+   is the sign, which the figure's parentheses also carry. */
+.bar {
+  position: relative;
+  display: inline-block;
+  width: 4rem;
+  height: 0.5em;
+  margin-right: var(--space-2);
+  vertical-align: 0.05em;
+}
+
+.barHalf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--muted);
+}
+
+.barZero {
+  position: absolute;
+  top: -0.2em;
+  bottom: -0.2em;
+  border-left: var(--hairline) solid var(--ink);
+}
+
+/* Where the ledger gives up columns it gives up the bars first. */
+@container (max-width: 46rem) {
+  .bar {
+    display: none;
+  }
+}
+
 /* The sparkline column exists only on a narrow viewport. */
 .spark {
   display: none;
@@ -278,6 +314,9 @@
     width: calc(64px + var(--space-2));
   }
   .figureCol:not([data-metric]) {
+    display: none;
+  }
+  .bar {
     display: none;
   }
 }
