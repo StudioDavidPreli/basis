@@ -1,6 +1,7 @@
 // The Risk / return view's numbers (M12; decisions/2026-10-19-risk-return-
-// reads-level.md): for every row, its Level over the analysis window,
-// realized volatility against annualized change, both from the range
+// reads-level.md, decisions/2026-10-19-risk-return-plots-the-window-
+// change.md): for every row, its Level over the analysis window, realized
+// volatility against the change over the window, both from the range
 // summary's own math (lib/diagnostics/summary.ts), so the scatter and the
 // diagnostics panel cannot disagree. Pure.
 
@@ -11,7 +12,7 @@ import { summarize } from './diagnostics/summary'
 
 export type RiskPoint = {
   id: string
-  change: number // annualized, a fraction: 0.12 is +12% a year
+  change: number // over the window, first point to last, a fraction: 0.12 is +12%
   vol: number // annualized realized volatility, a fraction
   n: number // points in the window
 }
@@ -23,8 +24,8 @@ export function riskReturn(rows: Array<{ id: string; points: Point[] }>, w: Wind
   for (const r of rows) {
     const pts = clip(r.points, w)
     const s = summarize(pts)
-    if (!s || s.annualized === null || s.vol === null) continue
-    out.push({ id: r.id, change: s.annualized, vol: s.vol, n: pts.length })
+    if (!s || s.vol === null) continue
+    out.push({ id: r.id, change: s.changePct, vol: s.vol, n: pts.length })
   }
   return out
 }

@@ -11,10 +11,12 @@ describe('riskReturn', () => {
   const choppy = series(91, i => 100 + (i % 2 ? 4 : -4) + i * 0.05)
   const w = { fromMs: steady[0]![0], toMs: steady[90]![0] }
 
-  it('takes each row\'s annualized change and volatility from the range summary over the window', () => {
+  it('takes each row\'s change over the window and its volatility from the range summary', () => {
     const [p] = riskReturn([{ id: 'a', points: steady }], w)
     const s = summarize(steady)!
-    expect(p).toEqual({ id: 'a', change: s.annualized, vol: s.vol, n: 91 })
+    expect(p).toEqual({ id: 'a', change: s.changePct, vol: s.vol, n: 91 })
+    // First point to last, not compounded to a year.
+    expect(p!.change).toBeCloseTo(Math.pow(1.001, 90) - 1)
   })
 
   it('puts the choppy row right of the steady one', () => {

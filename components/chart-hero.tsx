@@ -227,7 +227,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
             </div>
           ) : (
             <p className={`${styles.caption} type-micro`} data-risk-caption>
-              from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, annualized change up
+              from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, change over the window up
             </p>
           )}
         </div>

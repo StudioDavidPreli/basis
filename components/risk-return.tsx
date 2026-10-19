@@ -3,7 +3,7 @@
 // The hero's Risk / return view (M12; decisions/2026-10-19-views-in-the-
 // hero.md, decisions/2026-10-19-risk-return-reads-level.md). Every row of
 // the dataset placed by its Level over the analysis window: realized
-// volatility across, annualized change up, both from lib/risk-return.ts.
+// volatility across, change over the window up, both from lib/risk-return.ts.
 // The frame is the chart's (its plot, axes, card, and readout styles), so
 // the two views are one box. Timing per the contract, through
 // useMotionTokens():
@@ -130,7 +130,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
 
   const days = Math.max(1, Math.round((win.toMs - win.fromMs) / 86_400_000))
   const summary = points.length
-    ? `Risk and return over ${days} days, ${points.length} rows, from Level: volatility across, annualized change up. Highest volatility ${nameOf(rows, maxBy(points, p => p.vol))}; best change ${nameOf(rows, maxBy(points, p => p.change))}.`
+    ? `Risk and return over ${days} days, ${points.length} rows, from Level: volatility across, change over the window up. Highest volatility ${nameOf(rows, maxBy(points, p => p.vol))}; best change ${nameOf(rows, maxBy(points, p => p.change))}.`
     : 'Risk and return: no row has two points in the window.'
 
   return (
@@ -220,7 +220,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
                   {focusRow.name}
                 </span>
                 <span className={`${chart.cardValue} type-figure`}>
-                  {formatValue('percent', focusPoint.change)} a year · vol {formatVol(focusPoint.vol)}
+                  {formatValue('percent', focusPoint.change)} over {days} d · vol {formatVol(focusPoint.vol)}
                 </span>
                 <span className={`${chart.cardMeta} type-micro`}>
                   Level, {isoDate(win.fromMs)} – {isoDate(win.toMs)}
@@ -247,7 +247,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
               {focusRow.name}
             </span>
             <span>
-              {formatValue('percent', focusPoint.change)} a year · vol {formatVol(focusPoint.vol)}
+              {formatValue('percent', focusPoint.change)} over {days} d · vol {formatVol(focusPoint.vol)}
             </span>
             <span className={`${chart.readoutMeta} type-micro`}>{days} d · Level</span>
           </>
@@ -260,7 +260,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
         <thead>
           <tr>
             <th scope="col">Row</th>
-            <th scope="col">Annualized change</th>
+            <th scope="col">Change over the window</th>
             <th scope="col">Volatility, annualized</th>
             <th scope="col">Points in the window</th>
           </tr>
