@@ -264,7 +264,11 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
       </div>
       <LayoutGroup id="hero">
         <div className={styles.stage}>
-          <AnimatePresence initial={false} mode="popLayout">
+          {/* The views overlap in one grid cell while one leaves and the next
+              arrives, so a switch never adds a view's height to the flow:
+              with popLayout, WebKit laid both out for a frame before popping
+              the outgoing one, and the sheet below jumped. */}
+          <AnimatePresence initial={false}>
             {heroView === 'time' ? (
               <motion.div key="time" className={styles.view} exit={leave}>
                 <TimeSeriesChart

@@ -8,9 +8,11 @@
   gap: var(--space-2);
 }
 
+/* The grid and its status line together are the plot's height, the
+   height of the other two views, so a switch never resizes the hero. */
 .frame {
   position: relative;
-  height: var(--plot-height, clamp(220px, 44dvh, 520px));
+  height: calc(var(--plot-height, clamp(220px, 44dvh, 520px)) - 1.5rem - var(--space-2));
 }
 
 /* One bucket size's grid; a re-bucket crossfades two of these. */
@@ -20,7 +22,20 @@
 }
 
 .reveal {
+  position: relative;
   height: 100%;
+}
+
+/* The reveal's cover: the paper over the grid, sliding off to the right
+   (heat.tsx, Reveal). Painted as the sticky ledger header is, paper and
+   grain, so it reads as the page until it is gone. */
+.cover {
+  position: absolute;
+  inset: -2px;
+  z-index: 1;
+  background-color: var(--paper);
+  background-image: var(--grain);
+  pointer-events: none;
 }
 
 .table {

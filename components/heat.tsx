@@ -17,7 +17,7 @@
 //   row and column pick-out                      fast / standard  (CSS, row hover)
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion'
+import { AnimatePresence, LayoutGroup, animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { formatValue } from '@/lib/format'
 import { bucketLabel, headEvery, heatShare, shortLabel, type HeatGrid } from '@/lib/heat'
@@ -135,6 +135,11 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                     ))}
                   </tr>
                 </thead>
+                {/* The rows' own layout group, not the hero's: inside the
+                    hero's, the outgoing view's pop re-measured them on mount
+                    and they slid in from wrong places. They move for a sort
+                    and for nothing else. */}
+                <LayoutGroup id="heat-rows" inherit={false}>
                 <tbody>
                   {rows.map((r, ri) => {
                     const cells = grid.cells[r.id] ?? []
@@ -205,6 +210,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                     )
                   })}
                 </tbody>
+                </LayoutGroup>
               </table>
             </Reveal>
           </motion.div>
@@ -226,27 +232,30 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
   )
 }
 
-// Time arrives from the left: the grid is revealed by a clip widening
-// across it, on the draw-in's row, as the line is. The clip is a style
-// bound to a MotionValue Framer steps itself, as the ribbons' reveal is,
-// not an animated `clipPath` handed to the browser: Safari painted the
-// whole grid for a frame before such an animation took hold, so the map
-// showed static and then revealed (David, 2026-10-19). Bound to a value,
-// the first paint already carries the closed clip. The effect animates to
-// open from wherever the value is, so Strict Mode's second run continues.
+// Time arrives from the left: the grid is uncovered left to right, on the
+// draw-in's row, as the line is. A cover in the paper slides off it rather
+// than a clip opening on it. Safari painted the grid whole for a frame
+// before either an animated `clipPath` or one bound to a value took hold,
+// most likely because the grid's rows and dots are composited layers an
+// ancestor's clip reaches a frame late; the map showed static, then
+// revealed (David, 2026-10-19, twice). A cover is painted with the grid in
+// its first frame, by any engine. Its scale is bound to a MotionValue
+// Framer steps; the effect runs it from wherever it is, so Strict Mode's
+// second run continues rather than restarts.
 function Reveal({ play, children }: { play: boolean; children: ReactNode }) {
   const { durations, easings } = useMotionTokens()
   const progress = useMotionValue(play ? 0 : 1)
-  const clipPath = useTransform(progress, p => `inset(0 ${((1 - p) * 100).toFixed(3)}% 0 0)`)
+  const scaleX = useTransform(progress, p => 1 - p)
   useEffect(() => {
     if (!play) return
     const controls = animate(progress, 1, { duration: durations.slower, ease: easings.enter })
     return () => controls.stop()
   }, [play, progress, durations.slower, easings.enter])
   return (
-    <motion.div className={styles.reveal} style={{ clipPath }}>
+    <div className={styles.reveal}>
       {children}
-    </motion.div>
+      {play && <motion.div className={styles.cover} style={{ scaleX, originX: 1 }} aria-hidden="true" data-reveal-cover />}
+    </div>
   )
 }
 

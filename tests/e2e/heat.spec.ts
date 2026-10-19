@@ -67,23 +67,66 @@ test.describe('the Heat view', () => {
     await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('listitem').first()).toContainText(await page.locator(`[data-entity-link="${id}"]`).innerText())
   })
 
-  test('the grid reveals from the left', async ({ page }) => {
+  // The grid is uncovered left to right: a cover in the paper, whole when
+  // the grid is first in the DOM, shrinks to its right edge. (A clip
+  // showed the grid whole for a frame in Safari; David, 2026-10-19.)
+  test('the grid is uncovered from the left, and covered from its first frame', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
-    const insets = await page.evaluate(async () => {
+    const { atInsert, scales } = await page.evaluate(async () => {
+      const scaleOf = () => {
+        const c = document.querySelector('[data-reveal-cover]')
+        if (!c) return null
+        const t = getComputedStyle(c).transform
+        return t === 'none' ? 1 : Number(t.match(/matrix\(([^,]+)/)![1])
+      }
+      let atInsert: number | null = null
+      const mo = new MutationObserver(() => {
+        if (atInsert === null && document.querySelector('[data-heat]')) atInsert = scaleOf()
+      })
+      mo.observe(document.body, { childList: true, subtree: true })
       ;([...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => b.textContent === 'Heat') as HTMLButtonElement).click()
-      const seen: number[] = []
+      const scales: number[] = []
       for (let i = 0; i < 60; i++) {
         await new Promise(r => requestAnimationFrame(r))
-        const el = document.querySelector('[data-heat]')?.parentElement
-        const m = el ? getComputedStyle(el).clipPath.match(/inset\(0(?:px)? ([\d.]+)%/) : null
-        if (m) seen.push(Number(m[1]))
+        const s = scaleOf()
+        if (s !== null) scales.push(s)
       }
-      return seen
+      mo.disconnect()
+      return { atInsert, scales }
     })
-    expect(Math.max(...insets)).toBeGreaterThan(50)
-    expect(insets.filter(v => v > 0 && v < 100).length).toBeGreaterThan(5)
-    expect(insets[insets.length - 1]).toBe(0)
+    expect(atInsert).toBe(1)
+    expect(scales.filter(v => v > 0.01 && v < 0.99).length).toBeGreaterThan(5)
+    expect(scales[scales.length - 1]).toBeLessThan(0.001)
+  })
+
+  // A switch never moves the sheet below the hero, and the heat rows land
+  // where they stay: with popLayout WebKit laid both views out for a frame,
+  // and inside the hero's layout group the rows slid in from wrong places
+  // (David saw the map static, then animating on again; 2026-10-19).
+  test('a view switch moves nothing below the hero, and the heat rows land still', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    for (const to of ['Risk / return', 'Heat', 'Over time', 'Heat']) {
+      const r = await page.evaluate(async to => {
+        const legend = () => Math.round(document.querySelector('[aria-label="Selected rows"]')!.getBoundingClientRect().top)
+        const rows = () => [...document.querySelectorAll('[data-heat] tbody tr')].map(t => Math.round(t.getBoundingClientRect().top)).join(',')
+        const before = legend()
+        const tops = new Set<number>()
+        const layouts = new Set<string>()
+        ;([...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => b.textContent === to) as HTMLButtonElement).click()
+        for (let i = 0; i < 40; i++) {
+          await new Promise(r => requestAnimationFrame(r))
+          tops.add(legend())
+          const x = rows()
+          if (x) layouts.add(x)
+        }
+        return { before, tops: [...tops], layouts: layouts.size }
+      }, to)
+      expect(r.tops, to).toEqual([r.before])
+      expect(r.layouts, to).toBeLessThanOrEqual(1)
+      await page.waitForTimeout(400)
+    }
   })
 
   test('passes axe in Heat, on both stocks', async ({ page }) => {

@@ -411,7 +411,15 @@ test.describe('Heat under Strict Mode', () => {
     })
     await page.goto('/?view=heat')
     await expect(page.locator('[data-cell][tabindex="0"]')).toHaveCount(1)
-    await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[data-heat]')!.parentElement!).clipPath)).toMatch(/inset\(0(px)? 0(px|%)? 0(px)? 0(px)?\)|none/)
+    // Uncovered whole: the cover's scale runs to nothing.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const t = getComputedStyle(document.querySelector('[data-reveal-cover]')!).transform
+          return t === 'none' ? 1 : Math.abs(Number(t.match(/matrix\(([^,]+)/)![1]))
+        }),
+      )
+      .toBeLessThan(0.001)
     await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1M' }).click()
     await expect(page.locator('[data-heat]')).toHaveCount(1)
     await expect(page.locator('[data-heat]')).toHaveAttribute('data-unit', 'day')
