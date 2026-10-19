@@ -216,22 +216,22 @@ adding a row, in its own commit.
 
 | Interaction | Duration | Easing / transition | Delay |
 |---|---|---|---|
-| Figure value tick (`useAnimatedNumber`) | `slow` | `standard` | `none` |
+| Figure value tick (`useAnimatedNumber`); on refresh, a heat cell's tint, a scatter point's position, and a ledger bar's length move with their number | `slow` | `standard` | `none` |
 | Figure direction color decay | `slower` | `exit` | `none` |
 | Figure shimmer (refreshing) | `slower`, looped | `linear` | `none` |
 | Refresh arrow turn (while a refresh runs) | `slower`, looped | `linear` | `none` |
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
-| Table row reorder on sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
+| Table row reorder on sort; the heat view's rows follow the same sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
 | Row lane step as its reorder starts (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | `none` |
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
-| Chart line draw-in / out | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
-| Chart domain rescale (time range) | `slow` | `standard` | `none` |
-| Chart cursor: the rule, the dots, and the point card enter / exit | `transitions.enter` / `transitions.exit` | | `none` |
-| Diagnostics card enter / exit (the hover preview and the pinned panel) | `transitions.enter` / `transitions.exit` | | `none` |
-| Window set / reset (the shade, the handles, the axis tags) | `base` | `standard` | `none` |
+| Chart line draw-in / out; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
+| Chart domain rescale (time range); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
+| Chart cursor: the rule, the dots, and the point card enter / exit; the scatter's ring and card; the heat's row and column pick-out and card | `transitions.enter` / `transitions.exit` | | `none` |
+| Diagnostics card enter / exit (the hover preview and the pinned panel), the waterfall's included | `transitions.enter` / `transitions.exit` | | `none` |
+| Window set / reset (the shade, the handles, the axis tags); scatter points, heat cells, and the fan answering a typed or reset window | `base` | `standard` | `none` |
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
@@ -243,6 +243,18 @@ adding a row, in its own commit.
 | Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
+| Hero view switch: the selected marker slides | `base` | `standard` | `none` |
+| Hero view switch: the outgoing view leaves | `fast` | `exit` | `none` |
+| Line ↔ scatter: each charted row's marker travels between its endpoint and its point | `slow` | `standard` | `short` stagger by selection order, capped at 8 |
+| Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
+| Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
+| Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |
+| Ledger bar: first show, growing from zero | `slow` | `enter` | the row's reorder stagger |
+| Ledger bar: the sort moves to another column (the old bar retracts, the new one grows) | `fast` / `slow` | `exit` / `enter` | `none` |
+| Projection fan opens from today, left to right (the 50% band) | `slow` | `enter` | starts on the line draw-in's completion |
+| Projection fan: the 90% tint follows | `slow` | `enter` | `short` |
+| Projection fan closes into the today rule (toggle off) | `base` | `exit` | `none` |
+| Waterfall: steps build in order, each from the last step's level, its connector with it | `base` | `enter` | `medium` stagger, on the card's entry only |
 
 The drawer is an intercepting route, so Next removes it from the tree the
 moment history moves, on every close path: Escape, the close control, and
@@ -290,6 +302,40 @@ control. A hovering pointer stops the bounce where it is and lifts the
 arrow; only where hover exists (`(hover: hover) and (pointer: fine)`).
 Under reduced motion the bounce is removed (loops do not run) and the
 arrow holds still.
+
+The analysis views (M12; `docs/notes/2026-10-19-new-charts-motion.md`).
+**The marker is the row across views.** A row's color and endpoint marker
+are its identity on the line, so they stay on screen when the hero view
+changes: from Over time to Risk / return each charted row's marker leaves
+its endpoint and travels to its point on `slow` / `standard`, and back on
+return, the domain rescale's pair. A tween, not the spring: the spring is
+the drawer's, and its bounce would read as a value that has not settled.
+Rows the line did not chart appear at their points on `base` / `enter`.
+Nothing in Basis runs `overshoot`. (David, 2026-10-19.)
+**Time arrives from the left.** The heat grid and the projection fan
+reveal as the line draws in, by a clip widening across the plot, so every
+view reads time in one direction. Line to heat carries nothing across,
+since heat has rows and no markers: the ribbons leave on the outgoing
+view's `fast` / `exit` and the grid reveals on the draw-in row. A cell
+click goes the other way: the view switches to Over time, the row is
+charted, and the window takes that bucket; the window's shade lands on
+`base` while the line draws on `slower`, so the week is framed before the
+line fills it. Re-bucketing on a range change is a crossfade, because a
+week's cell cannot become a month's.
+**The fan waits for today.** It opens only once the line's draw-in has
+reached the last point, the 50% band first and the 90% tint `short` after.
+Toggled off, it closes into the today rule. It never loops.
+**The waterfall builds once.** On the card's entry the steps build start
+to end, each from the last step's level, `medium` apart. A window change
+afterwards re-tweens the bars in place; it does not replay the build.
+**The bar follows the sort.** A ledger bar lives in the sorted column
+only. When the sort moves to another column the old bars retract on
+`fast` / `exit` and the new ones grow on `slow` / `enter` while the rows
+reorder, so bars and rows land together. The ledger's `short` stagger
+stays a reorder's: a bar's first show rides it, nothing else does.
+Under reduced motion every one of these flattens through
+`useMotionTokens()`: markers land in place, the grid and the fan are
+simply there, the waterfall shows whole. None of them loops.
 
 Rive artboards (`AgentPresence`, logos) hold their own timing inside the state
 machine; Basis pushes only view-model values. The `reduced` boolean in the
