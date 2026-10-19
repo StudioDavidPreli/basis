@@ -16,8 +16,8 @@
 //   the 2σ dot appears / clears                  base / enter / exit
 //   row and column pick-out                      fast / standard  (CSS, row hover)
 
-import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { formatValue } from '@/lib/format'
 import { bucketLabel, headEvery, heatShare, shortLabel, type HeatGrid } from '@/lib/heat'
@@ -97,7 +97,6 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
 
   const read = cursor ? describe(rows[cursor.row]!, grid, cursor.col) : null
   const hoverRow = cursor ? cursor.row : rows.findIndex(r => r.id === hoveredId)
-  const reveal = { duration: durations.slower, ease: easings.enter }
   const fade = { duration: durations.base, ease: easings.standard }
   // The first grid this view shows reveals from the left; a later one, from
   // a range change, crossfades in without revealing again. Decided from the
@@ -118,9 +117,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
             exit={{ opacity: 0, transition: fade }}
             transition={fade}
           >
-            {/* Time arrives from the left: the grid is revealed by a clip
-                widening across it, as the line draws in. */}
-            <motion.div className={styles.reveal} initial={first ? { clipPath: 'inset(0 100% 0 0)' } : false} animate={{ clipPath: 'inset(0 0% 0 0)' }} transition={reveal}>
+            <Reveal play={first}>
               <table className={styles.table} onKeyDown={onKeyDown} onMouseLeave={leave} data-heat data-unit={grid.unit}>
                 <caption className="sr-only">
                   Heat: each row&apos;s Level move per {grid.unit}, measured in its own volatility. Activate a cell to open Over time on that row and {grid.unit}.
@@ -209,7 +206,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                   })}
                 </tbody>
               </table>
-            </motion.div>
+            </Reveal>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -226,6 +223,30 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
         )}
       </p>
     </div>
+  )
+}
+
+// Time arrives from the left: the grid is revealed by a clip widening
+// across it, on the draw-in's row, as the line is. The clip is a style
+// bound to a MotionValue Framer steps itself, as the ribbons' reveal is,
+// not an animated `clipPath` handed to the browser: Safari painted the
+// whole grid for a frame before such an animation took hold, so the map
+// showed static and then revealed (David, 2026-10-19). Bound to a value,
+// the first paint already carries the closed clip. The effect animates to
+// open from wherever the value is, so Strict Mode's second run continues.
+function Reveal({ play, children }: { play: boolean; children: ReactNode }) {
+  const { durations, easings } = useMotionTokens()
+  const progress = useMotionValue(play ? 0 : 1)
+  const clipPath = useTransform(progress, p => `inset(0 ${((1 - p) * 100).toFixed(3)}% 0 0)`)
+  useEffect(() => {
+    if (!play) return
+    const controls = animate(progress, 1, { duration: durations.slower, ease: easings.enter })
+    return () => controls.stop()
+  }, [play, progress, durations.slower, easings.enter])
+  return (
+    <motion.div className={styles.reveal} style={{ clipPath }}>
+      {children}
+    </motion.div>
   )
 }
 
