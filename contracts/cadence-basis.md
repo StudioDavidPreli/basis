@@ -249,8 +249,9 @@ adding a row, in its own commit.
 | Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
 | Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |
-| Ledger bar: first show, growing from zero | `slow` | `enter` | the row's reorder stagger |
-| Ledger bar: the sort moves to another column (the old bar retracts, the new one grows) | `fast` / `slow` | `exit` / `enter` | `none` |
+| Ledger bar: first show, growing from zero (the sort or the column's keep box brings it in) | `slow` | `enter` | the row's reorder stagger |
+| Ledger bar: the bars return when the ledger widens again (the drawer closes), a fade | `base` | `enter` | `none` |
+| Ledger bar: a column loses its bars (the sort leaves an unkept column, or its keep box is cleared); the new column grows as on first show | `fast` | `exit` | `none` |
 | Projection fan opens from today, left to right (the 50% band) | `slow` | `enter` | starts on the line draw-in's completion |
 | Projection fan: the 90% tint follows | `slow` | `enter` | `short` |
 | Projection fan closes into the today rule (toggle off) | `base` | `exit` | `none` |
@@ -328,11 +329,17 @@ Toggled off, it closes into the today rule. It never loops.
 **The waterfall builds once.** On the card's entry the steps build start
 to end, each from the last step's level, `medium` apart. A window change
 afterwards re-tweens the bars in place; it does not replay the build.
-**The bar follows the sort.** A ledger bar lives in the sorted column
-only. When the sort moves to another column the old bars retract on
-`fast` / `exit` and the new ones grow on `slow` / `enter` while the rows
-reorder, so bars and rows land together. The ledger's `short` stagger
-stays a reorder's: a bar's first show rides it, nothing else does.
+**The bar follows the sort, and stays where it is kept.** A figure
+column shows its bars while it is sorted, and whatever the sort while its
+header's keep box is checked (`decisions/2026-10-19-bars-can-be-kept.md`).
+Every figure column keeps its track, pinned to the cell's leading edge,
+so the zero rule is one line down the column and nothing reflows when
+bars come or go. A column gaining bars grows them on `slow` / `enter`
+with the row's `short` stagger; when the sort moved, the rows reorder in
+the same moment, so bars and rows land together. A column losing them
+retracts on `fast` / `exit`. Where the ledger gives up columns (an open
+drawer) the bars give way first; when it widens again they return as a
+fade on `base` / `enter`, a CSS entry with no effect behind it.
 Under reduced motion every one of these flattens through
 `useMotionTokens()`: markers land in place, the grid and the fan are
 simply there, the waterfall shows whole. None of them loops.

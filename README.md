@@ -61,8 +61,9 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
 | Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |
-| Ledger bar: first show, growing from zero | `slow` | `enter` | the row's reorder stagger |
-| Ledger bar: the sort moves to another column (the old bar retracts, the new one grows) | `fast` / `slow` | `exit` / `enter` | `none` |
+| Ledger bar: first show, growing from zero (the sort or the column's keep box brings it in) | `slow` | `enter` | the row's reorder stagger |
+| Ledger bar: the bars return when the ledger widens again (the drawer closes), a fade | `base` | `enter` | `none` |
+| Ledger bar: a column loses its bars (the sort leaves an unkept column, or its keep box is cleared); the new column grows as on first show | `fast` | `exit` | `none` |
 | Projection fan opens from today, left to right (the 50% band) | `slow` | `enter` | starts on the line draw-in's completion |
 | Projection fan: the 90% tint follows | `slow` | `enter` | `short` |
 | Projection fan closes into the today rule (toggle off) | `base` | `exit` | `none` |
