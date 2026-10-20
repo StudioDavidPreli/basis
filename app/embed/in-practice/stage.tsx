@@ -135,6 +135,7 @@ export function InPracticeStage({ snapshot, series }: { snapshot: StoredSnapshot
         }}
         selection={CHARTED}
         locked
+        compact
         onToggle={() => {}}
         onSelectAll={() => {}}
         onClear={() => {}}

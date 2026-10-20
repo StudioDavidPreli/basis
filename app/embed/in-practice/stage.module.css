@@ -1,6 +1,7 @@
 /* The chart over the ledger on its paper, at a fixed height: the host sizes
    its frame to it (decisions/2026-10-15-the-in-practice-stage.md). Designed
-   for frames 560 to 880 px wide, where the ledger is in its narrow layout.
+   for frames 560 to 880 px wide, with the ledger compact (the phone's
+   ledger) across the whole range: M13 gave 640 px and up the full ledger.
    The height is a constant and the plot takes what the ledger leaves, since
    type sets the rows a few pixels apart from one engine to the next
    (Chromium 820, WebKit 805 at a 12rem plot). */

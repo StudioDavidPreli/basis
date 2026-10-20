@@ -141,9 +141,40 @@
   color: var(--ink);
 }
 
-/* Narrow viewports keep the range control only (docs/spec.md): the view
-   switch and the metric chips are one keystroke away in the palette. */
-@media (max-width: 900px) {
+/* A tablet (docs/spec.md, 640–900px): the full row does not fit, so it
+   wraps to two, the views and the metric chips (or a view's caption) on the
+   first, the projection checkbox and the range on the second. The lead
+   steps aside so its children sit in the controls' own grid; the range is
+   the controls' only direct group. */
+@media (min-width: 640px) and (max-width: 900px) {
+  .controls {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+  }
+  .lead {
+    display: contents;
+  }
+  .views {
+    grid-area: 1 / 1;
+  }
+  .metric,
+  .caption {
+    grid-area: 1 / 2 / 2 / 4;
+  }
+  .toggle {
+    grid-area: 2 / 1;
+  }
+  .controls > .group {
+    grid-area: 2 / 3;
+  }
+}
+
+/* A phone keeps the range control only, until M13's phone controls land:
+   the view switch and the metric chips are one keystroke away in the
+   palette. */
+@media (max-width: 639px) {
   .metric,
   .views,
   .toggle {

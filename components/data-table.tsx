@@ -62,6 +62,10 @@ type Props = {
   // True on the In Practice stage: the selection is the chart's four and
   // fixed, so every checkbox shows it and none can change it.
   locked?: boolean
+  // True on the In Practice stage: the phone's ledger (the name, a
+  // sparkline, the chart's metric) at any width, since the stage's height is
+  // fixed for its host across frames 560 to 880 px wide.
+  compact?: boolean
   // Figure columns whose bars stay whatever the sort, and the header's keep
   // box. Without onKeep (the embeds) there is no box and bars follow the
   // sort alone.
@@ -73,7 +77,7 @@ const SPARK = { width: 64, height: 18 }
 
 const STAGGER_CAP = 8
 
-export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true, locked = false, kept = [], onKeep }: Props) {
+export function DataTable({ rows, order, columns, sort, onSort, selection, onToggle, onSelectAll, onClear, hoveredId, onHover, parentheses, phase, now, openId, metric, range, series, links = true, locked = false, compact = false, kept = [], onKeep }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const router = useRouter()
   const byId = new Map(rows.map(r => [r.id, r]))
@@ -179,7 +183,7 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
 
 
   return (
-    <div ref={wrap} className={styles.wrap}>
+    <div ref={wrap} className={styles.wrap} data-compact={compact || undefined}>
       <table className={styles.table}>
         <thead>
           <tr>

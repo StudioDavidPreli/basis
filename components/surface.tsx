@@ -260,8 +260,8 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
       tag: id === state.dataset ? 'current' : undefined,
       run: () => onDataset(id),
     })),
-    // The metric chips hide on a narrow viewport (docs/spec.md); here the
-    // metric stays one keystroke away at any width.
+    // The metric chips hide on a phone until M13's phone controls land
+    // (docs/spec.md); here the metric stays one keystroke away at any width.
     ...columns
       .filter(c => c.derive !== 'field' && c.derive !== 'driver')
       .map(c => ({

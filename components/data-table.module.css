@@ -1,17 +1,21 @@
 /* No horizontal scrollbar, ever: the drawer's resize crosses the table's
    minimum width on the way and an auto scrollbar flashed on and off with
    it (David, 2026-09-16). The ledger gives up columns instead, by its own
-   width: it is a container, and below the width the full set of columns
-   needs the text column (industry) hides, whatever made the ledger narrow
-   (an open drawer, a narrow viewport). The name's floor is low enough that
-   what remains fits beside an open drawer at any viewport above the
-   narrow breakpoint. */
+   width: it is a container, whatever made it narrow (an open drawer, a
+   tablet). Measured on fixtures (M13): Comparables needs 782px with every
+   column, 686px without the text column (industry), 505px without the
+   bars too; Regions 683px and 467px. So the text column goes below 50rem
+   and the bars below 46rem, each before the clip could cut a figure; one
+   threshold at 46rem cut EV/EBITDA between 736px and 782px, beside an open
+   drawer. The name's
+   floor is low enough that what remains fits beside an open drawer at any
+   viewport above the phone breakpoint. */
 .wrap {
   overflow-x: clip;
   container-type: inline-size;
 }
 
-@container (max-width: 46rem) {
+@container (max-width: 50rem) {
   .text {
     display: none;
   }
@@ -299,8 +303,8 @@
   border-left: var(--hairline) solid var(--ink);
 }
 
-/* Where the ledger gives up columns it gives up the bars first, and their
-   keep boxes with them. */
+/* After the text column, the ledger gives up the bars, and their keep
+   boxes with them. */
 @container (max-width: 46rem) {
   .bar,
   .keep {
@@ -326,10 +330,11 @@
   stroke-linecap: round;
 }
 
-/* Narrow viewports (docs/spec.md): fewer columns and one sparkline inline
-   per row. What stays is the name, the chart's metric as a line, and the
-   same metric as the figure, so the row reads the way the chart does. */
-@media (max-width: 900px) {
+/* A phone (docs/spec.md): fewer columns and one sparkline inline per row.
+   What stays is the name, the chart's metric as a line, and the same metric
+   as the figure, so the row reads the way the chart does. A tablet keeps
+   the full ledger and lets the container queries above decide. */
+@media (max-width: 639px) {
   .text {
     display: none;
   }
@@ -361,4 +366,43 @@
   .keep {
     display: none;
   }
+}
+
+/* The same ledger on the In Practice stage at any width (the compact
+   prop): its height is fixed for its host, frames 560 to 880 px wide. */
+.wrap[data-compact] .text {
+  display: none;
+}
+
+.wrap[data-compact] .num {
+  width: 2.25rem;
+}
+
+.wrap[data-compact] .check {
+  width: 1.5rem;
+}
+
+.wrap[data-compact] .name {
+  min-width: 7rem;
+}
+
+.wrap[data-compact] .row td,
+.wrap[data-compact] .row th,
+.wrap[data-compact] .table thead th {
+  padding-left: var(--space-1);
+  padding-right: var(--space-1);
+}
+
+.wrap[data-compact] .spark {
+  display: table-cell;
+  width: calc(64px + var(--space-2));
+}
+
+.wrap[data-compact] .figureCol:not([data-metric]) {
+  display: none;
+}
+
+.wrap[data-compact] .bar,
+.wrap[data-compact] .keep {
+  display: none;
 }
