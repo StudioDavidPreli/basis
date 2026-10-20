@@ -49,7 +49,7 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Inputs sheet open (phone): the sheet lifts from below the viewport's bottom edge to its place | spring | `springDamped`, on its translate on y, from where a previous run left it | `none` |
-| Inputs sheet close (phone): back below the edge, kept mounted until done | spring | `springDamped`, on the same translate | `none` |
+| Inputs sheet close (phone): back below the edge, kept mounted until done; also as a name in it opens the drawer, the sheet no longer modal and above the opening drawer | spring | `springDamped`, on the same translate | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
 | Drawer scroll cue bounce (while there is more below) | `slower`, looped, alternating | `standard` | `none` |
 | Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |

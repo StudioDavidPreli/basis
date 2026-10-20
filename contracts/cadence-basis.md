@@ -237,7 +237,7 @@ adding a row, in its own commit.
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
 | Inputs sheet open (phone): the sheet lifts from below the viewport's bottom edge to its place | spring | `springDamped`, on its translate on y, from where a previous run left it | `none` |
-| Inputs sheet close (phone): back below the edge, kept mounted until done | spring | `springDamped`, on the same translate | `none` |
+| Inputs sheet close (phone): back below the edge, kept mounted until done; also as a name in it opens the drawer, the sheet no longer modal and above the opening drawer | spring | `springDamped`, on the same translate | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
 | Drawer scroll cue bounce (while there is more below) | `slower`, looped, alternating | `standard` | `none` |
 | Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
@@ -322,7 +322,11 @@ It is the second user of that spring, and the reason it is a spring holds:
 an instant close read as no exit, the raw spring as too springy. Nothing
 reflows beside the sheet, so only the sheet moves. Its backdrop is there
 for as long as the dialog is open, with no fade of its own, as the
-welcome's is. A previous run's translate is where the open continues from,
+welcome's is. A name tapped in the sheet opens the drawer, and the sheet
+lowers as the drawer opens: it leaves the top layer first (closed, then
+shown without a modal), so the drawer under it is not inert, and lowers
+above it. A cut there read as the sheet vanishing (David, 2026-10-20).
+A previous run's translate is where the open continues from,
 read from the element and never from a first-run flag, so Strict Mode's
 mount replay continues the lift instead of restarting it
 (`decisions/2026-10-19-the-drawer-open-continues-mid-flight.md`). The
