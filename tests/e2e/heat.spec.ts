@@ -49,7 +49,7 @@ test.describe('the Heat view', () => {
     expect(heat).toEqual(ledger)
   })
 
-  test('the keyboard walks the grid, reads the cell, and a pick opens Over time on that row and week', async ({ page }) => {
+  test('the keyboard walks the grid, reads the cell, and a pick opens Trend on that row and week', async ({ page }) => {
     await page.goto('/?view=heat')
     await expect(page.locator('[data-cell][tabindex="0"]')).toHaveCount(1)
     await page.locator('[data-cell][tabindex="0"]').focus()
@@ -107,7 +107,7 @@ test.describe('the Heat view', () => {
   test('a view switch moves nothing below the hero, and the heat rows land still', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
-    for (const to of ['Risk / return', 'Heat', 'Over time', 'Heat']) {
+    for (const to of ['Risk / return', 'Heat', 'Trend', 'Heat']) {
       const r = await page.evaluate(async to => {
         const legend = () => Math.round(document.querySelector('[aria-label="Selected rows"]')!.getBoundingClientRect().top)
         const rows = () => [...document.querySelectorAll('[data-heat] tbody tr')].map(t => Math.round(t.getBoundingClientRect().top)).join(',')

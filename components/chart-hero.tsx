@@ -31,7 +31,7 @@ import styles from './chart-hero.module.css'
 // The hero's frame: the view switch, the metric selector, the range
 // control, the plot, and the legend strip that doubles as the deselect
 // control, with the agent mark at its right end. The plot is one of two
-// views (decisions/2026-10-19-views-in-the-hero.md): Over time, or Risk /
+// views (decisions/2026-10-19-views-in-the-hero.md): Trend, or Risk /
 // return, which reads Level for every row and puts a caption where the
 // metric chips stand (decisions/2026-10-19-risk-return-reads-level.md). The
 // outgoing view leaves on fast / exit while the incoming one arrives; the
@@ -53,9 +53,9 @@ type Props = {
   view: View
   onView: (view: View) => void
   // A Heat cell: chart its row first, take its bucket as the window, and
-  // open Over time (decisions/2026-10-19-heat-measures-moves-in-sigma.md).
+  // open Trend (decisions/2026-10-19-heat-measures-moves-in-sigma.md).
   onPick: (id: string, window: Window) => void
-  // The projection fan on Over time, Level only
+  // The projection fan on Trend, Level only
   // (decisions/2026-10-19-the-projection-runs-the-config-forward.md).
   projection: boolean
   onProjection: (on: boolean) => void
@@ -113,6 +113,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   const allProvisional = rows.map(r => series?.entities[r.id]?.provisionalFrom).filter((d): d is string => !!d).sort()[0] ?? null
   const grid = heroView === 'heat' && allView ? heatGrid(levelRows, [allView[0], allView[1]], range, allProvisional ? dateMs(allProvisional) : null) : null
   const leave = { opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }
+  const arrive = { duration: durations.base, ease: easings.enter }
 
   const statusOf = (row: Row) => {
     const cell = row.cells[column.key]
@@ -250,28 +251,34 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
               </button>
             ))}
           </div>
-          {heroView === 'time' ? (
-            <>
-              <div className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric">
+          {/* The view's own options, a row under the switch
+              (decisions/2026-10-20-trend-and-its-options-row.md): Trend's
+              metric chips and the projection, or a view's caption. They
+              leave with the outgoing view on fast / exit and arrive on base /
+              enter, overlapping in their grid cell while they cross. */}
+          <AnimatePresence initial={false}>
+            {heroView === 'time' && (
+              <motion.div key="metric" className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
                 {columns.map(c => (
                   <button key={c.key} type="button" className={`${styles.chip} type-label`} aria-pressed={c.key === metric} onClick={() => onMetric(c.key)}>
                     {c.label}
                   </button>
                 ))}
-              </div>
-              {column.derive === 'level' && (
-                <label className={`${styles.toggle} type-label`}>
-                  <input type="checkbox" checked={projection} onChange={e => onProjection(e.target.checked)} />
-                  Projection {HORIZON_DAYS} d
-                </label>
-              )}
-            </>
-          ) : heroView === 'risk' ? (
-            <p className={`${styles.caption} type-micro`} data-risk-caption>
-              from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, change over the window up
-            </p>
-          ) : (
-            <p className={`${styles.caption} type-micro`} data-heat-caption>
+              </motion.div>
+            )}
+            {heroView === 'time' && column.derive === 'level' && (
+              <motion.label key="projection" className={`${styles.toggle} type-label`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
+                <input type="checkbox" checked={projection} onChange={e => onProjection(e.target.checked)} />
+                Projection {HORIZON_DAYS} d
+              </motion.label>
+            )}
+            {heroView === 'risk' && (
+              <motion.p key="risk-caption" className={`${styles.caption} type-micro`} data-risk-caption initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
+                from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, change over the window up
+              </motion.p>
+            )}
+            {heroView === 'heat' && (
+            <motion.p key="heat-caption" className={`${styles.caption} type-micro`} data-heat-caption initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={leave} transition={arrive}>
               from {levelColumn.label} · each {grid?.unit ?? 'week'}&apos;s move in the row&apos;s own volatility
               <span className={styles.key} aria-hidden="true">
                 <span>−3σ</span>
@@ -281,8 +288,9 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
                 <span>+3σ</span>
               </span>
               <span>● beyond 2σ</span>
-            </p>
-          )}
+            </motion.p>
+            )}
+          </AnimatePresence>
         </div>
         <div className={styles.group} role="group" aria-label="Time range">
           {RANGES.map(r => (

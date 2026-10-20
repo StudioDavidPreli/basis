@@ -47,7 +47,7 @@ test.describe('the hero views', () => {
     await expect(page.locator('[data-strip-note]')).toContainText('tools cover the 4 charted rows')
     await page.reload()
     await expect(page.locator('[data-point]')).toHaveCount(12)
-    await views(page).getByRole('button', { name: 'Over time' }).click()
+    await views(page).getByRole('button', { name: 'Trend' }).click()
     await expect(page).toHaveURL('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
     await expect(page.getByRole('group', { name: 'Metric' })).toBeVisible()
@@ -57,7 +57,7 @@ test.describe('the hero views', () => {
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
     await page.waitForTimeout(300)
-    for (const to of ['Risk / return', 'Over time']) {
+    for (const to of ['Risk / return', 'Trend']) {
       const frames = (await travelFrames(page, to, 'ou-tokyo')).filter((p): p is [number, number] => p !== null)
       const first = frames[0]!
       const last = frames[frames.length - 1]!

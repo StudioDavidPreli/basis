@@ -41,7 +41,7 @@ test.describe('M12 acceptance', () => {
     await run(page, 'show heat')
     await expect(page).toHaveURL('/?view=heat')
     await expect(page.locator('[data-heat]')).toHaveCount(1)
-    await run(page, 'show over time')
+    await run(page, 'show trend')
     await expect(page).toHaveURL('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
     await run(page, 'show the projection')

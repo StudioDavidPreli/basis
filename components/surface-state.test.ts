@@ -74,7 +74,7 @@ describe('reduce', () => {
     expect(reduce(t, { type: 'view', view: 'risk' })).toBe(t)
   })
 
-  it('a Heat pick charts its row first, takes its window, and opens Over time', () => {
+  it('a Heat pick charts its row first, takes its window, and opens Trend', () => {
     let s = initialState('comps', 'level')
     for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) s = reduce(s, { type: 'toggle', id, order: ORDER })
     s = reduce(s, { type: 'view', view: 'heat' })

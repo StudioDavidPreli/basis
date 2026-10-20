@@ -12,7 +12,7 @@ export const DEFAULT_RANGE: Range = '3M' // decisions/2026-10-15-the-chart-lands
 // The hero's views (decisions/2026-10-19-views-in-the-hero.md).
 export type View = 'time' | 'risk' | 'heat'
 export const VIEWS: View[] = ['time', 'risk', 'heat']
-export const VIEW_LABELS: Record<View, string> = { time: 'Over time', risk: 'Risk / return', heat: 'Heat' }
+export const VIEW_LABELS: Record<View, string> = { time: 'Trend', risk: 'Risk / return', heat: 'Heat' }
 
 export type Window = { from: string; to: string } // ISO dates, inclusive; the analysis window (docs/spec.md, Diagnostics)
 
@@ -110,7 +110,7 @@ export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState
       // window, and metric all carry.
       return state.view === action.view ? state : { ...state, view: action.view }
     case 'pick':
-      // A Heat cell opens Over time on its row and bucket
+      // A Heat cell opens Trend on its row and bucket
       // (decisions/2026-10-19-heat-measures-moves-in-sigma.md): the row
       // first in the selection, so it is charted whatever the cap.
       return { ...state, selection: [action.id, ...state.selection.filter(id => id !== action.id)], window: action.window, view: 'time', anchorId: action.id }

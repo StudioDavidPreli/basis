@@ -377,7 +377,7 @@ test.describe('the hero views under Strict Mode', () => {
     })
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
-    for (const to of ['Risk / return', 'Over time']) {
+    for (const to of ['Risk / return', 'Trend']) {
       const moved = await page.evaluate(async to => {
         const btn = [...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => b.textContent?.includes(to)) as HTMLButtonElement
         const at = () => document.querySelector('[data-point="ou-tokyo"] [data-mark], [data-endpoint="ou-tokyo"] > span')?.getBoundingClientRect().left ?? null
@@ -402,9 +402,9 @@ test.describe('the hero views under Strict Mode', () => {
 // Heat keeps its tab stop and cursor in state and remounts a grid per bucket
 // size; a pick is one reducer action (decisions/2026-10-19-heat-measures-
 // moves-in-sigma.md). Under Strict Mode the grid must reveal whole, and a
-// pick must chart its row and land on Over time.
+// pick must chart its row and land on Trend.
 test.describe('Heat under Strict Mode', () => {
-  test('reveals whole, picks a cell into Over time, with nothing in the console', async ({ page }) => {
+  test('reveals whole, picks a cell into Trend, with nothing in the console', async ({ page }) => {
     const errors = collectErrors(page)
     page.on('console', m => {
       if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())

@@ -6,7 +6,7 @@
 // ledger's order, its Level cut into buckets by the range, each bucket
 // tinted toward the accent (up) or the stock's down by its move over the
 // row's own spread, with a dot beyond two. A real <table> of real buttons:
-// one tab stop, arrows between cells, a pick opens Over time on the row and
+// one tab stop, arrows between cells, a pick opens Trend on the row and
 // the bucket. Timing per the contract, through useMotionTokens():
 //
 //   reveal, left to right by a widening clip     slower / enter   (the draw-in's row)
@@ -124,7 +124,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
             <Reveal play={first}>
               <table className={styles.table} onKeyDown={onKeyDown} onMouseLeave={leave} data-heat data-unit={grid.unit}>
                 <caption className="sr-only">
-                  Heat: each row&apos;s Level move per {grid.unit}, measured in its own volatility. Activate a cell to open Over time on that row and {grid.unit}.
+                  Heat: each row&apos;s Level move per {grid.unit}, measured in its own volatility. Activate a cell to open Trend on that row and {grid.unit}.
                 </caption>
                 <thead>
                   <tr>
@@ -243,7 +243,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
               {read.row.name}
             </span>
             <span>{read.text}</span>
-            <span className={`${styles.statusMeta} type-micro`}>{read.when} · open in Over time</span>
+            <span className={`${styles.statusMeta} type-micro`}>{read.when} · open in Trend</span>
           </>
         )}
       </p>

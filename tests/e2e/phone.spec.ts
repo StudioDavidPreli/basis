@@ -49,7 +49,7 @@ test.describe('a phone, 390px', () => {
   for (const view of ['time', 'risk', 'heat'] as const) {
     test(`?view=${view}: the switch shows the view pressed, nothing scrolls sideways, axe is clean`, async ({ page }) => {
       await page.goto(`/?view=${view}`)
-      const label = { time: 'Over time', risk: 'Risk / return', heat: 'Heat' }[view]
+      const label = { time: 'Trend', risk: 'Risk / return', heat: 'Heat' }[view]
       await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
       const results = await new AxeBuilder({ page }).analyze()

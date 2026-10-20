@@ -270,9 +270,9 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
   const [welcomeAsked, setWelcomeAsked] = useState(false)
   const welcomeOpen = welcomeAsked || (!welcomeClosed && !welcomeStored)
   // Each view its own words: one shared list made "risk" match all three,
-  // and Enter ran the first, Over time (caught by M12's acceptance check).
+  // and Enter ran the first, Trend (caught by M12's acceptance check).
   const VIEW_KEYWORDS: Record<View, string> = {
-    time: 'line chart history trend series',
+    time: 'line chart history over time series',
     risk: 'scatter risk return volatility',
     heat: 'heatmap grid weekly moves sigma outliers',
   }
@@ -398,7 +398,7 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           view={state.view}
           onPick={(id, w) => {
             dispatch({ type: 'pick', id, window: w })
-            announce(`Over time, ${rows.find(r => r.id === id)?.name ?? id}, ${w.from} to ${w.to}`)
+            announce(`Trend, ${rows.find(r => r.id === id)?.name ?? id}, ${w.from} to ${w.to}`)
           }}
           projection={state.projection}
           onProjection={on => {

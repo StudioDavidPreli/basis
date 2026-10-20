@@ -42,7 +42,7 @@ type Props = {
   range: Range
   hoveredId: string | null
   onHover: (id: string | null) => void
-  // True when the hero arrived here from Over time: the charted markers are
+  // True when the hero arrived here from Trend: the charted markers are
   // travelling in, so they are not faded in as well.
   travel: boolean
 }
