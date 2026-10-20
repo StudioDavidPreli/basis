@@ -736,10 +736,26 @@ function YTick({ value, dom, frame, label }: Part & { value: number; label: stri
   )
 }
 
+// The x axis is clipped to the plot (time-series-chart.module.css), so a
+// tick on its way in from outside the domain is not drawn there. A label
+// is centred on its tick, and within the outer EDGE percent of the axis it
+// eases to its tick's side, so one at rest on the plot's edge (Max starts
+// on a month) is whole inside the clip rather than cut in half.
+const EDGE = 8
+function edgeShift(p: number): number {
+  if (p <= 0) return 0
+  if (p < EDGE) return (-50 * p) / EDGE
+  if (p <= 100 - EDGE) return -50
+  if (p < 100) return -50 - (50 * (p - (100 - EDGE))) / EDGE
+  return -100
+}
+
 function XTick({ value, dom, frame, label }: Part & { value: number; label: string }) {
-  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(value), frame.width))
+  const at = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => (xScale([a!, b!, 0, 1], frame)(value) / frame.width) * 100)
+  const left = useTransform(at, v => `${v.toFixed(3)}%`)
+  const translateX = useTransform(at, v => `${edgeShift(v)}%`)
   return (
-    <motion.span className={`${styles.xTick} type-micro`} style={{ left }}>
+    <motion.span className={`${styles.xTick} type-micro`} style={{ left, translateX }}>
       {label}
     </motion.span>
   )

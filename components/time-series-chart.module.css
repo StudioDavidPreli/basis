@@ -222,10 +222,14 @@
   display: flex;
 }
 
+/* Clipped to the plot's width: a tick label travelling in from outside the
+   domain on a rescale is not drawn beside the chart (David, 2026-10-20).
+   Labels near an edge anchor toward it, so none at rest is cut. */
 .xAxis {
   grid-area: 2 / 2;
   position: relative;
   height: 1.375rem;
+  overflow: clip;
 }
 
 .xTick {

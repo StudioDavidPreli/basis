@@ -394,4 +394,35 @@ test.describe('export', () => {
     await landEmpty(page, '/')
     await expect(page.getByRole('button', { name: /^Export the chart as CSV/ })).toHaveCount(0)
   })
+
+  test('is an icon button in the diagnostics strip, not in the legend (David, 2026-10-20)', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('region', { name: 'Diagnostics' }).getByRole('button', { name: /^Export the chart as CSV/ })).toHaveCount(1)
+    await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('button', { name: /Export/ })).toHaveCount(0)
+  })
+})
+
+// The x axis is clipped to the plot, so a label travelling in on a rescale
+// is never drawn beside the chart; labels near an edge anchor toward it, so
+// none at rest is cut (David, 2026-10-20).
+test.describe('the x axis', () => {
+  test('is clipped to the plot, and at every range each label at rest is whole inside it', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    const axis = page.locator('[class*="__xAxis"]').first()
+    expect(await axis.evaluate(a => getComputedStyle(a).overflowX)).toBe('clip')
+    for (const range of ['1M', '3M', '1Y', '5Y', 'Max']) {
+      await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: range }).click()
+      await expect(page).toHaveURL(new RegExp(range === '3M' ? '/' : `range=${range}`))
+      await page.waitForTimeout(1500)
+      const over = await axis.evaluate(a => {
+        const r = a.getBoundingClientRect()
+        return [...a.children]
+          .map(t => ({ t: t.textContent, b: t.getBoundingClientRect() }))
+          .filter(({ b }) => b.left < r.left - 0.5 || b.right > r.right + 0.5)
+          .map(({ t }) => t)
+      })
+      expect(over, range).toEqual([])
+    }
+  })
 })
