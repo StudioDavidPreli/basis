@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright'
 // M12): ⌘K switches the hero's view and the projection, and every new
 // surface is axe clean on both stocks in both reduced-motion states. The
 // rest of the check lives with its step: the bar (table.spec), the view in
-// the URL and the marker's travel (risk-return.spec), heat's order and pick
+// the URL and the markers that stay with their view (risk-return.spec), heat's order and pick
 // (heat.spec), the fan's shape (lib/projection.test), the waterfall's sum
 // and remainder (lib/diagnostics, diagnostics.spec).
 
@@ -37,7 +37,7 @@ test.describe('M12 acceptance', () => {
     await page.goto('/')
     await run(page, 'show risk')
     await expect(page).toHaveURL('/?view=risk')
-    await expect(page.locator('[data-point]')).toHaveCount(12)
+    await expect(page.locator('[data-point]')).toHaveCount(4)
     await run(page, 'show heat')
     await expect(page).toHaveURL('/?view=heat')
     await expect(page.locator('[data-heat]')).toHaveCount(1)
@@ -54,8 +54,8 @@ test.describe('M12 acceptance', () => {
   // Each new surface, on both stocks, with motion and with reduced motion.
   const surfaces: Array<[string, string, (p: Page) => Promise<void>]> = [
     ['ledger bars, one kept', '/?sort=change&dir=desc&bars=level', async p => expect(p.locator('tbody [data-bar="on"]')).toHaveCount(24)],
-    ['Risk / return', '/?view=risk', async p => expect(p.locator('[data-point]')).toHaveCount(12)],
-    ['Heat', '/?view=heat', async p => expect(p.locator('[data-cell]')).toHaveCount(156)],
+    ['Risk / return', '/?view=risk', async p => expect(p.locator('[data-point]')).toHaveCount(4)],
+    ['Heat', '/?view=heat', async p => expect(p.locator('[data-cell]')).toHaveCount(52)],
     ['the projection', '/?proj=1', async p => expect(p.locator('[data-fan]')).toHaveCount(4)],
     ['the waterfall', '/?tool=attribution', async p => expect(p.locator('[data-waterfall]')).toHaveCount(4)],
   ]

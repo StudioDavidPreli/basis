@@ -30,7 +30,7 @@ export default defineConfig({
     // stage's height, which Cadence sizes its frame to (2026-10-15); and the
     // hero's view switch, where WebKit alone laid both views out for a frame
     // (2026-10-19).
-    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame|moves nothing below the hero/ },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame|moves nothing below the hero|no marker moves on a switch/ },
   ],
   webServer: {
     command: 'npm run preview:fixtures',

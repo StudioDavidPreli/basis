@@ -217,7 +217,7 @@
   white-space: nowrap;
 }
 
-/* The endpoint's marker: the element that travels to Risk / return. */
+/* The endpoint's marker, Trend's own. */
 .markerHold {
   display: flex;
 }

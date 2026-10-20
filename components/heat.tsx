@@ -2,8 +2,9 @@
 
 // The hero's Heat view (M12; decisions/2026-10-19-views-in-the-hero.md,
 // decisions/2026-10-19-heat-measures-moves-in-sigma.md,
-// decisions/2026-10-19-heat-diverges-blue-to-rust.md). Every row in the
-// ledger's order, its Level cut into buckets by the range, each bucket
+// decisions/2026-10-19-heat-diverges-blue-to-rust.md). Every charted row
+// (decisions/2026-10-20-the-views-draw-the-selection.md) in the ledger's
+// order, its Level cut into buckets by the range, each bucket
 // tinted toward the accent (up) or the stock's down by its move over the
 // row's own spread, with a dot beyond two. A real <table> of real buttons:
 // one tab stop, arrows between cells, a pick opens Trend on the row and
@@ -109,6 +110,19 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
   const [firstKey] = useState(gridKey)
   const first = gridKey === firstKey
 
+  if (rows.length === 0) {
+    return (
+      <div className={styles.wrap}>
+        <div className={styles.frame}>
+          <p className={`${styles.empty} type-micro`} data-heat-empty>
+            Select rows in the table to see their moves.
+          </p>
+        </div>
+        <p className={`${styles.status} type-figure`} role="status" data-testid="heat-readout" />
+      </div>
+    )
+  }
+
   return (
     <div className={styles.wrap}>
       <div className={styles.frame}>
@@ -122,7 +136,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
             transition={fade}
           >
             <Reveal play={first}>
-              <table className={styles.table} onKeyDown={onKeyDown} onMouseLeave={leave} data-heat data-unit={grid.unit}>
+              <table className={styles.table} style={{ '--rows': rows.length } as CSSProperties} onKeyDown={onKeyDown} onMouseLeave={leave} data-heat data-unit={grid.unit}>
                 <caption className="sr-only">
                   Heat: each row&apos;s Level move per {grid.unit}, measured in its own volatility. Activate a cell to open Trend on that row and {grid.unit}.
                 </caption>
@@ -155,6 +169,12 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                     and for nothing else. */}
                 <LayoutGroup id="heat-rows" inherit={false}>
                 <tbody>
+                  {/* The rows are the charted ones
+                      (decisions/2026-10-20-the-views-draw-the-selection.md):
+                      a row charted later fades in on base / enter, an
+                      unticked one out on fast / exit; the rows there on
+                      arrival are uncovered by the reveal instead. */}
+                  <AnimatePresence initial={false}>
                   {rows.map((r, ri) => {
                     const cells = grid.cells[r.id] ?? []
                     // The gate flags a literal inside a timing value, so the
@@ -165,7 +185,10 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                         key={r.id}
                         layout="position"
                         layoutDependency={ri}
-                        transition={{ duration: durations.slow, ease: easings.standard, delay: stagger }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }}
+                        transition={{ duration: durations.slow, ease: easings.standard, delay: stagger, opacity: { duration: durations.base, ease: easings.enter } }}
                         className={styles.row}
                         data-hover={hoverRow === ri || undefined}
                         data-row={r.id}
@@ -228,6 +251,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                       </motion.tr>
                     )
                   })}
+                  </AnimatePresence>
                 </tbody>
                 </LayoutGroup>
               </table>

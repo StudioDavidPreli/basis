@@ -115,12 +115,6 @@ type Props = {
   // The charted metric's key. A change is a redraw, not a rescale. Absent on
   // the In Practice stage, whose metric never changes.
   metric?: string
-  // The hero's views (decisions/2026-10-19-views-in-the-hero.md): each
-  // endpoint marker shares a layoutId with its point in Risk / return, so
-  // it travels between the two. `travelled`: the hero arrived here from
-  // there, so the markers are already moving in and do not fade in too.
-  shareMarkers?: boolean
-  travelled?: boolean
   // The projection fan per charted row, and how far it reaches
   // (decisions/2026-10-19-the-projection-runs-the-config-forward.md).
   // While present the domain widens to take it in, on the rescale's pair.
@@ -144,7 +138,7 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', shareMarkers = false, travelled = false, fans, fanReach = null }: Props) {
+export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', fans, fanReach = null }: Props) {
   const { durations, easings } = useMotionTokens()
   const viewTarget = domainFor(
     rows.map(r => r.points),
@@ -377,8 +371,8 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
           </svg>
           <AnimatePresence initial={false}>
             <motion.div key={metric} className={styles.layer} initial={false} animate={{ opacity: 1 }} exit={leave}>
-              {rows.map((r, i) => (
-                <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} order={i} share={shareMarkers} travelled={travelled} />
+              {rows.map(r => (
+                <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -675,39 +669,31 @@ function XTag({ ms, dom, frame }: Part & { ms: number }) {
   )
 }
 
-function Endpoint({ row, dom, frame, delayIndex, order, share, travelled }: Part & { row: ChartRow; delayIndex: number; order: number; share: boolean; travelled: boolean }) {
+// The endpoint's marker is Trend's own: it arrives as its line's draw-in
+// reaches it and leaves with Trend; nothing travels between views
+// (decisions/2026-10-20-each-view-keeps-its-own-markers.md).
+function Endpoint({ row, dom, frame, delayIndex }: Part & { row: ChartRow; delayIndex: number }) {
   const { durations, easings, delays } = useMotionTokens()
   const last = row.points[row.points.length - 1] ?? null
   const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(last?.[0] ?? 0), frame.width))
   const top = useTransform([dom.y0, dom.y1], ([a, b]: number[]) => pct(yScale([0, 1, a!, b!], frame)(last?.[1] ?? 0), frame.height))
   // The marker lands as its ribbon's draw-in reaches it.
   const delay = delayIndex * delays.short + durations.slower
-  // Travel between views: slow / standard, a short stagger by selection
-  // order capped at eight (contract row "Line ↔ scatter").
-  const travelDelay = Math.min(order, 7) * delays.short
   if (!last) return null
   return (
     <motion.span
       className={styles.endpoint}
       style={{ left, top }}
       data-endpoint={row.id}
-      initial={travelled && share && order < 8 ? false : { opacity: 0 }}
+      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: durations.base, ease: easings.enter, delay }}
     >
       {/* The marker is the shared element; the span above places and
           centres it, so Framer's layout transform never fights the centring. */}
-      {/* layoutDependency: the marker measures and animates its layout only
-          for a view switch, never for the drawer's reflow, which ran every
-          endpoint's layout animation under the drawer's spring. */}
-      <motion.span
-        className={styles.markerHold}
-        layoutId={share && order < 8 ? `hero-marker-${row.id}` : undefined}
-        layoutDependency="time"
-        transition={{ layout: { duration: durations.slow, ease: easings.standard, delay: travelDelay } }}
-      >
+      <span className={styles.markerHold}>
         <Marker shape={row.marker} colors={row.colors} hollow={row.hollow} />
-      </motion.span>
+      </span>
     </motion.span>
   )
 }

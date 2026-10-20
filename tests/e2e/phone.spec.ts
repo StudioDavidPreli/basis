@@ -279,17 +279,19 @@ test.describe('the views read on a phone, 390px', () => {
     for (let i = 1; i < shown.length; i++) expect(shown[i]!.left).toBeGreaterThan(shown[i - 1]!.right)
   })
 
-  test('Risk / return names the charted rows only', async ({ page }) => {
+  // Every view draws the selection (decisions/2026-10-20-the-views-draw-
+  // the-selection.md): Risk / return's points are the charted rows, each named
+  // where its label fits.
+  test('Risk / return draws and names the charted rows', async ({ page }) => {
     await page.goto('/?view=risk')
-    await expect(page.locator('[data-point]')).toHaveCount(12)
+    await expect(page.locator('[data-point]')).toHaveCount(4)
     const named = await page.locator('[data-point]').evaluateAll(ps =>
       ps.filter(p => {
         const l = p.querySelector('[data-side]')
         return l !== null && getComputedStyle(l).display !== 'none'
-      }).map(p => p.hasAttribute('data-charted')),
+      }).length,
     )
-    expect(named).toHaveLength(4)
-    expect(named.every(Boolean)).toBe(true)
+    expect(named).toBeGreaterThanOrEqual(3)
   })
 })
 

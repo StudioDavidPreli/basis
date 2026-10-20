@@ -40,7 +40,10 @@
 
 .table {
   width: 100%;
-  height: 100%;
+  /* The frame's height, but never a row taller than a comfortable band:
+     with few rows charted the grid sits at the top rather than stretching
+     a handful of rows across the plot. */
+  height: min(100%, calc(var(--rows, 12) * 2.5rem + 1.25rem));
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 2px;
@@ -140,6 +143,13 @@
   border-radius: 50%;
   background: var(--paper);
   translate: -50% -50%;
+}
+
+/* Nothing charted: the frame keeps its height and asks for a selection. */
+.empty {
+  margin: 0;
+  padding: var(--space-3) 0;
+  color: var(--muted);
 }
 
 .status {

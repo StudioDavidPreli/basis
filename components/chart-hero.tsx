@@ -15,8 +15,7 @@ import { riskReturn } from '@/lib/risk-return'
 import { heatGrid } from '@/lib/heat'
 import { fanExtent, project, HORIZON_DAYS, type FanPoint } from '@/lib/projection'
 import { dateMs } from '@/lib/chart'
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { CHART_CAP, RANGES, VIEWS, VIEW_LABELS, type Range, type View } from './surface-state'
 import { RiskReturn, type RiskRow } from './risk-return'
@@ -31,11 +30,12 @@ import styles from './chart-hero.module.css'
 // The hero's frame: the view switch, the metric selector, the range
 // control, the plot, and the legend strip that doubles as the deselect
 // control, with the agent mark at its right end. The plot is one of two
-// views (decisions/2026-10-19-views-in-the-hero.md): Trend, or Risk /
-// return, which reads Level for every row and puts a caption where the
-// metric chips stand (decisions/2026-10-19-risk-return-reads-level.md). The
-// outgoing view leaves on fast / exit while the incoming one arrives; the
-// charted rows' markers travel between the two inside one LayoutGroup. The plot is TimeSeriesChart; this assembles what it draws
+// views (decisions/2026-10-19-views-in-the-hero.md): Trend, Risk / return,
+// or Heat, and every one draws the charted rows only
+// (decisions/2026-10-20-the-views-draw-the-selection.md). The outgoing view
+// leaves on fast / exit while the incoming one arrives, its markers with it:
+// no element is shared between views and nothing travels
+// (decisions/2026-10-20-each-view-keeps-its-own-markers.md). Trend's plot is TimeSeriesChart; this assembles what it draws
 // from the rows and the dataset's series (lib/series.ts) and writes the
 // summary and the readout, which are text and so belong to the hero.
 //
@@ -88,16 +88,9 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   const tickFormat = (v: number) => formatTick(column.format, v, { parentheses })
   const { durations, easings } = useMotionTokens()
 
-  // The view of the render before, kept beside this one and set while
-  // rendering, so the view arriving knows the markers are travelling in.
-  const [views, setViews] = useState({ prev: heroView, current: heroView })
-  if (views.current !== heroView) setViews({ prev: views.current, current: heroView })
-  const cameFrom = views.current === heroView ? views.prev : views.current
-  // Markers travel only between the two views that draw them.
-  const travelled = (cameFrom === 'time' && heroView === 'risk') || (cameFrom === 'risk' && heroView === 'time')
-
   // Risk / return: every row's Level over the analysis window, or over the
-  // view of every row when no window is set.
+  // view of every row when no window is set. Every row sets the axes; the
+  // charted rows are drawn.
   const levelColumn = columns.find(c => c.derive === 'level') ?? column
   const levelRows = rows.map(r => {
     const stored = series?.entities[r.id]
@@ -109,7 +102,8 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   )
   const riskWindow = allView ? windowMs(win, [allView[0], allView[1]]) : null
   const riskPoints = heroView === 'risk' && riskWindow ? riskReturn(levelRows, riskWindow) : []
-  // Heat: every row's Level over the view of every row, in buckets.
+  // Heat: the rows' Level over the view of every row, in buckets; each row is
+  // measured in its own spread, so only the charted rows are drawn.
   const allProvisional = rows.map(r => series?.entities[r.id]?.provisionalFrom).filter((d): d is string => !!d).sort()[0] ?? null
   const grid = heroView === 'heat' && allView ? heatGrid(levelRows, [allView[0], allView[1]], range, allProvisional ? dateMs(allProvisional) : null) : null
   const leave = { opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }
@@ -230,12 +224,14 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   }
 
   // Risk / return's and Heat's rows, in the ledger's order, marked as their
-  // figures are.
+  // figures are; Heat draws the charted ones.
   const ordered = order.map(id => rows.find(r => r.id === id)).filter((r): r is Row => r !== undefined)
   const viewRows: RiskRow[] = ordered.map(r => {
     const status = statusOf(r)
     return { id: r.id, name: r.name, colors: r.colors, marker: r.marker, hollow: status === 'stale' || status === 'unverified' }
   })
+  const chartedIds = charted.map(r => r.id)
+  const heatRows = viewRows.filter(r => chartedIds.includes(r.id))
 
   return (
     <section className={styles.hero} aria-labelledby="chart-title">
@@ -300,8 +296,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
           ))}
         </div>
       </div>
-      <LayoutGroup id="hero">
-        <div className={styles.stage}>
+      <div className={styles.stage}>
           {/* The views overlap in one grid cell while one leaves and the next
               arrives, so a switch never adds a view's height to the flow:
               with popLayout, WebKit laid both out for a frame before popping
@@ -323,8 +318,6 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
                   window={viewMs && win ? windowMs(win, viewMs) : null}
                   onWindow={onWindow}
                   metric={column.key}
-                  shareMarkers
-                  travelled={travelled}
                   fans={fanOn ? fans : undefined}
                   fanReach={fanReach}
                 />
@@ -332,7 +325,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
             ) : heroView === 'heat' ? (
               <motion.div key="heat" className={styles.view} exit={leave}>
                 {grid ? (
-                  <Heat rows={viewRows} grid={grid} window={allView && win ? windowMs(win, [allView[0], allView[1]]) : null} hoveredId={hoveredId} onHover={onHover} onPick={onPick} />
+                  <Heat rows={heatRows} grid={grid} window={allView && win ? windowMs(win, [allView[0], allView[1]]) : null} hoveredId={hoveredId} onHover={onHover} onPick={onPick} />
                 ) : (
                   <p className={`${styles.caption} type-micro`}>Heat needs a series; it is still loading.</p>
                 )}
@@ -340,15 +333,14 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
             ) : (
               <motion.div key="risk" className={styles.view} exit={leave}>
                 {riskWindow ? (
-                  <RiskReturn rows={viewRows} points={riskPoints} charted={charted.map(r => r.id)} window={riskWindow} range={range} hoveredId={hoveredId} onHover={onHover} travel={travelled} />
+                  <RiskReturn rows={viewRows} points={riskPoints} charted={chartedIds} window={riskWindow} range={range} hoveredId={hoveredId} onHover={onHover} />
                 ) : (
                   <p className={`${styles.caption} type-micro`}>Risk and return need a series; it is still loading.</p>
                 )}
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </LayoutGroup>
+      </div>
       <div className={styles.strip}>
         <button
           type="button"
@@ -420,7 +412,6 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
         onWindow={onWindow}
         tool={tool}
         onTool={onTool}
-        note={heroView !== 'time' ? `tools cover the ${charted.length} charted ${charted.length === 1 ? 'row' : 'rows'}` : undefined}
         exportCsv={charted.length > 0 ? { run: exportCsv, label: `Export the chart as CSV: ${column.label} over ${range}` } : null}
         now={now}
         phase={phase}

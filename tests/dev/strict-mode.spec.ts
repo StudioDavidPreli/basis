@@ -365,12 +365,11 @@ test.describe('the metric switch under Strict Mode', () => {
   })
 })
 
-// The hero's views keep the previous view beside the current one, set while
-// rendering, and share each charted marker between the line's endpoint and
-// its Risk / return point (decisions/2026-10-19-views-in-the-hero.md). Under
-// Strict Mode's double run the marker must still travel and land, both ways.
+// Each view keeps its own markers and nothing travels between them
+// (decisions/2026-10-20-each-view-keeps-its-own-markers.md). Under Strict
+// Mode's double run no marker may move on a switch, and both views must land.
 test.describe('the hero views under Strict Mode', () => {
-  test('a marker travels to Risk / return and back, with nothing in the console', async ({ page }) => {
+  test('no marker moves on a switch to Risk / return and back, with nothing in the console', async ({ page }) => {
     const errors = collectErrors(page)
     page.on('console', m => {
       if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
@@ -380,18 +379,26 @@ test.describe('the hero views under Strict Mode', () => {
     for (const to of ['Risk / return', 'Trend']) {
       const moved = await page.evaluate(async to => {
         const btn = [...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => b.textContent?.includes(to)) as HTMLButtonElement
-        const at = () => document.querySelector('[data-point="ou-tokyo"] [data-mark], [data-endpoint="ou-tokyo"] > span')?.getBoundingClientRect().left ?? null
-        const xs = [at()]
-        btn.click()
-        for (let i = 0; i < 70; i++) {
-          await new Promise(r => requestAnimationFrame(r))
-          xs.push(at())
+        const seen = new Map<Element, number[]>()
+        const sample = () => {
+          for (const m of document.querySelectorAll('[data-point] [data-mark], [data-endpoint] > span')) {
+            const k = seen.get(m) ?? []
+            k.push(m.getBoundingClientRect().left)
+            seen.set(m, k)
+          }
         }
-        const seen = xs.filter((x): x is number => x !== null)
-        return { distinct: new Set(seen.map(Math.round)).size, travel: Math.abs(seen[seen.length - 1]! - seen[0]!) }
+        sample()
+        btn.click()
+        for (let i = 0; i < 60; i++) {
+          await new Promise(r => requestAnimationFrame(r))
+          sample()
+        }
+        let max = 0
+        for (const k of seen.values()) for (let i = 1; i < k.length; i++) max = Math.max(max, Math.abs(k[i]! - k[i - 1]!))
+        return max
       }, to)
-      expect(moved.travel, to).toBeGreaterThan(40)
-      expect(moved.distinct, to).toBeGreaterThan(5)
+      expect(moved, to).toBeLessThanOrEqual(4)
+      await page.waitForTimeout(600)
     }
     await expect(page.locator('[data-endpoint]')).toHaveCount(4)
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)

@@ -2,23 +2,24 @@
 
 // The hero's Risk / return view (M12; decisions/2026-10-19-views-in-the-
 // hero.md, decisions/2026-10-19-risk-return-reads-level.md). Every row of
-// the dataset placed by its Level over the analysis window: realized
-// volatility across, change over the window up, both from lib/risk-return.ts.
-// The frame is the chart's (its plot, axes, card, and readout styles), so
-// the two views are one box. Timing per the contract, through
+// the dataset is measured by its Level over the analysis window, realized
+// volatility across and change over the window up (lib/risk-return.ts), and
+// those set the axes and the median; only the charted rows are drawn
+// (decisions/2026-10-20-the-views-draw-the-selection.md), so ticking a row
+// adds its point and never rescales. The markers are this view's own and
+// nothing travels from Trend (decisions/2026-10-20-each-view-keeps-its-own-
+// markers.md). The frame is the chart's (its plot, axes, card, and readout
+// styles), so the views are one box. Timing per the contract, through
 // useMotionTokens():
 //
-//   charted marker travels from its endpoint   slow / standard   short stagger by selection order, capped at 8
-//   a row not charted appears at its point     base / enter      short stagger by ledger order, capped at 8
+//   a charted row's point appears              base / enter      short stagger by selection order on arrival, capped at 8; none for one charted later
+//   an unticked row's point leaves             fast / exit
 //   points answer a window set or reset        base / standard
 //   points answer a range change (rescale)     slow / standard
 //   hover ring and card                        transitions.enter / exit
 //
-// The travel is Framer's shared layout: a charted row's marker carries the
-// same layoutId here and at its line's endpoint, inside the hero's
-// LayoutGroup, so it moves between the two rather than vanishing and
-// reappearing. Numbers are in the DOM: the card, the readout, and a
-// visually hidden table, which is the plot's text alternative (the ledger
+// Numbers are in the DOM: the card, the readout, and a visually hidden table
+// of the drawn rows, which is the plot's text alternative (the ledger
 // carries neither volatility nor change).
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
@@ -36,15 +37,12 @@ export type RiskRow = { id: string; name: string; colors: EntityColors; marker: 
 
 type Props = {
   rows: RiskRow[] // every row of the dataset, in ledger order
-  points: RiskPoint[] // the rows that could be placed
-  charted: string[] // the charted rows' ids, in selection order: their markers travel
+  points: RiskPoint[] // every row that could be placed: these set the axes and the median
+  charted: string[] // the charted rows' ids, in selection order: these are drawn
   window: WindowMs
   range: Range
   hoveredId: string | null
   onHover: (id: string | null) => void
-  // True when the hero arrived here from Trend: the charted markers are
-  // travelling in, so they are not faded in as well.
-  travel: boolean
 }
 
 const STAGGER_CAP = 8
@@ -57,11 +55,16 @@ const HIT = 28 // px: how near the pointer must be to take a point
 const pctX = (v: number, x: [number, number]) => INSET + ((v - x[0]) / (x[1] - x[0])) * (100 - 2 * INSET)
 const pctY = (v: number, y: [number, number]) => 100 - INSET - ((v - y[0]) / (y[1] - y[0])) * (100 - 2 * INSET)
 
-export function RiskReturn({ rows, points, charted, window: win, range, hoveredId, onHover, travel }: Props) {
+export function RiskReturn({ rows, points, charted, window: win, range, hoveredId, onHover }: Props) {
   const { durations, easings, delays, transitions } = useMotionTokens()
   const domain = riskDomain(points)
   const byId = new Map(points.map(p => [p.id, p]))
   const median = medianVol(points)
+  // What is drawn: the charted rows that could be placed, in selection order.
+  const drawn = charted.map(id => byId.get(id)).filter((p): p is RiskPoint => p !== undefined)
+  // The rows charted when the view arrived take the arrival's stagger; a row
+  // charted afterwards appears at once. Decided from the ids themselves.
+  const [arrivedWith] = useState(() => charted)
 
   // The box's width, for placing labels only: points are percentages.
   const box = useRef<HTMLDivElement>(null)
@@ -91,7 +94,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
   const sides =
     domain && size
       ? placeLabels(
-          points.map(p => {
+          drawn.map(p => {
             const row = rows.find(r => r.id === p.id)!
             return { id: p.id, x: (pctX(p.vol, domain.x) / 100) * size.width, y: (pctY(p.change, domain.y) / 100) * size.height, width: row.name.length * CHAR_WIDTH, height: LABEL_HEIGHT }
           }),
@@ -108,7 +111,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
     if (!el || !domain) return
     const r = el.getBoundingClientRect()
     let best: { id: string; d: number } | null = null
-    for (const p of points) {
+    for (const p of drawn) {
       const dx = (pctX(p.vol, domain.x) / 100) * r.width - (e.clientX - r.left)
       const dy = (pctY(p.change, domain.y) / 100) * r.height - (e.clientY - r.top)
       const d = Math.hypot(dx, dy)
@@ -124,14 +127,16 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
     setPointerId(null)
     onHover(null)
   }
-  const focus = hoveredId && byId.has(hoveredId) ? hoveredId : null
+  const focus = hoveredId && drawn.some(p => p.id === hoveredId) ? hoveredId : null
   const focusRow = focus ? rows.find(r => r.id === focus) : undefined
   const focusPoint = focus ? byId.get(focus)! : null
 
   const days = Math.max(1, Math.round((win.toMs - win.fromMs) / 86_400_000))
-  const summary = points.length
-    ? `Risk and return over ${days} days, ${points.length} rows, from Level: volatility across, change over the window up. Highest volatility ${nameOf(rows, maxBy(points, p => p.vol))}; best change ${nameOf(rows, maxBy(points, p => p.change))}.`
-    : 'Risk and return: no row has two points in the window.'
+  const summary = drawn.length
+    ? `Risk and return over ${days} days, ${drawn.length} charted ${drawn.length === 1 ? 'row' : 'rows'} against every row's range, from Level: volatility across, change over the window up. Highest volatility ${nameOf(rows, maxBy(drawn, p => p.vol))}; best change ${nameOf(rows, maxBy(drawn, p => p.change))}.`
+    : points.length
+      ? 'Risk and return: no row is charted. Select rows in the table to place them.'
+      : 'Risk and return: no row has two points in the window.'
 
   return (
     <div className={chart.wrap}>
@@ -159,48 +164,39 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
               <span className={`${styles.quadrant} ${styles.bottomRight} type-micro`}>more volatile, losing</span>
             </motion.div>
           )}
-          {domain &&
-            points.map(p => {
-              const row = rows.find(r => r.id === p.id)!
-              const chartedAt = charted.indexOf(p.id)
-              const travels = chartedAt >= 0 && chartedAt < STAGGER_CAP
-              // The gate flags a literal inside a timing value, so the index
-              // math stays out of the transition objects.
-              const travelDelay = Math.min(Math.max(0, chartedAt), STAGGER_CAP - 1) * delays.short
-              const appearDelay = Math.min(rows.findIndex(r => r.id === p.id), STAGGER_CAP - 1) * delays.short
-              const side = sides[p.id] ?? null
-              return (
-                <motion.span
-                  key={p.id}
-                  className={styles.point}
-                  style={entityStyle(row.colors) as CSSProperties}
-                  data-point={p.id}
-                  data-hover={focus === p.id || undefined}
-                  data-charted={chartedAt >= 0 || undefined}
-                  initial={travels && travel ? false : { opacity: 0, left: `${pctX(p.vol, domain.x)}%`, top: `${pctY(p.change, domain.y)}%` }}
-                  animate={{ opacity: 1, left: `${pctX(p.vol, domain.x)}%`, top: `${pctY(p.change, domain.y)}%` }}
-                  transition={{ ...move, opacity: { duration: durations.base, ease: easings.enter, delay: appearDelay } }}
-                >
-                  {/* The marker itself is the shared element; the span above
-                      places and centres it, so Framer's layout transform
-                      never fights the centring one. */}
+          <AnimatePresence>
+            {domain &&
+              drawn.map(p => {
+                const row = rows.find(r => r.id === p.id)!
+                // The gate flags a literal inside a timing value, so the index
+                // math stays out of the transition objects.
+                const arrival = arrivedWith.indexOf(p.id)
+                const appearDelay = arrival < 0 ? 0 : Math.min(arrival, STAGGER_CAP - 1) * delays.short
+                const side = sides[p.id] ?? null
+                return (
                   <motion.span
-                    className={styles.mark}
-                    data-mark
-                    layoutId={travels ? `hero-marker-${p.id}` : undefined}
-                    layoutDependency="risk"
-                    transition={{ layout: { duration: durations.slow, ease: easings.standard, delay: travelDelay } }}
+                    key={p.id}
+                    className={styles.point}
+                    style={entityStyle(row.colors) as CSSProperties}
+                    data-point={p.id}
+                    data-hover={focus === p.id || undefined}
+                    initial={{ opacity: 0, left: `${pctX(p.vol, domain.x)}%`, top: `${pctY(p.change, domain.y)}%` }}
+                    animate={{ opacity: 1, left: `${pctX(p.vol, domain.x)}%`, top: `${pctY(p.change, domain.y)}%` }}
+                    exit={{ opacity: 0, transition: { duration: durations.fast, ease: easings.exit } }}
+                    transition={{ ...move, opacity: { duration: durations.base, ease: easings.enter, delay: appearDelay } }}
                   >
-                    <Marker shape={row.marker} colors={row.colors} hollow={row.hollow} />
-                  </motion.span>
-                  {side && (
-                    <span className={`${styles.label} type-micro`} data-side={side} aria-hidden="true">
-                      {row.name}
+                    <span className={styles.mark} data-mark>
+                      <Marker shape={row.marker} colors={row.colors} hollow={row.hollow} />
                     </span>
-                  )}
-                </motion.span>
-              )
-            })}
+                    {side && (
+                      <span className={`${styles.label} type-micro`} data-side={side} aria-hidden="true">
+                        {row.name}
+                      </span>
+                    )}
+                  </motion.span>
+                )
+              })}
+          </AnimatePresence>
           <AnimatePresence>
             {focusRow && focusPoint && domain && (
               <motion.div
@@ -228,7 +224,11 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
               </motion.div>
             )}
           </AnimatePresence>
-          {points.length === 0 && <p className={`${chart.empty} type-micro`}>No row has two points in the window.</p>}
+          {points.length === 0 ? (
+            <p className={`${chart.empty} type-micro`}>No row has two points in the window.</p>
+          ) : (
+            drawn.length === 0 && <p className={`${chart.empty} type-micro`}>Select rows in the table to place them.</p>
+          )}
         </div>
         <div className={chart.xAxis} aria-hidden="true">
           {domain &&
@@ -269,7 +269,9 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => {
+            {charted.map(id => {
+              const r = rows.find(x => x.id === id)
+              if (!r) return null
               const p = byId.get(r.id)
               return (
                 <tr key={r.id}>

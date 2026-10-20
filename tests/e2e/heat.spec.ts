@@ -12,15 +12,15 @@ test.beforeEach(async ({ request }) => {
 const heads = (page: import('@playwright/test').Page) => page.locator('[data-heat] thead th')
 
 test.describe('the Heat view', () => {
-  test('shows every row in buckets the range sets, from the switch and in the URL', async ({ page }) => {
+  test('shows the charted rows in buckets the range sets, from the switch and in the URL', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
     await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Heat' }).click()
     await expect(page).toHaveURL('/?view=heat')
-    await expect(page.locator('[data-heat] tbody tr')).toHaveCount(12)
+    await expect(page.locator('[data-heat] tbody tr')).toHaveCount(4)
     await expect(heads(page)).toHaveCount(14) // the corner and thirteen weeks
     await expect(page.locator('[data-heat-caption]')).toContainText('week')
-    await expect(page.locator('[data-strip-note]')).toContainText('charted')
+    await expect(page.locator('[data-strip-note]')).toHaveCount(0)
     await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1M' }).click()
     // The week grid crossfades out as the day grid comes in; then one.
     await expect(page.locator('[data-heat]')).toHaveCount(1)
@@ -31,7 +31,7 @@ test.describe('the Heat view', () => {
 
   test('every outlier carries its dot, and no other cell does', async ({ page }) => {
     await page.goto('/?view=heat')
-    await expect(page.locator('[data-cell]')).toHaveCount(156)
+    await expect(page.locator('[data-cell]')).toHaveCount(52)
     const mismatch = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>('[data-cell]')].filter(b => {
         const z = b.dataset.z === undefined ? 0 : Math.abs(Number(b.dataset.z))
@@ -41,12 +41,16 @@ test.describe('the Heat view', () => {
     expect(mismatch).toBe(0)
   })
 
-  test('rows follow the ledger\'s sort', async ({ page }) => {
+  test('rows are the charted ones, in the ledger\'s sort; ticking a row adds it', async ({ page }) => {
     await page.goto('/?view=heat&sort=name&dir=desc')
-    await expect(page.locator('[data-heat] tbody tr')).toHaveCount(12)
+    await expect(page.locator('[data-heat] tbody tr')).toHaveCount(4)
     const heat = await page.locator('[data-heat] tbody tr').evaluateAll(trs => trs.map(t => t.getAttribute('data-row')))
-    const ledger = await page.locator('[data-entity-link]').evaluateAll(as => as.map(a => a.getAttribute('data-entity-link')))
+    const ledger = await page.locator('tbody tr:has(input[type="checkbox"]:checked) [data-entity-link]').evaluateAll(as => as.map(a => a.getAttribute('data-entity-link')))
     expect(heat).toEqual(ledger)
+    await page.locator('[data-entity-link="ou-london"]').locator('xpath=ancestor::tr[1]').getByRole('checkbox').check()
+    await expect(page.locator('[data-heat] tbody tr')).toHaveCount(5)
+    await page.getByRole('checkbox', { name: 'Deselect all rows' }).click()
+    await expect(page.locator('[data-heat-empty]')).toContainText('Select rows')
   })
 
   test('the keyboard walks the grid, reads the cell, and a pick opens Trend on that row and week', async ({ page }) => {
@@ -132,7 +136,7 @@ test.describe('the Heat view', () => {
   test('passes axe in Heat, on both stocks', async ({ page }) => {
     for (const theme of ['passbook', 'operate']) {
       await page.goto(`/?view=heat&theme=${theme}`)
-      await expect(page.locator('[data-cell]')).toHaveCount(156)
+      await expect(page.locator('[data-cell]')).toHaveCount(52)
       const results = await new AxeBuilder({ page }).analyze()
       expect(results.violations, theme).toEqual([])
     }
