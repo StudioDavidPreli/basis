@@ -76,9 +76,11 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
-import { anchorAt, dateMs, domainFor, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
+import { anchorAt, dateMs, domainFor, extendDomain, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
 import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
 import type { Range } from './surface-state'
+import { area, line as lineShape } from 'd3-shape'
+import type { FanPoint } from '@/lib/projection'
 import { Marker, entityStyle, type EntityColors } from './marker'
 import styles from './time-series-chart.module.css'
 
@@ -119,6 +121,11 @@ type Props = {
   // there, so the markers are already moving in and do not fade in too.
   shareMarkers?: boolean
   travelled?: boolean
+  // The projection fan per charted row, and how far it reaches
+  // (decisions/2026-10-19-the-projection-runs-the-config-forward.md).
+  // While present the domain widens to take it in, on the rescale's pair.
+  fans?: Record<string, FanPoint[]>
+  fanReach?: { toMs: number; lo: number; hi: number } | null
 }
 
 // A measurement debounce, not a motion value: the frame is committed once
@@ -137,12 +144,13 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', shareMarkers = false, travelled = false }: Props) {
+export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', shareMarkers = false, travelled = false, fans, fanReach = null }: Props) {
   const { durations, easings } = useMotionTokens()
-  const target = domainFor(
+  const viewTarget = domainFor(
     rows.map(r => r.points),
     range,
   )
+  const target = viewTarget ? extendDomain(viewTarget, fanReach) : null
 
   // The frame: nominal on the server and at hydration, measured on mount,
   // re-measured once a resize has settled.
@@ -331,7 +339,16 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
                 {target && yTicks(target, Y_TICKS).map(v => <GridLine key={v} value={v} dom={dom} frame={frame} />)}
               </motion.g>
             </AnimatePresence>
-            {target && provisionalMs !== null && <Provisional from={provisionalMs} dom={dom} frame={frame} />}
+            {target && viewTarget && provisionalMs !== null && <Provisional from={provisionalMs} to={viewTarget[1]} dom={dom} frame={frame} />}
+            <AnimatePresence>
+              {target &&
+                fans &&
+                rows.map(r =>
+                  fans[r.id] && fans[r.id]!.length > 1 ? (
+                    <Fan key={`fan-${r.id}`} row={r} fan={fans[r.id]!} dom={dom} frame={frame} arriving={arriving.includes(r.id)} delayIndex={Math.max(0, arriving.indexOf(r.id))} hover={hoveredId === r.id} />
+                  ) : null,
+                )}
+            </AnimatePresence>
             <AnimatePresence>{target && win && !drag && <Shade key="shade" window={win} dom={dom} frame={frame} />}</AnimatePresence>
             {drag && <DragPreview a={dragA} b={dragB} dom={dom} frame={frame} />}
             <AnimatePresence initial={false}>
@@ -370,6 +387,11 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
           <AnimatePresence>
             {target && win && !drag && (
               <Handles key="handles" window={win} dom={dom} frame={frame} onEdge={(edge, e) => beginDrag(e, edge)} />
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {target && fans && fanReach && rows.some(r => (fans[r.id]?.length ?? 0) > 1) && (
+              <FanMark key="fan-mark" fromMs={Math.min(...rows.map(r => fans[r.id]?.[0]?.ms ?? Infinity))} dom={dom} frame={frame} />
             )}
           </AnimatePresence>
           {rows.length === 0 && <p className={`${styles.empty} type-micro`}>Select rows below to chart them.</p>}
@@ -468,6 +490,78 @@ function Ribbon({ row, dom, frame, delayIndex, hover, muted }: Part & { row: Cha
         data-drawn={drawn || undefined}
       />
     </g>
+  )
+}
+
+// The projection fan (contract rows "Projection fan"): the 90% band, the
+// 50% band, and the median past today, in the entity's color, uncovered
+// from today rightward by a clip once the line has arrived: slow / enter
+// after the draw-in for a ribbon arriving with it, after the rescale for
+// one already drawn; the 90% tint follows short after. Toggled off it
+// closes back into today on base / exit. The paths read the animated
+// domain, so they follow the rescale the fan's reach starts.
+function Fan({ row, fan, dom, frame, arriving, delayIndex, hover }: Part & { row: ChartRow; fan: FanPoint[]; arriving: boolean; delayIndex: number; hover: boolean }) {
+  const { durations, easings, delays } = useMotionTokens()
+  const [present, safeToRemove] = usePresence()
+  const outer = useTransform(domainList(dom), (v: number[]) => bandPath(fan, 'p05', 'p95', v as Domain, frame))
+  const inner = useTransform(domainList(dom), (v: number[]) => bandPath(fan, 'p25', 'p75', v as Domain, frame))
+  const median = useTransform(domainList(dom), (v: number[]) => {
+    const x = xScale(v as Domain, frame)
+    const y = yScale(v as Domain, frame)
+    return lineShape<FanPoint>().x(p => x(p.ms)).y(p => y(p.p50))(fan) ?? ''
+  })
+  const progress = useMotionValue(0)
+  const tint = useMotionValue(0)
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => xScale([a!, b!, 0, 1], frame)(fan[0]!.ms))
+  const width = useTransform([dom.x0, dom.x1, progress], ([a, b, p]: number[]) => {
+    const scale = xScale([a!, b!, 0, 1], frame)
+    return Math.max(0, scale(fan[fan.length - 1]!.ms) - scale(fan[0]!.ms)) * p!
+  })
+  const start = arriving ? durations.slower + delayIndex * delays.short : durations.slow
+  const later = start + delays.short
+  useEffect(() => {
+    if (present) {
+      // To open from wherever it is: the mount, and Strict Mode's second run.
+      const a = animate(progress, 1, { duration: durations.slow, ease: easings.enter, delay: start })
+      const b = animate(tint, 1, { duration: durations.slow, ease: easings.enter, delay: later })
+      return () => {
+        a.stop()
+        b.stop()
+      }
+    }
+    const a = animate(progress, 0, { duration: durations.base, ease: easings.exit })
+    a.then(() => safeToRemove())
+    return () => a.stop()
+  }, [present, safeToRemove, progress, tint, start, later, durations.slow, durations.base, easings.enter, easings.exit])
+  const clipId = `fan-clip-${row.id}-${useId().replace(/[^\w-]/g, '')}`
+  return (
+    <g className="entity" style={entityStyle(row.colors)} data-fan={row.id} data-hover={hover || undefined}>
+      <clipPath id={clipId}>
+        <motion.rect x={left} y={0} width={width} height={frame.height} data-fan-reveal={row.id} />
+      </clipPath>
+      <g clipPath={`url(#${clipId})`}>
+        <motion.path className={styles.fanOuter} d={outer} style={{ opacity: tint }} />
+        <motion.path className={styles.fanInner} d={inner} />
+        <motion.path className={styles.fanMedian} d={median} />
+      </g>
+    </g>
+  )
+}
+
+function bandPath(fan: FanPoint[], lo: keyof FanPoint, hi: keyof FanPoint, d: Domain, frame: Frame): string {
+  const x = xScale(d, frame)
+  const y = yScale(d, frame)
+  return area<FanPoint>().x(p => x(p.ms)).y0(p => y(p[lo])).y1(p => y(p[hi]))(fan) ?? ''
+}
+
+// Today's rule and the word that names what lies past it.
+function FanMark({ fromMs, dom, frame }: Part & { fromMs: number }) {
+  const { durations, easings } = useMotionTokens()
+  const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(fromMs), frame.width))
+  return (
+    <motion.span className={styles.fanMark} style={{ left }} aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: durations.base, ease: easings.standard }} data-fan-mark>
+      <span className={`${styles.fanWord} type-micro`}>projection</span>
+    </motion.span>
   )
 }
 
@@ -620,10 +714,13 @@ function GridLine({ value, dom, frame }: Part & { value: number }) {
   return <motion.line className={styles.grid} x1={PAD.left} x2={frame.width - PAD.right} y1={y} y2={y} />
 }
 
-function Provisional({ from, dom, frame }: Part & { from: number }) {
+// From the first date a source may still revise to the last point: it ends
+// at today, not at the plot's edge, so it never shades the projection.
+function Provisional({ from, to, dom, frame }: Part & { from: number; to: number }) {
   const right = frame.width - PAD.right
   const x = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => Math.min(right, Math.max(PAD.left, xScale([a!, b!, 0, 1], frame)(from))))
-  const width = useTransform(x, v => right - v)
+  const end = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => Math.min(right, Math.max(PAD.left, xScale([a!, b!, 0, 1], frame)(to))))
+  const width = useTransform([x, end], ([v, e]: number[]) => Math.max(0, e! - v!))
   return <motion.rect className={styles.provisional} x={x} y={0} width={width} height={frame.height} />
 }
 

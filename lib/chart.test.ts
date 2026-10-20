@@ -226,3 +226,16 @@ describe('viewPoints', () => {
     expect(viewPoints(short, 'Max')).toBe(short)
   })
 })
+
+describe('extendDomain', () => {
+  it('widens time to the fan\'s horizon and values to its bands, rounded', async () => {
+    const { extendDomain } = await import('./chart')
+    expect(extendDomain([0, 100, 90, 110], null)).toEqual([0, 100, 90, 110])
+    const d = extendDomain([0, 100, 90, 110], { toMs: 130, lo: 86.3, hi: 113.2 })
+    expect(d[0]).toBe(0)
+    expect(d[1]).toBe(130)
+    expect(d[2]).toBeLessThanOrEqual(86.3)
+    expect(d[3]).toBeGreaterThanOrEqual(113.2)
+  })
+})
+

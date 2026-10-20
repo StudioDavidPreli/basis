@@ -78,6 +78,14 @@ export function domainFor(list: Point[][], range: Range): Domain | null {
   return [start, end, y0, y1]
 }
 
+// The domain widened to take in the projection fan while it shows: time to
+// the fan's horizon, values to its widest band, rounded as domainFor rounds.
+export function extendDomain(d: Domain, reach: { toMs: number; lo: number; hi: number } | null): Domain {
+  if (!reach) return d
+  const [y0, y1] = scaleLinear().domain([Math.min(d[2], reach.lo), Math.max(d[3], reach.hi)]).nice(5).domain() as [number, number]
+  return [d[0], Math.max(d[1], reach.toMs), y0, y1]
+}
+
 // What a ribbon draws for a view range (docs/spec.md: LTTB above 500 points
 // per series). The points inside the range and the history before it are
 // downsampled apart: the range keeps up to the threshold of its own, so

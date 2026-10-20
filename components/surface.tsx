@@ -283,6 +283,13 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
       run: () => dispatch({ type: 'view', view: v }),
     })),
     {
+      id: 'chart:projection',
+      group: 'Chart view',
+      label: state.projection ? 'Hide the projection' : 'Show the projection, 30 days',
+      keywords: 'projection fan forecast band future simulate',
+      run: () => dispatch({ type: 'projection', on: !state.projection }),
+    },
+    {
       id: 'view:welcome',
       group: 'View',
       label: 'Show the welcome',
@@ -316,6 +323,11 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           onPick={(id, w) => {
             dispatch({ type: 'pick', id, window: w })
             announce(`Over time, ${rows.find(r => r.id === id)?.name ?? id}, ${w.from} to ${w.to}`)
+          }}
+          projection={state.projection}
+          onProjection={on => {
+            dispatch({ type: 'projection', on })
+            announce(on ? 'Projection shown, 30 days' : 'Projection hidden')
           }}
           onView={v => {
             dispatch({ type: 'view', view: v })

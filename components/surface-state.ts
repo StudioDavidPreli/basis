@@ -25,6 +25,7 @@ export type SurfaceState = {
   metric: string
   range: Range
   view: View
+  projection: boolean // the fan past today (decisions/2026-10-19-the-projection-runs-the-config-forward.md)
   window: Window | null // null: follows the view
   tool: string | null // the pinned diagnostics tool
   anchorId: string | null // the last row toggled, for Shift-range selection
@@ -47,11 +48,12 @@ export type SurfaceAction =
   | { type: 'range'; range: Range }
   | { type: 'view'; view: View }
   | { type: 'pick'; id: string; window: Window }
+  | { type: 'projection'; on: boolean }
   | { type: 'window'; window: Window | null }
   | { type: 'tool'; tool: string | null }
 
 export function initialState(dataset: string, metric: string): SurfaceState {
-  return { dataset, sort: null, bars: [], selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, view: 'time', window: null, tool: null, anchorId: null }
+  return { dataset, sort: null, bars: [], selection: [], hoveredId: null, metric, range: DEFAULT_RANGE, view: 'time', projection: false, window: null, tool: null, anchorId: null }
 }
 
 export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState {
@@ -112,6 +114,8 @@ export function reduce(state: SurfaceState, action: SurfaceAction): SurfaceState
       // (decisions/2026-10-19-heat-measures-moves-in-sigma.md): the row
       // first in the selection, so it is charted whatever the cap.
       return { ...state, selection: [action.id, ...state.selection.filter(id => id !== action.id)], window: action.window, view: 'time', anchorId: action.id }
+    case 'projection':
+      return state.projection === action.on ? state : { ...state, projection: action.on }
     case 'window':
       return { ...state, window: action.window }
     case 'tool':

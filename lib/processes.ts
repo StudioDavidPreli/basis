@@ -30,44 +30,57 @@ function seasonalAt(p: SeasonalProcess, base: number, date: string, noise: numbe
   return base + p.amplitude * Math.cos(angle) + noise
 }
 
-export function generate(process: ProcessConfig, dates: string[], base: number): number[] {
-  const rng = mulberry32(process.seed)
-  const floor = base * FLOOR_FRACTION
-  const out: number[] = []
-  let x = base
-  let noise = 0
+// One process's state between steps: the level, and the seasonal family's
+// AR(1) noise. The generator and the projection (lib/projection.ts) step
+// the same state the same way, so a fan is the process the base came from.
+export type ProcessState = { x: number; noise: number }
 
-  for (let i = 0; i < dates.length; i++) {
-    const g = gaussian(rng)
-    switch (process.family) {
-      case 'ou':
-        // Mean-reverting: each step pulls a fraction theta of the way back
-        // to mu, then adds noise. Starts at mu.
-        if (i === 0) x = process.mu
-        else x = x + process.theta * (process.mu - x) + process.sigma * g
-        break
-      case 'drift':
-        // Random walk with drift: a constant step plus noise, no memory.
-        if (i > 0) x = x + process.mu + process.sigma * g
-        break
-      case 'seasonal':
-        noise = 0.8 * noise + process.sigma * g
-        x = seasonalAt(process, base, dates[i]!, noise)
-        break
-      case 'jump':
-        // Diffusion plus a Poisson-ish jump: with probability lambda per
-        // step, a jump of jumpSize scaled by 0.5..1.5 in a random direction.
-        if (i > 0) {
-          x = x + process.sigma * g
-          if (rng() < process.lambda) {
-            const sign = rng() < 0.5 ? -1 : 1
-            x = x + sign * process.jumpSize * (0.5 + rng())
-          }
+// One step on one date. `g` is the step's gaussian, drawn first by the
+// caller; the jump family then draws its own uniforms from `rng`, so the
+// draws come in the order the generator has always made them.
+export function step(process: ProcessConfig, s: ProcessState, first: boolean, date: string, base: number, g: number, rng: () => number): void {
+  switch (process.family) {
+    case 'ou':
+      // Mean-reverting: each step pulls a fraction theta of the way back
+      // to mu, then adds noise. Starts at mu.
+      if (first) s.x = process.mu
+      else s.x = s.x + process.theta * (process.mu - s.x) + process.sigma * g
+      break
+    case 'drift':
+      // Random walk with drift: a constant step plus noise, no memory.
+      if (!first) s.x = s.x + process.mu + process.sigma * g
+      break
+    case 'seasonal':
+      s.noise = 0.8 * s.noise + process.sigma * g
+      s.x = seasonalAt(process, base, date, s.noise)
+      break
+    case 'jump':
+      // Diffusion plus a Poisson-ish jump: with probability lambda per
+      // step, a jump of jumpSize scaled by 0.5..1.5 in a random direction.
+      if (!first) {
+        s.x = s.x + process.sigma * g
+        if (rng() < process.lambda) {
+          const sign = rng() < 0.5 ? -1 : 1
+          s.x = s.x + sign * process.jumpSize * (0.5 + rng())
         }
-        break
-    }
-    x = Math.max(x, floor)
-    out.push(x)
+      }
+      break
   }
-  return out
+  s.x = Math.max(s.x, base * FLOOR_FRACTION)
+}
+
+// The base over the dates, and the state it ends in.
+export function generateWithState(process: ProcessConfig, dates: string[], base: number): { values: number[]; state: ProcessState } {
+  const rng = mulberry32(process.seed)
+  const s: ProcessState = { x: base, noise: 0 }
+  const values: number[] = []
+  for (let i = 0; i < dates.length; i++) {
+    step(process, s, i === 0, dates[i]!, base, gaussian(rng), rng)
+    values.push(s.x)
+  }
+  return { values, state: s }
+}
+
+export function generate(process: ProcessConfig, dates: string[], base: number): number[] {
+  return generateWithState(process, dates, base).values
 }

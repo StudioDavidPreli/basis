@@ -430,3 +430,32 @@ test.describe('Heat under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// The fan animates its clip open from wherever it is, in an effect, and
+// closes through presence (decisions/2026-10-19-the-projection-runs-the-
+// config-forward.md). Under Strict Mode's double run it must open whole,
+// and close and leave, with nothing in the console.
+test.describe('the projection fan under Strict Mode', () => {
+  test('opens whole and closes away, with nothing in the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    page.on('console', m => {
+      if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
+    })
+    await page.goto('/')
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
+    await page.getByRole('checkbox', { name: /Projection/ }).check()
+    await expect(page.locator('[data-fan]')).toHaveCount(4)
+    // Open whole: the reveal reaches the fan's own span.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const r = document.querySelector('[data-fan-reveal]')!
+          return parseFloat(r.getAttribute('width') ?? '0')
+        }),
+      )
+      .toBeGreaterThan(100)
+    await page.getByRole('checkbox', { name: /Projection/ }).uncheck()
+    await expect(page.locator('[data-fan]')).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+})

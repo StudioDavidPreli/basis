@@ -173,6 +173,50 @@
   pointer-events: none;
 }
 
+/* The projection fan: the entity's color as a wash, the 90% band lighter
+   than the 50%, the median a dashed line. A hovered row's fan lifts with
+   its ribbon. */
+.fanOuter {
+  fill: var(--entity-color);
+  fill-opacity: 0.11;
+}
+
+.fanInner {
+  fill: var(--entity-color);
+  fill-opacity: 0.2;
+}
+
+.fanMedian {
+  fill: none;
+  stroke: var(--entity-color);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.plot[data-focus] [data-fan]:not([data-hover]) {
+  opacity: 0.4;
+}
+
+/* Today's rule while the fan shows, and the word for what is past it. */
+.fanMark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: var(--hairline) solid var(--ink);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.fanWord {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 /* The endpoint's marker: the element that travels to Risk / return. */
 .markerHold {
   display: flex;

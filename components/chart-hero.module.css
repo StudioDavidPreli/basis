@@ -29,6 +29,22 @@
   color: var(--muted);
 }
 
+/* The projection's checkbox beside the metric chips. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--ink);
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+
 /* Heat's key: the ramp from down through the paper to up. */
 .key {
   display: inline-flex;
@@ -129,7 +145,8 @@
    switch and the metric chips are one keystroke away in the palette. */
 @media (max-width: 900px) {
   .metric,
-  .views {
+  .views,
+  .toggle {
     display: none;
   }
 }

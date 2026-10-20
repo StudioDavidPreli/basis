@@ -13,6 +13,7 @@ import { chartCsv, chartCsvName } from '@/lib/export-csv'
 import { windowDays, windowMs, type DiagnosticSeries, type EntityFacts, type Window } from '@/lib/diagnostics'
 import { riskReturn } from '@/lib/risk-return'
 import { heatGrid } from '@/lib/heat'
+import { fanExtent, project, HORIZON_DAYS, type FanPoint } from '@/lib/projection'
 import { dateMs } from '@/lib/chart'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { useState } from 'react'
@@ -54,6 +55,10 @@ type Props = {
   // A Heat cell: chart its row first, take its bucket as the window, and
   // open Over time (decisions/2026-10-19-heat-measures-moves-in-sigma.md).
   onPick: (id: string, window: Window) => void
+  // The projection fan on Over time, Level only
+  // (decisions/2026-10-19-the-projection-runs-the-config-forward.md).
+  projection: boolean
+  onProjection: (on: boolean) => void
   selection: Row[]
   onDeselect: (id: string) => void
   onClear: () => void
@@ -72,7 +77,7 @@ type Props = {
   now: Date
 }
 
-export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, onPick, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
+export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, onPick, projection, onProjection, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
   const charted = selection.slice(0, CHART_CAP)
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
@@ -158,7 +163,20 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
   const historyFrom = stored.map(s => s.coveredFrom ?? s.dates[0] ?? null).filter((d): d is string => d !== null).sort()[0] ?? null
   const provisionalFrom = stored.map(s => s.provisionalFrom).sort()[0] ?? null
 
-  const summary = summarize({
+  // The fan: each charted row's own process run forward from today, drivers
+  // held. Level only; a band on a one-day change means nothing.
+  const fanOn = projection && heroView === 'time' && column.derive === 'level'
+  const fans: Record<string, FanPoint[]> = {}
+  if (fanOn) {
+    for (const r of charted) {
+      const stored = series?.entities[r.id]
+      const entity = [...config.companies, ...config.regions].find(e => e.id === r.id)
+      if (stored && entity) fans[r.id] = project({ process: entity.process, baseLevel: config.base.level, dates: stored.dates, level: stored.level })
+    }
+  }
+  const fanReach = fanOn ? fanExtent(Object.values(fans)) : null
+
+  const baseSummary = summarize({
     label: column.label,
     range,
     charted: chartRows.map(r => {
@@ -169,6 +187,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
     historyFrom,
     provisionalFrom,
   })
+  const summary = fanReach ? `${baseSummary} A ${HORIZON_DAYS}-day projection follows each row: its own process run forward, drivers held at today's values.` : baseSummary
 
   // The chart as a CSV (decisions/2026-10-15-export-the-chart-as-csv.md):
   // built and handed to the browser on the click, from what the page holds.
@@ -229,13 +248,21 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
             ))}
           </div>
           {heroView === 'time' ? (
-            <div className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric">
-              {columns.map(c => (
-                <button key={c.key} type="button" className={`${styles.chip} type-label`} aria-pressed={c.key === metric} onClick={() => onMetric(c.key)}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className={`${styles.group} ${styles.metric}`} role="group" aria-label="Metric">
+                {columns.map(c => (
+                  <button key={c.key} type="button" className={`${styles.chip} type-label`} aria-pressed={c.key === metric} onClick={() => onMetric(c.key)}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              {column.derive === 'level' && (
+                <label className={`${styles.toggle} type-label`}>
+                  <input type="checkbox" checked={projection} onChange={e => onProjection(e.target.checked)} />
+                  Projection {HORIZON_DAYS} d
+                </label>
+              )}
+            </>
           ) : heroView === 'risk' ? (
             <p className={`${styles.caption} type-micro`} data-risk-caption>
               from {levelColumn.label} · {riskWindow ? windowDays(riskWindow) : 0} d · volatility across, change over the window up
@@ -287,6 +314,8 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
                   metric={column.key}
                   shareMarkers
                   travelled={travelled}
+                  fans={fanOn ? fans : undefined}
+                  fanReach={fanReach}
                 />
               </motion.div>
             ) : heroView === 'heat' ? (
@@ -327,6 +356,11 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
               </button>
             </li>
           ))}
+          {fanReach && (
+            <li className={`${styles.waiting} type-micro`} data-fan-note>
+              projection: each row&apos;s own process {HORIZON_DAYS} d on, drivers held at today&apos;s values
+            </li>
+          )}
           {waiting > 0 && (
             <li className={`${styles.waiting} type-micro`}>
               {waiting} more selected, not charted: the chart holds {CHART_CAP}
