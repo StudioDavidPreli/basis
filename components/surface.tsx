@@ -11,7 +11,7 @@ import { config } from '@/lib/config'
 import { mutationSentence } from '@/lib/describe'
 import type { StoredSnapshot } from '@/worker/refresh'
 import type { SeriesSnapshot } from '@/lib/types'
-import { initialState, reduce, RANGES, VIEWS, VIEW_LABELS } from './surface-state'
+import { initialState, reduce, RANGES, VIEWS, VIEW_LABELS, type View } from './surface-state'
 import { entityRows, rowOrder } from './rows'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
 import { useNow } from './use-now'
@@ -228,6 +228,13 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
   const [welcomeClosed, setWelcomeClosed] = useState(false)
   const [welcomeAsked, setWelcomeAsked] = useState(false)
   const welcomeOpen = welcomeAsked || (!welcomeClosed && !welcomeStored)
+  // Each view its own words: one shared list made "risk" match all three,
+  // and Enter ran the first, Over time (caught by M12's acceptance check).
+  const VIEW_KEYWORDS: Record<View, string> = {
+    time: 'line chart history trend series',
+    risk: 'scatter risk return volatility',
+    heat: 'heatmap grid weekly moves sigma outliers',
+  }
   const paletteItems: PaletteItem[] = [
     ...order.map(id => {
       const row = rows.find(r => r.id === id)!
@@ -278,7 +285,7 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
       id: `chart-view:${v}`,
       group: 'Chart view',
       label: `Show ${VIEW_LABELS[v]}`,
-      keywords: 'chart view scatter risk return volatility over time line',
+      keywords: VIEW_KEYWORDS[v],
       tag: v === state.view ? 'current' : undefined,
       run: () => dispatch({ type: 'view', view: v }),
     })),
