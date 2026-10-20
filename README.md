@@ -61,7 +61,8 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 | Hero view switch: the selected marker slides | `base` | `standard` | `none` |
-| Hero view switch: the outgoing view leaves | `fast` | `exit` | `none` |
+| Hero view switch: the outgoing view leaves, and its row of options (Trend's metric chips and projection, or a view's caption) with it | `fast` | `exit` | `none` |
+| Hero view switch: the arriving view's row of options appears under the switch | `base` | `enter` | `none` |
 | Line ↔ scatter: each charted row's marker travels between its endpoint and its point | `slow` | `standard` | `short` stagger by selection order, capped at 8 |
 | Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |

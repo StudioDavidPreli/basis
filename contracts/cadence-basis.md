@@ -249,7 +249,8 @@ adding a row, in its own commit.
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 | Hero view switch: the selected marker slides | `base` | `standard` | `none` |
-| Hero view switch: the outgoing view leaves | `fast` | `exit` | `none` |
+| Hero view switch: the outgoing view leaves, and its row of options (Trend's metric chips and projection, or a view's caption) with it | `fast` | `exit` | `none` |
+| Hero view switch: the arriving view's row of options appears under the switch | `base` | `enter` | `none` |
 | Line ↔ scatter: each charted row's marker travels between its endpoint and its point | `slow` | `standard` | `short` stagger by selection order, capped at 8 |
 | Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
@@ -347,18 +348,25 @@ arrow holds still.
 The analysis views (M12; `docs/notes/2026-10-19-new-charts-motion.md`).
 **The marker is the row across views.** A row's color and endpoint marker
 are its identity on the line, so they stay on screen when the hero view
-changes: from Over time to Risk / return each charted row's marker leaves
+changes: from Trend to Risk / return each charted row's marker leaves
 its endpoint and travels to its point on `slow` / `standard`, and back on
 return, the domain rescale's pair. A tween, not the spring: the spring is
 the drawer's, and its bounce would read as a value that has not settled.
 Rows the line did not chart appear at their points on `base` / `enter`.
 Nothing in Basis runs `overshoot`. (David, 2026-10-19.)
+**A view's options sit under its name.** The line view is Trend; its
+metric chips and the projection's checkbox are a second row under the
+switch, and Risk / return's and Heat's captions take the same row
+(`decisions/2026-10-20-trend-and-its-options-row.md`). The row keeps its
+height whatever it holds, so a switch never moves the plot; its contents
+leave with the outgoing view on `fast` / `exit` and arrive on `base` /
+`enter`. (David, 2026-10-20.)
 **Time arrives from the left.** The heat grid and the projection fan
 reveal as the line draws in, by a clip widening across the plot, so every
 view reads time in one direction. Line to heat carries nothing across,
 since heat has rows and no markers: the ribbons leave on the outgoing
 view's `fast` / `exit` and the grid reveals on the draw-in row. A cell
-click goes the other way: the view switches to Over time, the row is
+click goes the other way: the view switches to Trend, the row is
 charted, and the window takes that bucket; the window's shade lands on
 `base` while the line draws on `slower`, so the week is framed before the
 line fills it. Re-bucketing on a range change is a crossfade, because a
