@@ -103,3 +103,12 @@
 .label[data-side='left'] {
   right: calc(100% + 6px);
 }
+
+/* A phone (docs/spec.md): the charted rows are named, the rest are their
+   markers alone, so labels stop colliding where the rows bunch near the
+   median. A hovered point still says its name in the card. */
+@media (max-width: 639px) {
+  .point:not([data-charted]) .label {
+    display: none;
+  }
+}

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { config, loadConfig } from './config'
 import {
   companyName,
+  entityShortName,
   regionName,
   companyDescription,
   regionDescription,
@@ -31,6 +32,16 @@ describe('names', () => {
 
   it('names a region by its place', () => {
     expect(regionName(config.regions[0]!)).toBe('Brooklyn')
+  })
+
+  it('shortens to one distinct word per row, within each dataset, for a phone', () => {
+    const companies = config.companies.map(c => entityShortName(c.id))
+    expect(companies[0]).toBe('Anchor')
+    expect(new Set(companies).size).toBe(config.companies.length)
+    for (const s of companies) expect(s).not.toMatch(/\s/)
+    const regions = config.regions.map(r => entityShortName(r.id))
+    expect(regions).toEqual(config.regions.map(r => regionName(r)))
+    expect(new Set(regions).size).toBe(config.regions.length)
   })
 })
 

@@ -13,13 +13,17 @@ import { formatValue } from './format'
 
 // name = processLexicon[family][indexWithinFamily] + " " + (driver.nameToken ?? driver.place)
 export function companyName(company: CompanyConfig, config: Config = defaultConfig): string {
+  const driver = config.drivers[dominantDriver(company.exposures)]!
+  return `${companyWord(company, config)} ${driver.nameToken ?? driver.place}`
+}
+
+function companyWord(company: CompanyConfig, config: Config): string {
   const family = company.process.family
   const words = config.lexicon.process[family].filter(w => !w.startsWith('_'))
   const index = config.companies.filter(c => c.process.family === family).findIndex(c => c.id === company.id)
   const first = words[index]
   if (first === undefined) throw new Error(`no ${family} word for ${company.id}`)
-  const driver = config.drivers[dominantDriver(company.exposures)]!
-  return `${first} ${driver.nameToken ?? driver.place}`
+  return first
 }
 
 export function regionName(region: RegionConfig, config: Config = defaultConfig): string {
@@ -29,6 +33,16 @@ export function regionName(region: RegionConfig, config: Config = defaultConfig)
 export function entityName(id: string, config: Config = defaultConfig): string {
   const c = config.companies.find(x => x.id === id)
   if (c) return companyName(c, config)
+  const r = config.regions.find(x => x.id === id)
+  return r ? regionName(r, config) : id
+}
+
+// A row's name where a phone has room for one word (Heat's name column,
+// docs/spec.md, phone): a company's process word, which the lexicon keeps
+// distinct across the twelve; a region's place, which is already short.
+export function entityShortName(id: string, config: Config = defaultConfig): string {
+  const c = config.companies.find(x => x.id === id)
+  if (c) return companyWord(c, config)
   const r = config.regions.find(x => x.id === id)
   return r ? regionName(r, config) : id
 }

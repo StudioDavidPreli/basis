@@ -124,3 +124,17 @@
 .close {
   color: var(--ink);
 }
+
+/* The lines' two wordings (welcome.tsx): a phone's under 640px. */
+.phone {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .wide {
+    display: none;
+  }
+  .phone {
+    display: inline;
+  }
+}

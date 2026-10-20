@@ -22,6 +22,7 @@ import { useMotionTokens } from '@/lib/motion/tokens'
 import { formatValue } from '@/lib/format'
 import { bucketLabel, headEvery, heatShare, shortLabel, type HeatGrid } from '@/lib/heat'
 import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
+import { entityShortName } from '@/lib/describe'
 import { Marker, type EntityColors } from './marker'
 import styles from './heat.module.css'
 
@@ -38,6 +39,8 @@ type Props = {
 
 const STAGGER_CAP = 8
 const MOST_HEADS = 8
+// A phone's column is narrow: fewer labels, every third bucket at 3M.
+const MOST_HEADS_PHONE = 5
 
 export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Props) {
   const { durations, easings, delays } = useMotionTokens()
@@ -46,6 +49,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
   const [stop, setStop] = useState<{ row: number; col: number } | null>(null)
   const buttons = useRef(new Map<string, HTMLButtonElement>())
   const every = headEvery(grid.buckets.length, MOST_HEADS)
+  const everyPhone = headEvery(grid.buckets.length, MOST_HEADS_PHONE)
   const count = grid.buckets.length
   const firstStop = (() => {
     for (let r = 0; r < rows.length; r++) {
@@ -128,8 +132,18 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                       <span className="sr-only">Row</span>
                     </th>
                     {grid.buckets.map((b, i) => (
-                      <th key={b.fromMs} scope="col" className={`${styles.head} type-micro`} data-col-hover={cursor?.col === i || undefined} data-provisional={b.provisional || undefined}>
-                        <span aria-hidden="true">{i % every === 0 || i === count - 1 ? (b.provisional && i === count - 1 ? 'prov.' : shortLabel(b, grid.unit)) : ''}</span>
+                      <th
+                        key={b.fromMs}
+                        scope="col"
+                        className={`${styles.head} type-micro`}
+                        data-col-hover={cursor?.col === i || undefined}
+                        data-provisional={b.provisional || undefined}
+                        data-label-wide={i % every === 0 || i === count - 1 || undefined}
+                        data-label-phone={i % everyPhone === 0 || i === count - 1 || undefined}
+                      >
+                        <span className={styles.headLabel} aria-hidden="true">
+                          {i % every === 0 || i % everyPhone === 0 || i === count - 1 ? (b.provisional && i === count - 1 ? 'prov.' : shortLabel(b, grid.unit)) : ''}
+                        </span>
                         <span className="sr-only">{bucketLabel(b, grid.unit)}</span>
                       </th>
                     ))}
@@ -158,7 +172,12 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                       >
                         <th scope="row" className={`${styles.name} type-label`}>
                           <Marker shape={r.marker} colors={r.colors} hollow={r.hollow} />
-                          <span>{r.name}</span>
+                          {/* A phone shows the one word; the full name stays
+                              for a screen reader either way. */}
+                          <span className={styles.fullName}>{r.name}</span>
+                          <span className={styles.shortName} aria-hidden="true">
+                            {entityShortName(r.id)}
+                          </span>
                         </th>
                         {grid.buckets.map((b, ci) => {
                           const cell = cells[ci] ?? null

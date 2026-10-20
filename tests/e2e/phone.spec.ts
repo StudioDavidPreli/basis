@@ -211,6 +211,65 @@ test.describe('the window on a phone, 390px', () => {
   }
 })
 
+test.describe('the views read on a phone, 390px', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('Heat names each row by its first word and labels every third week; the full name stays for a screen reader', async ({ page }) => {
+    await page.goto('/?view=heat')
+    const first = page.locator('[data-heat] tbody th[scope="row"]').first()
+    await expect(first).toHaveAccessibleName(/^Anchor Kaze/)
+    // What shows is the one word; the full name is clipped to a pixel.
+    const seen = await first.evaluate(th =>
+      [...th.querySelectorAll('span')]
+        .filter(s => getComputedStyle(s).display !== 'none' && s.getBoundingClientRect().width > 1 && s.children.length === 0)
+        .map(s => s.textContent!.trim())
+        .filter(Boolean),
+    )
+    expect(seen).toEqual(['Anchor'])
+    // Thirteen weeks at 3M: labels on weeks 1, 4, 7, 10, and 13, none touching.
+    const shown = await page.locator('[data-heat] thead th').evaluateAll(ths =>
+      ths
+        .map(th => th.querySelector('[aria-hidden="true"]') as HTMLElement | null)
+        .filter((l): l is HTMLElement => l !== null && getComputedStyle(l).visibility === 'visible' && l.textContent!.trim() !== '')
+        .map(l => l.getBoundingClientRect()),
+    )
+    expect(shown).toHaveLength(5)
+    for (let i = 1; i < shown.length; i++) expect(shown[i]!.left).toBeGreaterThan(shown[i - 1]!.right)
+  })
+
+  test('Risk / return names the charted rows only', async ({ page }) => {
+    await page.goto('/?view=risk')
+    await expect(page.locator('[data-point]')).toHaveCount(12)
+    const named = await page.locator('[data-point]').evaluateAll(ps =>
+      ps.filter(p => {
+        const l = p.querySelector('[data-side]')
+        return l !== null && getComputedStyle(l).display !== 'none'
+      }).map(p => p.hasAttribute('data-charted')),
+    )
+    expect(named).toHaveLength(4)
+    expect(named.every(Boolean)).toBe(true)
+  })
+})
+
+test.describe('the welcome reads as the device does', () => {
+  // The welcome's own storage: nothing dismissed.
+  test.use({ storageState: { cookies: [], origins: [] } })
+  for (const [width, lines] of [
+    [390, ['Tap Inputs to choose what is charted.', 'In Inputs, tap a name', 'Tap any figure', 'tap the calendar to set its window']],
+    [1280, ['Tick a row to chart it.', 'Click a name', 'Hover any figure', 'drag across the plot to set its window']],
+  ] as const) {
+    test(`at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto('/')
+      const dialog = page.getByRole('dialog', { name: /Basis/ })
+      await expect(dialog).toBeVisible()
+      const text = await dialog.locator('ol').evaluate(ol => (ol as HTMLElement).innerText)
+      for (const line of lines) expect(text).toContain(line)
+      expect(text.split('\n').filter(Boolean).length).toBeLessThanOrEqual(8)
+    })
+  }
+})
+
 test.describe('a tablet has no Inputs chip', () => {
   test.use({ viewport: { width: 820, height: 1180 } })
   test('the ledger is on the page and the chip is not shown', async ({ page }) => {

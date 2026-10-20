@@ -21,6 +21,19 @@ import { WELCOME_KEY } from '@/app/theme-script'
 import { BasisTitle } from './basis-title'
 import styles from './welcome.module.css'
 
+// The four lines, as a pointer reads them and as a phone does (docs/spec.md,
+// phone): on a phone the ledger is behind Inputs, a figure is tapped, and
+// the window is set from the strip's dates, not by a drag.
+const STEPS: [wide: string, phone: string][] = [
+  ['Tick a row to chart it. Four are charted to start.', 'Tap Inputs to choose what is charted. Four are charted to start.'],
+  ['Click a name to open its drawer.', 'In Inputs, tap a name to open its drawer.'],
+  ['Hover any figure to see its source and when it was read.', 'Tap any figure to see its source and when it was read.'],
+  [
+    'Use Diagnostics to test the charted rows: click a tool to pin it, drag across the plot to set its window.',
+    'Use Diagnostics to test the charted rows: tap a tool to pin it, tap the calendar to set its window.',
+  ],
+]
+
 // The stored flag, read as an external store like the theme
 // (use-theme.ts). The server snapshot is "dismissed", so nothing renders a
 // dialog before hydration; storing notifies this tab's readers, and another
@@ -177,22 +190,15 @@ export function Welcome({ open, dismissed, onClose }: Props) {
         </h2>
         <BasisTitle />
         <ol className={`${styles.steps} type-body`}>
-          <li>
-            <span className={`${styles.number} type-figure`}>01</span>
-            <span>Tick a row to chart it. Four are charted to start.</span>
-          </li>
-          <li>
-            <span className={`${styles.number} type-figure`}>02</span>
-            <span>Click a name to open its drawer.</span>
-          </li>
-          <li>
-            <span className={`${styles.number} type-figure`}>03</span>
-            <span>Hover any figure to see its source and when it was read.</span>
-          </li>
-          <li>
-            <span className={`${styles.number} type-figure`}>04</span>
-            <span>Use Diagnostics to test the charted rows: click a tool to pin it, drag across the plot to set its window.</span>
-          </li>
+          {STEPS.map(([wide, phone], i) => (
+            <li key={wide}>
+              <span className={`${styles.number} type-figure`}>{String(i + 1).padStart(2, '0')}</span>
+              {/* One wording shows; the other is display: none, so a
+                  screen reader reads the one on screen. */}
+              <span className={styles.wide}>{wide}</span>
+              <span className={styles.phone}>{phone}</span>
+            </li>
+          ))}
         </ol>
         <div className={styles.actions}>
           <label className={`${styles.dontShow} type-label`}>

@@ -161,8 +161,37 @@
   color: var(--muted);
 }
 
+/* Above a phone: the full name, and the wide labels. */
+.shortName {
+  display: none;
+}
+
+.head:not([data-label-wide]) > .headLabel {
+  visibility: hidden;
+}
+
+/* A phone (docs/spec.md): each row by its one word, in a narrower column,
+   and a label on every third bucket so the dates never touch. */
 @media (max-width: 639px) {
   .corner {
-    width: 6.5rem;
+    width: 5.5rem;
+  }
+  .fullName {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .shortName {
+    display: inline;
+  }
+  .head[data-label-phone] > .headLabel {
+    visibility: visible;
+  }
+  .head[data-label-wide]:not([data-label-phone]) > .headLabel {
+    visibility: hidden;
   }
 }
