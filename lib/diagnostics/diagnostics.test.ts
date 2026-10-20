@@ -4,7 +4,7 @@ import type { Point } from '@/lib/chart'
 import type { Source } from '@/lib/types'
 import { summarize } from './summary'
 import { alignedReturns, correlation } from './relate'
-import { attribute } from './attribution'
+import { attribute, splitDrivers } from './attribution'
 import { estimate } from './model'
 import { coverage } from './quality'
 import { anomalies } from './anomalies'
@@ -99,6 +99,38 @@ describe('attribution', () => {
     expect(a.fromBase + a.fromDrivers).toBeCloseTo(a.change, 9)
     expect(a.fromBase).toBeCloseTo((105 - 100) * 1, 9)
     expect(a.fromDrivers).toBeCloseTo(105 * (1.04 - 1), 9)
+  })
+})
+
+describe('the per-driver split', () => {
+  // A level built the way the worker builds it: base × Σ weight · normalized driver.
+  const d = dates(6)
+  const base = [100, 101, 103, 102, 104, 106]
+  const temp = [10, 11, 13, 12, 15, 14]
+  const fx = [1.1, 1.12, 1.09, 1.08, 1.11, 1.13]
+  const spans = { temp: { span: 20, label: 'Tokyo temperature' }, fx: { span: 0.1, label: 'EUR/USD' } }
+  const exposures = [{ driver: 'temp', weight: 0.75 }, { driver: 'fx', weight: 0.25 }]
+  const factor = base.map((_, i) => 0.75 * (1 + (temp[i]! - temp[0]!) / 20) + 0.25 * (1 + (fx[i]! - fx[0]!) / 0.1))
+  const level = base.map((b, i) => b * factor[i]!)
+  const w = { fromMs: T0 + DAY, toMs: T0 + 5 * DAY }
+
+  it('gives each driver its exact share, and the steps sum to the change', () => {
+    const a = attribute(d, level, base, w)!
+    const split = splitDrivers(a, base, temp, exposures, spans)!
+    expect(split.main.label).toBe('Tokyo temperature')
+    expect(split.rest!.label).toBe('EUR/USD')
+    // Each driver's own term in B_end · ΔF, computed directly.
+    expect(split.main.value).toBeCloseTo(base[5]! * 0.75 * ((temp[5]! - temp[1]!) / 20), 9)
+    expect(split.rest!.value).toBeCloseTo(base[5]! * 0.25 * ((fx[5]! - fx[1]!) / 0.1), 9)
+    expect(a.fromBase + split.main.value + split.rest!.value).toBeCloseTo(level[5]! - level[1]!, 9)
+  })
+
+  it('gives a one-driver row one step, and keeps the two-way split without the driver per date', () => {
+    const a = attribute(d, level, base, w)!
+    const one = splitDrivers(a, base, temp, [{ driver: 'temp', weight: 1 }], spans)!
+    expect(one.rest).toBeNull()
+    expect(one.main.value).toBe(a.fromDrivers)
+    expect(splitDrivers(a, base, undefined, exposures, spans)).toBeNull()
   })
 })
 

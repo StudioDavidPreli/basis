@@ -325,13 +325,15 @@ function computeEntity(
   const sources = entity.exposures.map(e => sourceOf(drivers[e.driver]!.config, drivers[e.driver]!))
   // The chart's series (lib/types.ts, EntitySeries): the level over the
   // axis, ending on today's figure so the endpoint is the row's value, and
-  // for a region the dominant driver's own values on the same dates. The
+  // the dominant driver's own values on the same dates: a region charts
+  // them, and a company's Attribution splits its drivers with them
+  // (decisions/2026-10-19-companies-carry-their-dominant-driver.md). The
   // trailing window the adapter re-fetches is what a source may still
   // revise, so those dates are provisional.
   const dominantIndex = entity.exposures.findIndex(e => e.driver === dominantId)
   const dates = [...axis]
   const levels = level.map(round4)
-  const driverValues = dataset === 'regions' ? series[dominantIndex]!.values.map(round4) : null
+  const driverValues = series[dominantIndex]!.values.map(round4)
   if (dates[dates.length - 1] === today) {
     levels[levels.length - 1] = round4(latestLevel)
     if (driverValues) driverValues[driverValues.length - 1] = round4(dominant.latest.value)

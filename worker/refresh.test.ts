@@ -159,11 +159,12 @@ describe('refresh on fixtures', () => {
     }
     // A company on a daily driver: the archive ends 09-14 and today is
     // appended; provisional from seven days back (Open-Meteo's trailing
-    // window). A region carries its driver's own history.
+    // window). Every entity carries its dominant driver's own history: a
+    // region charts it, a company's Attribution splits its drivers with it.
     const tokyo = comps.entities['ou-tokyo']!
     expect(tokyo.dates.slice(-2)).toEqual(['2026-09-14', '2026-09-16'])
     expect(tokyo.provisionalFrom).toBe('2026-09-09')
-    expect(tokyo.driver).toBeUndefined()
+    expect(tokyo.driver).toHaveLength(tokyo.dates.length)
     const brooklyn = regions.entities['brooklyn']!
     expect(brooklyn.driver).toHaveLength(brooklyn.dates.length)
     expect(brooklyn.driver![brooklyn.driver!.length - 1]).toBeCloseTo(snapshot.entities['brooklyn']!.metrics['driver']!.value, 3)

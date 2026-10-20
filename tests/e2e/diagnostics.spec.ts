@@ -147,3 +147,51 @@ test.describe('the diagnostics strip', () => {
     expect(results.violations).toEqual([])
   })
 })
+
+// Attribution's waterfall (decisions/2026-10-19-attribution-draws-a-
+// waterfall.md): per row, start, the base process, each driver by name,
+// end; the steps sum to the change; the build runs in order on the card's
+// entry.
+const amount = (t: string) => {
+  const n = Number(t.replace(/[()+,]/g, ''))
+  return t.includes('(') ? -n : n
+}
+
+test.describe('the attribution waterfall', () => {
+  test('splits each row into base and each driver by name, summing to the change', async ({ page }) => {
+    await chartTwo(page)
+    await page.getByRole('button', { name: 'Attribution' }).click()
+    const falls = page.locator('[data-waterfall]')
+    await expect(falls).toHaveCount(2)
+    const first = await falls.first().evaluate(w => ({
+      labels: [...w.querySelectorAll('[class*="wfLabel"]')].map(l => l.textContent),
+      values: [...w.querySelectorAll('[class*="wfValue"]')].map(v => v.textContent ?? ''),
+    }))
+    expect(first.labels).toEqual(['start', 'base', 'Tokyo temperature', 'EUR/USD', 'end'])
+    const [start, ...rest] = first.values.map(amount)
+    const end = rest.pop()!
+    expect(Math.abs(start! + rest.reduce((a, b) => a + b, 0) - end)).toBeLessThan(0.03)
+    // Hidden from assistive tech: the table's Figures carry each step.
+    await expect(page.locator('[data-waterfall]').first().locator('xpath=ancestor::tr[1]')).toHaveAttribute('aria-hidden', 'true')
+    await expect(page.getByTestId('diagnostics-panel').getByRole('columnheader', { name: 'From the main driver' })).toBeVisible()
+  })
+
+  test('builds start to end on the card\'s entry', async ({ page }) => {
+    await chartTwo(page)
+    const order = await page.evaluate(async () => {
+      ;([...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Attribution') as HTMLButtonElement).click()
+      const firstTall: number[] = []
+      for (let f = 0; f < 90; f++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const bars = [...(document.querySelector('[data-waterfall]')?.querySelectorAll('[class*="wfBar"]') ?? [])]
+        bars.forEach((b, i) => {
+          if (firstTall[i] === undefined && b.getBoundingClientRect().height > 2) firstTall[i] = f
+        })
+      }
+      return firstTall
+    })
+    expect(order).toHaveLength(5)
+    for (let i = 1; i < order.length; i++) expect(order[i]!, `bar ${i}`).toBeGreaterThanOrEqual(order[i - 1]!)
+    expect(order[order.length - 1]!).toBeGreaterThan(order[0]!)
+  })
+})

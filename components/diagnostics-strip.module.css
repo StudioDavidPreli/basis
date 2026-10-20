@@ -216,3 +216,78 @@
     flex-wrap: wrap;
   }
 }
+
+/* Attribution's waterfall (diagnostics-panel.tsx): a column per bar, start
+   and end in ink on the floor, each step floating between the levels it
+   joins, rising in the accent and falling in the stock's down, a dashed
+   connector at the level each step leaves. */
+.waterfallRow td {
+  padding-top: 0;
+}
+
+.waterfall {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  max-width: 36rem;
+  padding: var(--space-1) 0 var(--space-2);
+}
+
+.wfColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.wfPlot {
+  position: relative;
+  height: 72px;
+}
+
+.wfBar {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.wfBar[data-tone='up'] {
+  background: var(--accent);
+}
+
+.wfBar[data-tone='down'] {
+  background: var(--down, var(--muted));
+}
+
+.wfValue {
+  position: absolute;
+  left: 0;
+  right: 0;
+  translate: 0 -100%;
+  padding-bottom: 2px;
+  text-align: center;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* From this bar's right edge to the next one's left, at the level the next
+   step leaves from. */
+.wfConnector {
+  position: absolute;
+  left: 82%;
+  width: calc(36% + var(--space-2));
+  height: 0;
+  border-top: var(--hairline) dashed var(--muted);
+}
+
+.wfLabel {
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

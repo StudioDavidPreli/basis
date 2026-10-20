@@ -3,11 +3,20 @@
 // One tool's report as a real table (docs/spec.md, Diagnostics): the row's
 // marker and name, then a Figure per number, so every derived value has
 // the atom's provenance popover, status marks, and tick. Text cells and
-// the template sentences are plain. Attribution adds a bar per row.
+// the template sentences are plain. Attribution adds a waterfall per row
+// (decisions/2026-10-19-attribution-draws-a-waterfall.md): drawn for the
+// eye and hidden from assistive tech, since the row's Figures carry every
+// step. Its steps build in order on the card's entry, each from the last
+// step's level, base / enter, a medium stagger; afterwards a window change
+// re-tweens them in place on base / standard (contract row "Waterfall").
 
 import type { ColumnConfig } from '@/lib/config'
 import type { AgentPhase } from '@/worker/refresh'
-import type { Cell, DiagnosticSeries, Report } from '@/lib/diagnostics'
+import { Fragment, useState } from 'react'
+import { motion } from 'framer-motion'
+import type { Cell, DiagnosticSeries, Report, Waterfall } from '@/lib/diagnostics'
+import { formatValue } from '@/lib/format'
+import { useMotionTokens } from '@/lib/motion/tokens'
 import { present } from '@/lib/present'
 import { Figure } from './figure'
 import { Marker } from './marker'
@@ -61,7 +70,8 @@ export function DiagnosticsPanel({ report, titleId, series, pinned, onPin, phase
           </thead>
           <tbody>
             {report.rows.map(row => (
-              <tr key={row.id}>
+              <Fragment key={row.id}>
+              <tr>
                 <th scope="row" className="type-label">
                   <span className={styles.name}>
                     {look.get(row.id) && <Marker shape={look.get(row.id)!.marker} colors={look.get(row.id)!.colors} />}
@@ -87,6 +97,14 @@ export function DiagnosticsPanel({ report, titleId, series, pinned, onPin, phase
                   </td>
                 ))}
               </tr>
+              {row.waterfall && (
+                <tr className={styles.waterfallRow} aria-hidden="true">
+                  <td colSpan={report.head.length}>
+                    <WaterfallView key={`${report.tool}:${row.id}`} waterfall={row.waterfall} parentheses={parentheses} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -111,3 +129,75 @@ function CellView({ cell, entityName, phase, now, parentheses }: { cell: Cell; e
     </span>
   )
 }
+
+// Start, each step floating from the level before it to the level after,
+// end; start and end stand on the floor. Positions are percentages of the
+// waterfall's own extent.
+function WaterfallView({ waterfall, parentheses }: { waterfall: Waterfall; parentheses: boolean }) {
+  const { durations, easings, delays } = useMotionTokens()
+  const levels = [waterfall.start]
+  for (const st of waterfall.steps) levels.push(levels[levels.length - 1]! + st.value)
+  const lo = Math.min(...levels, waterfall.end)
+  const hi = Math.max(...levels, waterfall.end)
+  const pad = (hi - lo) * 0.25 || Math.abs(hi) * 0.01 || 1
+  const floor = lo - pad
+  const top = hi + pad * 0.6
+  const y = (v: number) => ((top - v) / (top - floor)) * 100
+  const bars = [
+    { label: 'start', from: floor, to: waterfall.start, tone: 'ink' as const, text: formatValue('number', waterfall.start, { parentheses }) },
+    ...waterfall.steps.map((st, i) => ({
+      label: st.label,
+      from: levels[i]!,
+      to: levels[i + 1]!,
+      tone: st.value >= 0 ? ('up' as const) : ('down' as const),
+      text: st.value >= 0 ? `+${formatValue('number', st.value)}` : formatValue('number', st.value, { parentheses }),
+    })),
+    { label: 'end', from: floor, to: waterfall.end, tone: 'ink' as const, text: formatValue('number', waterfall.end, { parentheses }) },
+  ]
+  return (
+    <div className={styles.waterfall} data-waterfall>
+      {bars.map((b, i) => (
+        <WaterfallBar key={i} index={i} bar={b} next={bars[i + 1]} y={y} durations={durations} easings={easings} stagger={delays.medium} />
+      ))}
+    </div>
+  )
+}
+
+type WBar = { label: string; from: number; to: number; tone: 'ink' | 'up' | 'down'; text: string }
+
+function WaterfallBar({ index, bar, next, y, durations, easings, stagger }: { index: number; bar: WBar; next: WBar | undefined; y: (v: number) => number; durations: ReturnType<typeof useMotionTokens>['durations']; easings: ReturnType<typeof useMotionTokens>['easings']; stagger: number }) {
+  // The build runs once, on the card's entry; when it has landed, a change
+  // of window re-tweens the bar in place. Decided from the animation's own
+  // completion, not from a first-run flag.
+  const [built, setBuilt] = useState(false)
+  const delay = index * stagger
+  const transition = built ? { duration: durations.base, ease: easings.standard } : { duration: durations.base, ease: easings.enter, delay }
+  const t = Math.min(y(bar.from), y(bar.to))
+  const h = Math.abs(y(bar.from) - y(bar.to))
+  // Where it grows from: the level before it, so each step leaves from the
+  // last one's top.
+  const growFrom = y(bar.from)
+  const after = y(bar.tone === 'ink' ? bar.to : bar.to)
+  return (
+    <div className={styles.wfColumn}>
+      <div className={styles.wfPlot}>
+        <motion.span
+          className={styles.wfBar}
+          data-tone={bar.tone}
+          initial={{ top: `${growFrom}%`, height: '0%' }}
+          animate={{ top: `${t}%`, height: `${Math.max(h, 0.6)}%` }}
+          transition={transition}
+          onAnimationComplete={() => setBuilt(true)}
+        />
+        <motion.span className={`${styles.wfValue} type-micro`} initial={{ opacity: 0, top: `${t}%` }} animate={{ opacity: 1, top: `${t}%` }} transition={transition}>
+          {bar.text}
+        </motion.span>
+        {next && next.tone !== 'ink' && (
+          <motion.span className={styles.wfConnector} initial={{ opacity: 0, top: `${after}%` }} animate={{ opacity: 1, top: `${after}%` }} transition={transition} />
+        )}
+      </div>
+      <span className={`${styles.wfLabel} type-micro`}>{bar.label}</span>
+    </div>
+  )
+}
+

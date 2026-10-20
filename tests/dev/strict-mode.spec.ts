@@ -459,3 +459,21 @@ test.describe('the projection fan under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// The waterfall's bars build once and then re-tween, decided from their own
+// animation's completion (decisions/2026-10-19-attribution-draws-a-
+// waterfall.md). Under Strict Mode they must still land at their heights.
+test.describe('the attribution waterfall under Strict Mode', () => {
+  test('builds to its heights, with nothing in the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    page.on('console', m => {
+      if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
+    })
+    await page.goto('/?tool=attribution')
+    await expect(page.locator('[data-waterfall]')).toHaveCount(4)
+    await expect
+      .poll(() => page.evaluate(() => [...document.querySelector('[data-waterfall]')!.querySelectorAll('[class*="wfBar"]')].every(b => b.getBoundingClientRect().height > 0.5)))
+      .toBe(true)
+    expect(errors).toEqual([])
+  })
+})

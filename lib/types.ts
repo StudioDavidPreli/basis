@@ -44,7 +44,7 @@ export type EntitySnapshot = {
 export type EntitySeries = {
   dates: string[] // the dominant driver's real dates, ascending; the last is today
   level: number[] // one per date; the last equals the row's level figure
-  driver?: number[] // regions: the dominant driver's value per date
+  driver?: number[] // the dominant driver's value per date; absent in a series stored before 2026-10-19
   coveredFrom: string | null // how deep the backfill has reached; null while on fixture
   provisionalFrom: string // dates on or after this may still be revised by the source
 }

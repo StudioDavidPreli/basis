@@ -55,7 +55,11 @@ export type Cell = { kind: 'figure'; label: string; figure: FigureValue; format:
 
 export type Bar = { label: string; share: number; tone: 'ink' | 'entity' | 'accent' }
 
-export type ReportRow = { id: string; name: string; cells: Cell[]; bars?: Bar[] }
+// Attribution's picture: the window's start, each step in order, the end;
+// the steps sum to end − start.
+export type Waterfall = { start: number; end: number; steps: Array<{ label: string; value: number }> }
+
+export type ReportRow = { id: string; name: string; cells: Cell[]; bars?: Bar[]; waterfall?: Waterfall }
 
 export type Report = {
   tool: ToolKey

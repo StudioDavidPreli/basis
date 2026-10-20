@@ -1,5 +1,5 @@
 export { TOOLS } from './types'
-export type { ToolKey, ToolInput, Report, ReportRow, Cell, DiagnosticSeries, EntityFacts, WindowMs, DerivedFormat } from './types'
+export type { ToolKey, ToolInput, Report, ReportRow, Cell, DiagnosticSeries, EntityFacts, WindowMs, DerivedFormat, Waterfall } from './types'
 export { windowMs, clip, isoDate, normalizeWindow, windowDays, type Window } from './window'
 import { summaryReport } from './summary'
 import { relateReport } from './relate'
