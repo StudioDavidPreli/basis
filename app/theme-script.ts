@@ -15,14 +15,17 @@
 //                       styles/presets.css can restate a preset's timing
 //                       under ?reduce=0; absent on the sheet, which is
 //                       Standard (decisions/2026-10-05-presets-for-the-embeds.md)
-//   two <link rel="preload" as="fetch"> in <head>, for the Rive runtime (at
-//                       low fetch priority, so the page's own scripts keep
-//                       the pipe on a slow link) and the Basis title's file,
-//                       on the sheet only, when motion is allowed and the
-//                       welcome will open: the canvas's own fetch then finds
-//                       both in the preload cache instead of starting them
-//                       after hydration. Never under reduced motion, which
-//                       stays outside the runtime (contracts/agent-presence.md)
+//   one <link rel="preload" as="fetch"> in <head>, for the Basis title's
+//                       file, on the sheet only, when motion is allowed and
+//                       the welcome will open: the canvas's own fetch then
+//                       finds it in the preload cache instead of starting it
+//                       after hydration. Not the Rive runtime: its 800 KB
+//                       shared a phone's link with the page's own scripts
+//                       and held the welcome's paint back; the canvas
+//                       fetches it when it mounts
+//                       (decisions/2026-10-20-the-runtime-is-not-preloaded.md).
+//                       Never under reduced motion, which stays outside the
+//                       runtime (contracts/agent-presence.md)
 //   data-theme          "passbook" | "operate"   from ?theme=, then the stored
 //                       choice, then prefers-color-scheme (dark picks the
 //                       green stock; both stocks are light paper)
@@ -69,6 +72,5 @@ d.setAttribute('data-theme',t)}
 var p=q.get('preset');
 if(e){d.setAttribute('data-preset',['standard','snappy','cinematic'].indexOf(p)>=0?p:'standard')}
 if(!e&&location.pathname==='/'&&d.getAttribute('data-reduce-motion')==='0'){var w=null;try{w=localStorage.getItem('${WELCOME_KEY}')}catch(x){}
-if(w!=='dismissed'){var h=document.head,l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';l.setAttribute('fetchpriority','low');l.href='${RIVE_WASM}';h.appendChild(l);
-l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';l.href='${TITLE_RIV}';h.appendChild(l)}}
+if(w!=='dismissed'){var h=document.head,l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';l.href='${TITLE_RIV}';h.appendChild(l)}}
 }catch(e){}})();`
