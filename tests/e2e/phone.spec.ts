@@ -57,6 +57,19 @@ test.describe('a phone, 390px', () => {
     })
   }
 
+  test('[ Clear ] sits beside Inputs, and the legend has no second one', async ({ page }) => {
+    await page.goto('/')
+    const chip = page.getByRole('button', { name: /^Inputs/ })
+    const clears = page.getByRole('button', { name: '[ Clear ]' })
+    await expect(clears).toHaveCount(1)
+    const c = await box(chip)
+    const k = await box(clears)
+    expect(Math.abs(c.mid - k.mid)).toBeLessThanOrEqual(3)
+    expect(k.left - c.right).toBeLessThanOrEqual(24)
+    await clears.click()
+    await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('button', { name: /^Remove / })).toHaveCount(0)
+  })
+
   test('a tap on a view switches it', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Heat' }).click()
@@ -93,10 +106,30 @@ test.describe('a phone, 390px', () => {
     await page.goto('/')
     await page.getByRole('button', { name: /^Inputs/ }).click()
     const sheet = page.getByRole('dialog', { name: 'Inputs' })
-    await sheet.getByRole('link', { name: /Anchor Kaze/ }).click()
+    await expect(sheet).toBeVisible()
+    await page.waitForTimeout(800)
+    // The sheet lowers as the drawer opens, above it, not cut away.
+    const lowering = await page.evaluate(async () => {
+      ;(document.querySelector('[data-inputs-sheet] a[data-entity-link="ou-tokyo"]') as HTMLAnchorElement).click()
+      const out: { top: number; onTop: boolean }[] = []
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const d = document.querySelector('[data-inputs-sheet]')
+        if (!d) break
+        const r = d.getBoundingClientRect()
+        const el = r.top < window.innerHeight - 30 ? document.elementFromPoint(window.innerWidth / 2, r.top + 20) : null
+        out.push({ top: Math.round(r.top), onTop: el === null || el.closest('[data-inputs-sheet]') !== null })
+      }
+      return out
+    })
+    expect(lowering.length).toBeGreaterThan(5)
+    expect(lowering[lowering.length - 1]!.top).toBeGreaterThan(lowering[0]!.top + 200)
+    for (let i = 1; i < lowering.length; i++) expect(lowering[i]!.top).toBeGreaterThanOrEqual(lowering[i - 1]!.top - 1)
+    expect(lowering.every(f => f.onTop)).toBe(true)
     const drawer = page.getByRole('dialog', { name: /Anchor Kaze/ })
     await expect(drawer).toBeVisible()
     await expect(sheet).toHaveCount(0)
+    await expect(drawer.locator('[data-drawer-heading]')).toBeFocused()
     await drawer.getByRole('button', { name: /^Close Anchor Kaze/ }).click()
     await expect(sheet).toBeVisible()
     await expect(sheet.getByRole('link', { name: /Anchor Kaze/ })).toBeFocused()
@@ -268,6 +301,19 @@ test.describe('the welcome reads as the device does', () => {
       expect(text.split('\n').filter(Boolean).length).toBeLessThanOrEqual(8)
     })
   }
+})
+
+test.describe('the header on a 375px phone', () => {
+  test.use({ viewport: { width: 375, height: 667 } })
+  test('the dataset tabs and the three buttons stay on one row', async ({ page }) => {
+    await page.goto('/')
+    const mids = await page.locator('header button').evaluateAll(bs => bs.map(b => {
+      const r = b.getBoundingClientRect()
+      return r.top + r.height / 2
+    }))
+    expect(mids.length).toBeGreaterThanOrEqual(5)
+    for (const m of mids) expect(Math.abs(m - mids[0]!)).toBeLessThanOrEqual(3)
+  })
 })
 
 test.describe('a tablet has no Inputs chip', () => {

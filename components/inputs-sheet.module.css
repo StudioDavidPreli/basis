@@ -17,6 +17,9 @@
   background-image: var(--grain);
   color: var(--ink);
   overflow: hidden;
+  /* Above the full-width drawer while it lowers over it (a handoff, when
+     the sheet is no longer modal); a modal sheet is in the top layer. */
+  z-index: 6;
 }
 
 .sheet[open] {

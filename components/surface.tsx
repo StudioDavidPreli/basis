@@ -224,14 +224,14 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
 
   // On a phone the ledger is the Inputs sheet
   // (decisions/2026-10-20-the-ledger-is-a-sheet-on-a-phone.md). A name
-  // tapped in it opens the drawer: the sheet closes without its exit, the
-  // drawer covering the page as it opens, and the id it opened is kept.
+  // tapped in it opens the drawer: the sheet lowers as the drawer opens,
+  // and the id it opened is kept.
   // When that drawer closes the sheet lifts again with focus on the name.
   // Adjusted while rendering, as the drawer's path changes, the way the
   // palette resets on open; only the focus waits for the commit.
   const phone = usePhone()
   const [inputsOpen, setInputsOpen] = useState(false)
-  const [inputsInstant, setInputsInstant] = useState(false)
+  const [inputsHandoff, setInputsHandoff] = useState(false)
   const [resumeId, setResumeId] = useState<string | null>(null)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [seenOpenId, setSeenOpenId] = useState(openId)
@@ -240,12 +240,12 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
     setSeenOpenId(openId)
     if (openId !== null && sheetOpen) {
       setResumeId(openId)
-      setInputsInstant(true)
+      setInputsHandoff(true)
       setInputsOpen(false)
     } else if (openId === null && resumeId !== null) {
       setResumeId(null)
       if (phone) {
-        setInputsInstant(false)
+        setInputsHandoff(false)
         setInputsOpen(true)
         setFocusId(resumeId)
       }
@@ -428,7 +428,7 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           inputs={{
             open: sheetOpen,
             onOpen: () => {
-              setInputsInstant(false)
+              setInputsHandoff(false)
               setInputsOpen(true)
             },
             total: rows.length,
@@ -439,10 +439,10 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           <InputsSheet
             open={inputsOpen}
             onOpenChange={open => {
-              setInputsInstant(false)
+              setInputsHandoff(false)
               setInputsOpen(open)
             }}
-            instant={inputsInstant}
+            handoff={inputsHandoff}
             summary={`${rows.length} rows · ${state.selection.length} selected`}
             returnFocus={() => document.querySelector<HTMLElement>('[data-inputs-chip]')}
           >

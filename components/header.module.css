@@ -69,3 +69,18 @@
     white-space: nowrap;
   }
 }
+
+/* A phone: one row. The tabs and the three buttons give back their gaps
+   and some padding, which a 375px phone needs. */
+@media (max-width: 639px) {
+  .header {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+  }
+  .right {
+    gap: var(--space-2);
+  }
+  .tab {
+    padding: var(--space-1) var(--space-2);
+  }
+}

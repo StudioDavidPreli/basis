@@ -159,6 +159,10 @@
   color: var(--muted);
 }
 
+.clearBeside {
+  display: none;
+}
+
 /* A tablet (docs/spec.md, 640–900px): the full row does not fit, so it
    wraps to two, the views and the metric chips (or a view's caption) on the
    first, the projection checkbox and the range on the second. The lead
@@ -246,9 +250,17 @@
   /* The chip leads the strip, the legend wraps beside or under it. */
   .strip {
     flex-wrap: wrap;
-    row-gap: var(--space-2);
+    justify-content: flex-start;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
   }
   .inputs {
     display: inline-flex;
+  }
+  .clearBeside {
+    display: inline;
+  }
+  .clearInLegend {
+    display: none;
   }
 }

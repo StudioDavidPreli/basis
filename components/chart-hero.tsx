@@ -359,6 +359,13 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
             <path d="M1 5l3.5-3.5L8 5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
         </button>
+        {/* A phone's Clear sits beside Inputs, which it empties; the
+            legend's own is the wider tiers'. One of the two shows. */}
+        {selection.length > 1 && (
+          <button type="button" className={`${styles.legendClear} ${styles.clearBeside} type-action`} onClick={onClear}>
+            [ Clear ]
+          </button>
+        )}
         <ul className={styles.legend} aria-label="Selected rows">
           {charted.map(r => (
             <li key={r.id}>
@@ -387,7 +394,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
             </li>
           )}
           {selection.length > 1 && (
-            <li>
+            <li className={styles.clearInLegend}>
               <button type="button" className={`${styles.legendClear} type-action`} onClick={onClear}>
                 [ Clear ]
               </button>

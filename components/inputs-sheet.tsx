@@ -15,8 +15,11 @@
 // below the edge or in place, never part way.
 //
 // Escape, the close control, and a tap on the backdrop all lower it. A
-// close with `instant` skips the exit: a name in the ledger was tapped,
-// and the full-width drawer opening over the page is the motion.
+// close with `handoff` lowers it as the drawer opens: a name in the ledger
+// was tapped. The sheet first leaves the top layer (closed, then shown
+// without a modal), so the drawer opening under it is not inert and its
+// heading can take focus; the backdrop goes with the modal state, and the
+// sheet lowers over the opening drawer.
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { animate } from 'framer-motion'
@@ -29,7 +32,7 @@ export const INPUTS_SHEET_HEADING_ID = 'inputs-sheet-heading'
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  instant: boolean
+  handoff: boolean
   summary: string // "12 rows · 4 selected"
   // Where focus goes after a close that lowered the sheet: the chip. A tap
   // does not focus a button in every browser, so the dialog's own return
@@ -43,7 +46,7 @@ function translateOf(d: HTMLElement): number | null {
   return m ? parseFloat(m[1]!) : null
 }
 
-export function InputsSheet({ open, onOpenChange, instant, summary, returnFocus: returnFocusProp, children }: Props) {
+export function InputsSheet({ open, onOpenChange, handoff, summary, returnFocus: returnFocusProp, children }: Props) {
   const { springDamped } = useMotionTokens()
   const dialog = useRef<HTMLDialogElement>(null)
 
@@ -96,15 +99,19 @@ export function InputsSheet({ open, onOpenChange, instant, summary, returnFocus:
       d.close()
       setMounted(false)
     }
-    if (instant) {
-      finish()
-      return
+    if (handoff) {
+      // Decided from the element: a second run finds it no longer modal.
+      if (d.matches(':modal')) {
+        d.close()
+        d.show()
+      }
+      return move(at ?? 0, height, finish)
     }
     return move(at ?? 0, height, () => {
       finish()
       returnFocus.current()?.focus()
     })
-  }, [open, mounted, instant])
+  }, [open, mounted, handoff])
 
   if (!mounted) return null
   return (
