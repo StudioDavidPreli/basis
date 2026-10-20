@@ -236,6 +236,8 @@ adding a row, in its own commit.
 | Window set / reset (the shade, the handles, the axis tags); scatter points, heat cells, and the fan answering a typed or reset window | `base` | `standard` | `none` |
 | Drawer open | spring | `springDamped`, on the drawer column's width | `none` |
 | Drawer close | spring | `springDamped`, the width back to zero, kept mounted until done | `none` |
+| Inputs sheet open (phone): the sheet lifts from below the viewport's bottom edge to its place | spring | `springDamped`, on its translate on y, from where a previous run left it | `none` |
+| Inputs sheet close (phone): back below the edge, kept mounted until done | spring | `springDamped`, on the same translate | `none` |
 | Sheet resize beside the drawer | spring | follows the column: one layout, one spring | `none` |
 | Drawer scroll cue bounce (while there is more below) | `slower`, looped, alternating | `standard` | `none` |
 | Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
@@ -243,6 +245,7 @@ adding a row, in its own commit.
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
+| Analysis window dialog enter / exit (phone) | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 | Hero view switch: the selected marker slides | `base` | `standard` | `none` |
@@ -310,6 +313,24 @@ and exits as the command palette does, on `transitions.enter` /
 `transitions.exit`, and its backdrop is there for as long as the element is
 open, with no fade of its own. The Basis title inside it holds its own
 timing, as the logos do.
+
+On a phone (`decisions/2026-10-20-the-ledger-is-a-sheet-on-a-phone.md`)
+the ledger opens as the Inputs sheet, a modal dialog at the bottom of the
+viewport. It is the drawer's motion turned a quarter: the drawer's spring,
+`springDamped`, on the sheet's translate on y instead of a column's width.
+It is the second user of that spring, and the reason it is a spring holds:
+an instant close read as no exit, the raw spring as too springy. Nothing
+reflows beside the sheet, so only the sheet moves. Its backdrop is there
+for as long as the dialog is open, with no fade of its own, as the
+welcome's is. A previous run's translate is where the open continues from,
+read from the element and never from a first-run flag, so Strict Mode's
+mount replay continues the lift instead of restarting it
+(`decisions/2026-10-19-the-drawer-open-continues-mid-flight.md`). The
+analysis window's dialog enters and exits as the welcome does. Under
+reduced motion the spring switches to instant through the `reducedMotion`
+flag and the sheet is simply there. The two breakpoints add no motion of
+their own: a control that wraps to a second row is laid out there, not
+moved there.
 
 The drawer's scroll cue (`decisions/2026-10-15-drawer-scroll-cue.md`)
 stands in for the drawer's hidden scrollbar: a ↓ that bounces vertically
