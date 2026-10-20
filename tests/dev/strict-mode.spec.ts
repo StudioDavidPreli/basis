@@ -477,3 +477,33 @@ test.describe('the attribution waterfall under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// M13 (contract, "Inputs sheet open"): Strict Mode replays the sheet's
+// layout effect on the same element. The lift continues from the translate
+// the first run left, so the top only ever rises, and it lands.
+test.describe('the Inputs sheet under Strict Mode', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+  test('lifts without restarting, lands, and nothing reaches the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/')
+    await expect(page.getByRole('button', { name: /^Inputs/ })).toBeVisible()
+    const tops = await page.evaluate(async () => {
+      ;(document.querySelector('[data-inputs-chip]') as HTMLButtonElement).click()
+      const out: number[] = []
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const d = document.querySelector('[data-inputs-sheet]')
+        if (d) out.push(Math.round(d.getBoundingClientRect().top))
+      }
+      return out
+    })
+    expect(tops.length).toBeGreaterThan(10)
+    for (let i = 1; i < tops.length; i++) expect(tops[i]!).toBeLessThanOrEqual(tops[i - 1]! + 1)
+    const sheet = page.getByRole('dialog', { name: 'Inputs' })
+    const landed = await sheet.evaluate(d => Math.round(window.innerHeight - d.getBoundingClientRect().bottom))
+    expect(Math.abs(landed)).toBeLessThanOrEqual(1)
+    await page.keyboard.press('Escape')
+    await expect(sheet).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+})

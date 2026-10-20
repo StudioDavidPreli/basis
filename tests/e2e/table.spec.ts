@@ -359,7 +359,9 @@ test.describe('the bands and the row stack', () => {
 })
 
 test.describe('the drawer over the ledger', () => {
-  test.use({ viewport: { width: 600, height: 800 } })
+  // A tablet: the ledger is on the page and the drawer is full width. On a
+  // phone the ledger is the Inputs sheet, which steps aside for the drawer.
+  test.use({ viewport: { width: 700, height: 800 } })
   test('on a narrow viewport the drawer covers the sticky header', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /Anchor Kaze/ }).click()

@@ -22,3 +22,12 @@
     padding-right: var(--space-3);
   }
 }
+
+/* The page's ledger. On a phone it is the Inputs sheet instead; the
+   surface unmounts this one once it knows it is on a phone, and until
+   then (the server render, hydration) the stylesheet hides it. */
+@media (max-width: 639px) {
+  .ledger {
+    display: none;
+  }
+}

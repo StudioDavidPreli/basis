@@ -1,0 +1,64 @@
+/* The Inputs sheet (inputs-sheet.tsx): the same paper as the palette and
+   the drawer, at the bottom of the viewport, rounded at the top only. As
+   tall as its content up to 80% of the viewport; the ledger scrolls inside
+   past that, under its own sticky header. */
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: 80dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: var(--hairline) solid var(--ink);
+  border-radius: calc(var(--radius) * 3) calc(var(--radius) * 3) 0 0;
+  background: var(--paper);
+  background-image: var(--grain);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet::backdrop {
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+.head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2);
+  border-bottom: var(--hairline) solid var(--rule);
+}
+
+.grab {
+  grid-area: 1 / 1 / 2 / 4;
+  justify-self: center;
+  width: 2.5rem;
+  height: 4px;
+  margin-bottom: var(--space-2);
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.title {
+  margin: 0;
+}
+
+.summary {
+  color: var(--muted);
+}
+
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--space-3) var(--space-3);
+}

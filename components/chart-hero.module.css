@@ -141,6 +141,24 @@
   color: var(--ink);
 }
 
+/* The Inputs chip opens the ledger as a sheet on a phone; above, the
+   ledger is on the page and the chip is not there. */
+.inputs {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  padding: var(--space-1) var(--space-2);
+  border: var(--hairline) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--band);
+  color: var(--ink);
+}
+
+.inputsCount {
+  color: var(--muted);
+}
+
 /* A tablet (docs/spec.md, 640–900px): the full row does not fit, so it
    wraps to two, the views and the metric chips (or a view's caption) on the
    first, the projection checkbox and the range on the second. The lead
@@ -211,11 +229,26 @@
   }
   .toggle {
     grid-area: 3 / 1;
+    white-space: nowrap;
   }
   .controls > .group {
     grid-area: 3 / 2;
   }
+  /* The range gives some padding back so it fits beside the projection on
+     a 375px phone. */
+  .controls > .group .chip {
+    padding-left: var(--space-1);
+    padding-right: var(--space-1);
+  }
   .stage {
     --plot-height: clamp(240px, 40dvh, 340px);
+  }
+  /* The chip leads the strip, the legend wraps beside or under it. */
+  .strip {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+  .inputs {
+    display: inline-flex;
   }
 }

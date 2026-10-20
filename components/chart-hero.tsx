@@ -75,9 +75,12 @@ type Props = {
   // The snapshot's `at`: the mark pulses when a run lands.
   pulseKey: string | null
   now: Date
+  // The Inputs chip (docs/spec.md, phone): it opens the ledger as a sheet.
+  // The stylesheet shows it on a phone only.
+  inputs: { open: boolean; onOpen: () => void; total: number }
 }
 
-export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, onPick, projection, onProjection, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now }: Props) {
+export function ChartHero({ columns, metric, onMetric, range, onRange, rows, order, view: heroView, onView, onPick, projection, onProjection, selection, onDeselect, onClear, hoveredId, onHover, openId, window: win, onWindow, tool, onTool, series, parentheses, phase, pulseKey, now, inputs }: Props) {
   const charted = selection.slice(0, CHART_CAP)
   const waiting = selection.length - charted.length
   const column = columns.find(c => c.key === metric) ?? columns[0]!
@@ -339,6 +342,23 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
         </div>
       </LayoutGroup>
       <div className={styles.strip}>
+        <button
+          type="button"
+          className={`${styles.inputs} type-label`}
+          aria-haspopup="dialog"
+          aria-expanded={inputs.open}
+          aria-label={`Inputs, ${selection.length} of ${inputs.total} selected`}
+          onClick={inputs.onOpen}
+          data-inputs-chip
+        >
+          Inputs
+          <span className={`${styles.inputsCount} type-micro`} aria-hidden="true">
+            {selection.length}/{inputs.total}
+          </span>
+          <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true" focusable="false">
+            <path d="M1 5l3.5-3.5L8 5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        </button>
         <ul className={styles.legend} aria-label="Selected rows">
           {charted.map(r => (
             <li key={r.id}>

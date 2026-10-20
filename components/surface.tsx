@@ -21,6 +21,9 @@ import { Margin } from './margin'
 import { InterruptionBanner } from './interruption-banner'
 import { ChartHero } from './chart-hero'
 import { DataTable, type Row } from './data-table'
+import { InputsSheet } from './inputs-sheet'
+import { usePhone } from './use-phone'
+import { rowLinkSelector } from './drawer-shell'
 import { Footnotes } from './footnotes'
 import { CommandPalette, type PaletteItem } from './command-palette'
 import { Welcome, useWelcomeDismissed } from './welcome'
@@ -219,6 +222,44 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
   const router = useRouter()
   const [paletteOpen, setPaletteOpen] = useState(false)
 
+  // On a phone the ledger is the Inputs sheet
+  // (decisions/2026-10-20-the-ledger-is-a-sheet-on-a-phone.md). A name
+  // tapped in it opens the drawer: the sheet closes without its exit, the
+  // drawer covering the page as it opens, and the id it opened is kept.
+  // When that drawer closes the sheet lifts again with focus on the name.
+  // Adjusted while rendering, as the drawer's path changes, the way the
+  // palette resets on open; only the focus waits for the commit.
+  const phone = usePhone()
+  const [inputsOpen, setInputsOpen] = useState(false)
+  const [inputsInstant, setInputsInstant] = useState(false)
+  const [resumeId, setResumeId] = useState<string | null>(null)
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const [seenOpenId, setSeenOpenId] = useState(openId)
+  const sheetOpen = phone && inputsOpen
+  if (openId !== seenOpenId) {
+    setSeenOpenId(openId)
+    if (openId !== null && sheetOpen) {
+      setResumeId(openId)
+      setInputsInstant(true)
+      setInputsOpen(false)
+    } else if (openId === null && resumeId !== null) {
+      setResumeId(null)
+      if (phone) {
+        setInputsInstant(false)
+        setInputsOpen(true)
+        setFocusId(resumeId)
+      }
+    }
+  }
+  useEffect(() => {
+    if (!sheetOpen || focusId === null) return
+    const raf = requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-inputs-sheet] ${rowLinkSelector(focusId)}`)?.focus()
+      setFocusId(null)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [sheetOpen, focusId])
+
   // The welcome opens on landing unless it was dismissed for good
   // (decisions/2026-10-15-a-welcome-on-landing.md), and again from the
   // palette. The stored flag is an external store whose server snapshot is
@@ -304,6 +345,35 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
     },
   ]
 
+  const ledger = (
+    <DataTable
+      rows={rows}
+      order={order}
+      columns={columns}
+      sort={state.sort}
+      onSort={onSort}
+      kept={state.bars}
+      onKeep={key => {
+        dispatch({ type: 'bars', key })
+        const label = columns.find(c => c.key === key)?.label ?? key
+        announce(state.bars.includes(key) ? `Bars on ${label} follow the sort` : `Bars kept on ${label}`)
+      }}
+      selection={state.selection}
+      onToggle={(id, range) => dispatch({ type: 'toggle', id, order, range })}
+      onSelectAll={() => dispatch({ type: 'selectAll', ids: order })}
+      onClear={() => dispatch({ type: 'clear' })}
+      hoveredId={state.hoveredId}
+      onHover={id => dispatch({ type: 'hover', id })}
+      parentheses={state.dataset === 'comps'}
+      phase={phase}
+      now={now}
+      openId={openId}
+      metric={state.metric}
+      range={state.range}
+      series={seriesByDataset[state.dataset] ?? null}
+    />
+  )
+
   return (
     <div className={styles.sheet} data-busy={busy || undefined}>
       <Margin date={snapshot?.at ?? renderedAt} dataset={dataset.label} />
@@ -355,33 +425,30 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
           phase={phase}
           pulseKey={snapshot?.at ?? null}
           now={now}
-        />
-        <DataTable
-          rows={rows}
-          order={order}
-          columns={columns}
-          sort={state.sort}
-          onSort={onSort}
-          kept={state.bars}
-          onKeep={key => {
-            dispatch({ type: 'bars', key })
-            const label = columns.find(c => c.key === key)?.label ?? key
-            announce(state.bars.includes(key) ? `Bars on ${label} follow the sort` : `Bars kept on ${label}`)
+          inputs={{
+            open: sheetOpen,
+            onOpen: () => {
+              setInputsInstant(false)
+              setInputsOpen(true)
+            },
+            total: rows.length,
           }}
-          selection={state.selection}
-          onToggle={(id, range) => dispatch({ type: 'toggle', id, order, range })}
-          onSelectAll={() => dispatch({ type: 'selectAll', ids: order })}
-          onClear={() => dispatch({ type: 'clear' })}
-          hoveredId={state.hoveredId}
-          onHover={id => dispatch({ type: 'hover', id })}
-          parentheses={state.dataset === 'comps'}
-          phase={phase}
-          now={now}
-          openId={openId}
-          metric={state.metric}
-          range={state.range}
-          series={seriesByDataset[state.dataset] ?? null}
         />
+        {phone ? null : <div className={styles.ledger}>{ledger}</div>}
+        {phone && (
+          <InputsSheet
+            open={inputsOpen}
+            onOpenChange={open => {
+              setInputsInstant(false)
+              setInputsOpen(open)
+            }}
+            instant={inputsInstant}
+            summary={`${rows.length} rows · ${state.selection.length} selected`}
+            returnFocus={() => document.querySelector<HTMLElement>('[data-inputs-chip]')}
+          >
+            {ledger}
+          </InputsSheet>
+        )}
         <Footnotes snapshot={snapshot} now={now} />
       </main>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={paletteItems} />

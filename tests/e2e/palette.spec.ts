@@ -180,10 +180,18 @@ test.describe('axe with the palette open', () => {
 test.describe('the narrow viewport', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
+  // On a phone the ledger is the Inputs sheet (M13).
+  async function openInputs(page: import('@playwright/test').Page) {
+    await page.getByRole('button', { name: /^Inputs/ }).click()
+    const sheet = page.getByRole('dialog', { name: 'Inputs' })
+    await expect(sheet).toBeVisible()
+    return sheet.locator('table')
+  }
+
   for (const theme of ['passbook', 'operate'] as const) {
     test(`the ledger keeps the name, a sparkline, and the chart's metric (${theme})`, async ({ page }) => {
       await page.goto(`/?theme=${theme}`)
-      const ledger = page.locator('table').last()
+      const ledger = await openInputs(page)
       // The chart's metric stays; the other figures and the text column go.
       await expect(ledger.getByRole('columnheader', { name: /Level/ })).toBeVisible()
       await expect(ledger.getByRole('columnheader', { name: /EV\/EBITDA/ })).toBeHidden()
@@ -208,12 +216,14 @@ test.describe('the narrow viewport', () => {
 
   test('the sparkline follows the chart metric and the range', async ({ page }) => {
     await page.goto('/')
-    const spark = page.locator('table').last().locator('tbody tr').first().locator("svg[data-sparkline] path")
+    const spark = (await openInputs(page)).locator('tbody tr').first().locator("svg[data-sparkline] path")
     const year = await spark.getAttribute('d')
     await page.goto('/?range=1M')
+    await openInputs(page)
     await expect(spark).not.toHaveAttribute('d', year!)
     await page.goto('/?metric=multiple')
-    await expect(page.locator('table').last().getByRole('columnheader', { name: /EV\/EBITDA/ })).toBeVisible()
-    await expect(page.locator('table').last().getByRole('columnheader', { name: /Level/ })).toBeHidden()
+    const ledger = await openInputs(page)
+    await expect(ledger.getByRole('columnheader', { name: /EV\/EBITDA/ })).toBeVisible()
+    await expect(ledger.getByRole('columnheader', { name: /Level/ })).toBeHidden()
   })
 })
