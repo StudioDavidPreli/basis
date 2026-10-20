@@ -1,0 +1,89 @@
+/* The analysis window's dialog on a phone (window-dialog.tsx): the same
+   paper as the palette, centred low enough that a thumb reaches Done. */
+.dialog {
+  width: min(22rem, calc(100vw - 2rem));
+  margin: auto;
+  padding: 0;
+  border: var(--hairline) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper);
+  background-image: var(--grain);
+  color: var(--ink);
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--muted);
+}
+
+.date {
+  height: 40px;
+  padding: 0 var(--space-3);
+  box-sizing: border-box;
+  border: var(--hairline) solid var(--rule);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  color-scheme: inherit;
+}
+
+/* No window set: the view's dates, muted and dashed, as in the strip. */
+.date[data-follows] {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.date:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--band);
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reset {
+  color: var(--muted);
+}
+
+.reset:hover {
+  color: var(--ink);
+}
+
+.done {
+  padding: var(--space-1) var(--space-2);
+  border: var(--hairline) solid var(--ink);
+  border-radius: var(--radius);
+  color: var(--ink);
+}

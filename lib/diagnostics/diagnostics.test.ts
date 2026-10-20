@@ -8,7 +8,7 @@ import { attribute, splitDrivers } from './attribution'
 import { estimate } from './model'
 import { coverage } from './quality'
 import { anomalies } from './anomalies'
-import { clip, normalizeWindow, windowMs } from './window'
+import { clip, normalizeWindow, windowLabel, windowMs } from './window'
 import { stepsPerYear, pearson, ols } from './stats'
 import { derived, unionSources } from './derive'
 import { runTool } from './index'
@@ -201,5 +201,12 @@ describe('derived figures', () => {
       expect(r.title.length).toBeGreaterThan(0)
     }
     expect(runTool('attribution', input).rows[0]!.cells[0]).toEqual({ kind: 'text', text: 'no stored series' })
+  })
+})
+
+describe('windowLabel', () => {
+  it('writes the first and the last day inside the window, in UTC', () => {
+    const w = windowMs({ from: '2026-06-17', to: '2026-09-16' }, [0, 0])
+    expect(windowLabel(w)).toBe('Jun 17 – Sep 16')
   })
 })

@@ -217,6 +217,38 @@
   }
 }
 
+/* The calendar button and the caption under the row are a phone's; above
+   640px the window's inputs are in the row itself. */
+.calendar,
+.windowCaption {
+  display: none;
+}
+
+.calendar[data-set] {
+  border-color: var(--ink);
+  background: var(--band);
+}
+
+.windowCaption {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+}
+
+@media (max-width: 639px) {
+  .row {
+    gap: var(--space-2) var(--space-3);
+  }
+  .window {
+    display: none;
+  }
+  .calendar {
+    display: inline-flex;
+  }
+  .windowCaption {
+    display: block;
+  }
+}
+
 /* Attribution's waterfall (diagnostics-panel.tsx): a column per bar, start
    and end in ink on the floor, each step floating between the levels it
    joins, rising in the accent and falling in the stock's down, a dashed

@@ -10,15 +10,20 @@
 //
 // The window and the view range are two things: the chips say what the
 // chart shows, the window says what the tools compute over. The inputs
-// show the view's dates, muted and dashed, until a window is set.
+// show the view's dates, muted and dashed, until a window is set. On a
+// phone (decisions/2026-10-20-the-ledger-is-a-sheet-on-a-phone.md) the
+// inputs move into a dialog opened by a calendar button after the tools,
+// and a caption under the row carries the dates; the stylesheet decides
+// which of the two shows.
 
 import { useId, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { AgentPhase } from '@/worker/refresh'
 import { useMotionTokens } from '@/lib/motion/tokens'
-import { isoDate, normalizeWindow, runTool, TOOLS, windowDays, windowMs, type EntityFacts, type DiagnosticSeries, type ToolKey, type Window } from '@/lib/diagnostics'
+import { isoDate, normalizeWindow, runTool, TOOLS, windowDays, windowLabel, windowMs, type EntityFacts, type DiagnosticSeries, type ToolKey, type Window } from '@/lib/diagnostics'
 import { IconButton } from './icon-button'
 import { DiagnosticsPanel } from './diagnostics-panel'
+import { WindowDialog } from './window-dialog'
 import styles from './diagnostics-strip.module.css'
 
 type Props = {
@@ -52,6 +57,7 @@ export function DiagnosticsStrip({ series, facts, metric, view, window: win, onW
   const report = up && w ? runTool(up, { series, window: w, now, metric, facts }) : null
 
   const setDates = (from: string, to: string) => onWindow(normalizeWindow(from, to))
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
     <section
@@ -92,6 +98,19 @@ export function DiagnosticsStrip({ series, facts, metric, view, window: win, onW
           ))}
         </div>
         <span className={styles.divider} aria-hidden="true" />
+        {w && (
+          <IconButton
+            className={styles.calendar}
+            aria-label={`Analysis window, ${windowLabel(w).replace(' – ', ' to ')}`}
+            aria-haspopup="dialog"
+            aria-expanded={dialogOpen}
+            data-set={win ? '' : undefined}
+            data-calendar
+            onClick={() => setDialogOpen(true)}
+          >
+            <CalendarIcon />
+          </IconButton>
+        )}
         <div className={styles.window}>
           <label htmlFor="window-from" className="type-micro">
             window
@@ -129,6 +148,23 @@ export function DiagnosticsStrip({ series, facts, metric, view, window: win, onW
           )}
         </div>
       </div>
+      {w && (
+        <p className={`${styles.windowCaption} type-micro`} data-window-caption>
+          window {windowLabel(w)} · {windowDays(w)} d · {win ? 'set by hand' : 'follows the view'}
+        </p>
+      )}
+      {w && (
+        <WindowDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          window={win}
+          fromValue={fromValue}
+          toValue={toValue}
+          span={w}
+          onWindow={onWindow}
+          returnFocus={() => document.querySelector<HTMLElement>('[data-calendar]')}
+        />
+      )}
       <AnimatePresence>
         {report && (
           <motion.section
@@ -189,6 +225,22 @@ function ToolIcon({ tool }: { tool: ToolKey }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
       {body}
+    </svg>
+  )
+}
+
+// The analysis window's button on a phone: a calendar, its two rings above
+// the page, so it does not read as Data quality's sheet.
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3.5" width="12" height="10.5" rx="1.5" />
+      <path d="M2 6.75h12M5.25 2v3M10.75 2v3" />
+      <circle cx="5.25" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="10.75" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="5.25" cy="12" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="12" r="0.6" fill="currentColor" stroke="none" />
     </svg>
   )
 }

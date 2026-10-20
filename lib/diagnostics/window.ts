@@ -37,3 +37,10 @@ export function normalizeWindow(from: string | undefined, to: string | undefined
 export function windowDays(w: WindowMs): number {
   return Math.max(1, Math.round((w.toMs - w.fromMs) / DAY_MS))
 }
+
+// The window as the strip's caption writes it on a phone: "Jun 17 – Sep 16".
+// UTC, as the dates are; `to` is the last day inside the window.
+const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+export function windowLabel(w: WindowMs): string {
+  return `${monthDay.format(w.fromMs)} – ${monthDay.format(w.toMs)}`
+}

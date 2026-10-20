@@ -140,6 +140,77 @@ test.describe('a phone, 390px', () => {
   }
 })
 
+test.describe('the window on a phone, 390px', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('the calendar opens the window dialog; two dates set the window into the URL, Reset clears it, Done returns focus', async ({ page }) => {
+    await page.goto('/')
+    const strip = page.getByRole('region', { name: 'Diagnostics' })
+    // The inline inputs are the tablet's and the desktop's; here, a caption.
+    await expect(strip.getByLabel('Window from')).toBeHidden()
+    const caption = page.locator('[data-window-caption]')
+    await expect(caption).toContainText('follows the view')
+    const calendar = strip.getByRole('button', { name: /^Analysis window, / })
+    await calendar.click()
+    const dialog = page.getByRole('dialog', { name: 'Analysis window' })
+    await expect(dialog).toBeVisible()
+    expect(await dialog.evaluate(d => d.matches(':modal'))).toBe(true)
+    await dialog.getByLabel('From').fill('2026-07-01')
+    await dialog.getByLabel('To').fill('2026-08-31')
+    await expect(page).toHaveURL(/from=2026-07-01/)
+    await expect(page).toHaveURL(/to=2026-08-31/)
+    await expect(caption).toContainText('Jul 1 – Aug 31')
+    await expect(caption).toContainText('set by hand')
+    await expect(calendar).toHaveAttribute('data-set', '')
+    await dialog.getByRole('button', { name: /Reset to the view/ }).click()
+    await expect(page).not.toHaveURL(/from=/)
+    await expect(caption).toContainText('follows the view')
+    await dialog.getByRole('button', { name: /Done/ }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(calendar).toBeFocused()
+  })
+
+  test.describe('drags on the plot', () => {
+    test.use({ hasTouch: true })
+    test('a finger dragged across the plot sets no window; a mouse dragged the same way does', async ({ page }) => {
+      await page.goto('/')
+      await expect(page.locator('path[data-series][data-drawn]').first()).toBeVisible()
+      const box = (await page.locator('[role="img"] [class*="__box"]').first().boundingBox())!
+      const y = box.y + box.height / 2
+      const xs = [0.2, 0.4, 0.6, 0.8].map(f => box.x + box.width * f)
+      // Real touch input. Chromium claims a touch drag for the page under the
+      // default touch-action and cancels the pointer, so this holds with or
+      // without the chart's own touch guard; the guard states the intent.
+      const cdp = await page.context().newCDPSession(page)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: xs[0]!, y }] })
+      for (const x of xs.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] })
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      await page.waitForTimeout(300)
+      await expect(page).not.toHaveURL(/from=/)
+      await expect(page.locator('[data-window-caption]')).toContainText('follows the view')
+      // The control: the same stroke from a mouse sets the window.
+      await page.mouse.move(xs[0]!, y)
+      await page.mouse.down()
+      for (const x of xs.slice(1)) await page.mouse.move(x, y, { steps: 3 })
+      await page.mouse.up()
+      await expect(page).toHaveURL(/from=/)
+    })
+  })
+
+  for (const theme of ['passbook', 'operate'] as const) {
+    for (const reduce of [false, true]) {
+      test(`axe is clean with the window dialog open: ${theme}, reduced motion ${reduce ? 'on' : 'off'}`, async ({ page }) => {
+        await page.goto(`/?theme=${theme}${reduce ? '&reduce=1' : ''}`)
+        await page.getByRole('button', { name: /^Analysis window, / }).click()
+        await expect(page.getByRole('dialog', { name: 'Analysis window' })).toBeVisible()
+        await page.waitForTimeout(600)
+        const results = await new AxeBuilder({ page }).analyze()
+        expect(results.violations).toEqual([])
+      })
+    }
+  }
+})
+
 test.describe('a tablet has no Inputs chip', () => {
   test.use({ viewport: { width: 820, height: 1180 } })
   test('the ledger is on the page and the chip is not shown', async ({ page }) => {

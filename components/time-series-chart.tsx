@@ -267,6 +267,9 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
     return Math.min(x1, Math.max(x0, ms))
   }
   const beginDrag = (e: React.PointerEvent<HTMLElement>, edge: 'new' | 'from' | 'to') => {
+    // A mouse or a pen sets the window; a finger scrolls the page, and on a
+    // phone the window has its own dialog (docs/spec.md, phone).
+    if (e.pointerType === 'touch') return
     if (e.button !== 0 || !target) return
     const ms = msAt(e.clientX)
     if (ms === null) return
