@@ -251,8 +251,8 @@ adding a row, in its own commit.
 | Hero view switch: the selected marker slides | `base` | `standard` | `none` |
 | Hero view switch: the outgoing view leaves, and its row of options (Trend's metric chips and projection, or a view's caption) with it | `fast` | `exit` | `none` |
 | Hero view switch: the arriving view's row of options appears under the switch | `base` | `enter` | `none` |
-| Line ↔ scatter: each charted row's marker travels between its endpoint and its point | `slow` | `standard` | `short` stagger by selection order, capped at 8 |
-| Scatter: a row not charted on the line appears at its point | `base` | `enter` | `short` stagger by ledger order, capped at 8 |
+| Scatter and Heat: a charted row's point (or its heat row) appears, on the view's arrival or as the row is charted; each view's markers are its own and nothing travels between views | `base` | `enter` | `short` stagger by selection order, capped at 8, on arrival; `none` for a row charted later |
+| Scatter and Heat: a row unticked in the ledger, its point or heat row leaves | `fast` | `exit` | `none` |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
 | Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |
 | Ledger bar: first show, growing from zero (the sort or the column's keep box brings it in) | `slow` | `enter` | the row's reorder stagger |
@@ -346,14 +346,21 @@ Under reduced motion the bounce is removed (loops do not run) and the
 arrow holds still.
 
 The analysis views (M12; `docs/notes/2026-10-19-new-charts-motion.md`).
-**The marker is the row across views.** A row's color and endpoint marker
-are its identity on the line, so they stay on screen when the hero view
-changes: from Trend to Risk / return each charted row's marker leaves
-its endpoint and travels to its point on `slow` / `standard`, and back on
-return, the domain rescale's pair. A tween, not the spring: the spring is
-the drawer's, and its bounce would read as a value that has not settled.
-Rows the line did not chart appear at their points on `base` / `enter`.
-Nothing in Basis runs `overshoot`. (David, 2026-10-19.)
+**Each view's markers are its own.** Trend's endpoint markers belong to
+Trend and leave with it, on the outgoing view's `fast` / `exit`; they never
+move on a switch. Risk / return's markers belong to it and appear at their
+points on `base` / `enter`, a `short` stagger by selection order. Back on
+Trend the endpoints arrive as on any draw-in, as each line reaches them
+(`decisions/2026-10-20-each-view-keeps-its-own-markers.md`; the marker that
+travelled between views read as an error, David, 2026-10-20). Nothing in
+Basis runs `overshoot`. (David, 2026-10-19.)
+**Every view draws the selection.** Trend, Risk / return, and Heat show the
+charted rows and only those (`decisions/2026-10-20-the-views-draw-the-selection.md`).
+Risk / return's axes and its median volatility come from every row of the
+table, so ticking a row in the ledger adds or removes its point on
+`base` / `enter` or `fast` / `exit` and never rescales the plot. Heat's rows
+are the charted rows in the ledger's order; each is measured in its own
+volatility, so the selection changes no other row's tint.
 **A view's options sit under its name.** The line view is Trend; its
 metric chips and the projection's checkbox are a second row under the
 switch, and Risk / return's and Heat's captions take the same row
