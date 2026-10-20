@@ -110,3 +110,26 @@ test.describe('the hero views', () => {
     expect(frames.slice(4).every(p => p[0] === last[0] && p[1] === last[1])).toBe(true)
   })
 })
+
+// M13 (decisions/2026-10-20-two-breakpoints-640-and-900.md): at a phone's
+// width no view scrolls the page sideways. Risk / return did: its
+// screen-reader table carried .sr-only itself, and a table ignores
+// width: 1px, so it laid out about 315px past the edge.
+test.describe('at a phone width', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+  for (const [view, ready] of [
+    ['time', 'path[data-series][data-drawn]'],
+    ['risk', '[data-point]'],
+    ['heat', '[data-heat]'],
+  ] as const) {
+    test(`?view=${view} does not scroll sideways`, async ({ page }) => {
+      await page.goto(`/?view=${view}`)
+      await expect(page.locator(ready).first()).toBeVisible()
+      const { sw, cw } = await page.evaluate(() => ({
+        sw: document.documentElement.scrollWidth,
+        cw: document.documentElement.clientWidth,
+      }))
+      expect(sw).toBeLessThanOrEqual(cw)
+    })
+  }
+})

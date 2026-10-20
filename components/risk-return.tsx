@@ -253,32 +253,36 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
           </>
         )}
       </div>
-      <table className="sr-only" data-risk-table>
-        <caption>
-          Risk and return from Level, {isoDate(win.fromMs)} to {isoDate(win.toMs)}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Row</th>
-            <th scope="col">Change over the window</th>
-            <th scope="col">Volatility, annualized</th>
-            <th scope="col">Points in the window</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(r => {
-            const p = byId.get(r.id)
-            return (
-              <tr key={r.id}>
-                <th scope="row">{r.name}</th>
-                <td>{p ? formatValue('percent', p.change) : 'too few points'}</td>
-                <td>{p ? formatVol(p.vol) : '—'}</td>
-                <td>{p ? p.n : 0}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      {/* The wrapper is what hides: a table ignores width: 1px and laid out
+          past a phone's edge, scrolling the page sideways. */}
+      <div className="sr-only">
+        <table data-risk-table>
+          <caption>
+            Risk and return from Level, {isoDate(win.fromMs)} to {isoDate(win.toMs)}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Row</th>
+              <th scope="col">Change over the window</th>
+              <th scope="col">Volatility, annualized</th>
+              <th scope="col">Points in the window</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => {
+              const p = byId.get(r.id)
+              return (
+                <tr key={r.id}>
+                  <th scope="row">{r.name}</th>
+                  <td>{p ? formatValue('percent', p.change) : 'too few points'}</td>
+                  <td>{p ? formatVol(p.vol) : '—'}</td>
+                  <td>{p ? p.n : 0}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
