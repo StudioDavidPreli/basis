@@ -171,13 +171,51 @@
   }
 }
 
-/* A phone keeps the range control only, until M13's phone controls land:
-   the view switch and the metric chips are one keystroke away in the
-   palette. */
+/* A phone (docs/spec.md, under 640px): every control, on three rows. The
+   view switch is a full-width segmented row; the metric chips (or a view's
+   caption) under it; the projection checkbox and the range under those.
+   The plot takes a phone's own height, shared by all three views so a
+   switch never changes the stage's size. */
 @media (max-width: 639px) {
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+  .lead {
+    display: contents;
+  }
+  .views {
+    grid-area: 1 / 1 / 2 / 3;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .views .chip {
+    padding: var(--space-2) var(--space-1);
+    border: 0;
+    border-left: var(--hairline) solid var(--rule);
+    border-radius: 0;
+    text-align: center;
+  }
+  .views .chip:first-child {
+    border-left: 0;
+  }
   .metric,
-  .views,
+  .caption {
+    grid-area: 2 / 1 / 3 / 3;
+  }
   .toggle {
-    display: none;
+    grid-area: 3 / 1;
+  }
+  .controls > .group {
+    grid-area: 3 / 2;
+  }
+  .stage {
+    --plot-height: clamp(240px, 40dvh, 340px);
   }
 }

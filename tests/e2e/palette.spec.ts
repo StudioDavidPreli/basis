@@ -196,10 +196,10 @@ test.describe('the narrow viewport', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
       const fits = await ledger.evaluate(t => t.getBoundingClientRect().right <= t.parentElement!.getBoundingClientRect().right + 0.5)
       expect(fits).toBe(true)
-      // The chart keeps the range control only.
+      // The chart keeps every control (M13, docs/spec.md).
       await expect(page.getByRole('group', { name: 'Time range' })).toBeVisible()
-      await expect(page.getByRole('group', { name: 'Metric' })).toBeHidden()
-      await expect(page.getByRole('group', { name: 'Chart view' })).toBeHidden()
+      await expect(page.getByRole('group', { name: 'Metric' })).toBeVisible()
+      await expect(page.getByRole('group', { name: 'Chart view' })).toBeVisible()
       await page.screenshot({ path: `test-results/narrow-${theme}.png`, fullPage: true })
       const results = await new AxeBuilder({ page }).analyze()
       expect(results.violations).toEqual([])
