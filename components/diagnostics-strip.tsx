@@ -1,8 +1,8 @@
 'use client'
 
 // The diagnostics strip (docs/spec.md, Diagnostics): the eyebrow, the
-// scope, six tools as icon buttons, and the analysis window as two real
-// date inputs. One panel element carries the tool that is up: it floats
+// scope, six tools as icon buttons, the chart's CSV as a seventh beside
+// them, and the analysis window as two real date inputs. One panel element carries the tool that is up: it floats
 // under the strip while a tool is hovered or focused, and sits in flow
 // under the strip while a tool is pinned (clicked; `aria-expanded`), so a
 // pin never re-enters what the hover already showed. Escape unpins. The
@@ -41,9 +41,12 @@ type Props = {
   // Said beside the scope while the hero shows more rows than the tools
   // cover (Risk / return plots every row; the tools take the charted).
   note?: string
+  // The chart's CSV, beside the calendar (David, 2026-10-20); null with
+  // nothing charted.
+  exportCsv: { run: () => void; label: string } | null
 }
 
-export function DiagnosticsStrip({ series, facts, metric, view, window: win, onWindow, tool, onTool, now, phase, parentheses, note }: Props) {
+export function DiagnosticsStrip({ series, facts, metric, view, window: win, onWindow, tool, onTool, now, phase, parentheses, note, exportCsv }: Props) {
   const { transitions } = useMotionTokens()
   const [preview, setPreview] = useState<ToolKey | null>(null)
   const panelId = useId()
@@ -109,6 +112,11 @@ export function DiagnosticsStrip({ series, facts, metric, view, window: win, onW
             onClick={() => setDialogOpen(true)}
           >
             <CalendarIcon />
+          </IconButton>
+        )}
+        {exportCsv && (
+          <IconButton aria-label={exportCsv.label} onClick={exportCsv.run} data-export>
+            <ExportIcon />
           </IconButton>
         )}
         <div className={styles.window}>
@@ -241,6 +249,16 @@ function CalendarIcon() {
       <circle cx="10.75" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
       <circle cx="5.25" cy="12" r="0.6" fill="currentColor" stroke="none" />
       <circle cx="8" cy="12" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+// The chart's CSV: a line down into a tray.
+function ExportIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 2.5v7.5M5 7l3 3 3-3" />
+      <path d="M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2" />
     </svg>
   )
 }

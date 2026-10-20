@@ -203,6 +203,15 @@ test.describe('the window on a phone, 390px', () => {
     await expect(calendar).toBeFocused()
   })
 
+  test('Export sits beside the calendar', async ({ page }) => {
+    await page.goto('/')
+    const strip = page.getByRole('region', { name: 'Diagnostics' })
+    const c = await box(strip.getByRole('button', { name: /^Analysis window, / }))
+    const e = await box(strip.getByRole('button', { name: /^Export the chart as CSV/ }))
+    expect(Math.abs(c.mid - e.mid)).toBeLessThanOrEqual(1)
+    expect(e.left - c.right).toBeLessThanOrEqual(16)
+  })
+
   test.describe('drags on the plot', () => {
     test.use({ hasTouch: true })
     test('a finger dragged across the plot sets no window; a mouse dragged the same way does', async ({ page }) => {

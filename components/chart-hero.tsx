@@ -400,13 +400,6 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
               </button>
             </li>
           )}
-          {charted.length > 0 && (
-            <li>
-              <button type="button" className={`${styles.legendClear} type-action`} onClick={exportCsv} aria-label={`Export the chart as CSV: ${column.label} over ${range}`}>
-                [ Export ]
-              </button>
-            </li>
-          )}
         </ul>
         <AgentPresence phase={phase} pulseKey={pulseKey} />
       </div>
@@ -420,6 +413,7 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
         tool={tool}
         onTool={onTool}
         note={heroView !== 'time' ? `tools cover the ${charted.length} charted ${charted.length === 1 ? 'row' : 'rows'}` : undefined}
+        exportCsv={charted.length > 0 ? { run: exportCsv, label: `Export the chart as CSV: ${column.label} over ${range}` } : null}
         now={now}
         phase={phase}
         parentheses={parentheses}
