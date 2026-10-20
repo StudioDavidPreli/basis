@@ -65,14 +65,22 @@ export function DrawerShell({ children }: { children: ReactNode }) {
     // set the inline width to zero, and the second measured that zero and
     // sprang from nothing to nothing, which read as a drawer that snapped
     // into place. Production runs the effect once; this makes both agree.
+    //
+    // The spring starts from the width a previous run left, zero only at
+    // rest. The shell mounts with the drawer open, and Strict Mode replays
+    // a mount inside the passive-effect flush, which after a navigation
+    // (a transition) can land after the first spring frames have painted;
+    // restarting from zero there dropped the width a few pixels back
+    // (decisions/2026-10-19-the-drawer-open-continues-mid-flight.md).
+    const from = d.style.width === '' ? 0 : parseFloat(d.style.width)
     d.style.width = ''
     const width = d.getBoundingClientRect().width
-    d.style.width = '0px'
+    d.style.width = `${from}px`
     // `reduceMotion: false`: width is a positional key, and without it
     // Framer consults prefers-reduced-motion itself and makes the spring
     // instant. The flag on <html> is the only source of truth for reduced
     // motion here (contracts/cadence-basis.md); the tokens carry it.
-    const controls = animate(d, { width: [0, width] }, { ...spring.current, reduceMotion: false })
+    const controls = animate(d, { width: [from, width] }, { ...spring.current, reduceMotion: false })
     controls.then(() => {
       d.style.width = ''
     })
