@@ -105,6 +105,51 @@ test.describe('the ledger', () => {
     await expect(trigger).toBeFocused()
   })
 
+  test('the provenance popover leaves on its exit, and a hover back takes it back', async ({ page }) => {
+    // It used to be removed in one frame (adversarial pass, finding 1). Sample
+    // every frame after the pointer leaves: the panel must still be there,
+    // fading, before it goes; and never two panels at once.
+    await page.goto('/')
+    const trigger = page.locator('tbody tr').first().getByRole('button', { name: /^Level for/ })
+    await trigger.hover()
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await expect.poll(() => page.getByRole('tooltip').evaluate(el => getComputedStyle(el).opacity)).toBe('1')
+    await page.evaluate(() => {
+      const w = window as unknown as { __tip: { opacity: number[]; most: number } }
+      w.__tip = { opacity: [], most: 0 }
+      const sample = () => {
+        const tips = document.querySelectorAll('[role="tooltip"]')
+        w.__tip.most = Math.max(w.__tip.most, tips.length)
+        const tip = tips[0]
+        w.__tip.opacity.push(tip ? Number(getComputedStyle(tip).opacity) : -1)
+        if (w.__tip.opacity.length < 90) requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    })
+    await page.mouse.move(0, 0)
+    await expect(page.getByRole('tooltip')).toHaveCount(0)
+    const fading = await page.evaluate(() => (window as unknown as { __tip: { opacity: number[] } }).__tip.opacity)
+    expect(fading.some(o => o > 0 && o < 1)).toBe(true)
+
+    // A hover back while it leaves takes the same panel back.
+    await trigger.hover()
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await page.evaluate(() => {
+      const w = window as unknown as { __tip: { opacity: number[]; most: number } }
+      w.__tip.most = 0
+      const sample = () => {
+        w.__tip.most = Math.max(w.__tip.most, document.querySelectorAll('[role="tooltip"]').length)
+        requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    })
+    await page.mouse.move(0, 0)
+    await trigger.hover()
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await expect.poll(() => page.getByRole('tooltip').evaluate(el => getComputedStyle(el).opacity)).toBe('1')
+    expect(await page.evaluate(() => (window as unknown as { __tip: { most: number } }).__tip.most)).toBe(1)
+  })
+
   test('the provenance dialog keeps focus where the reader put it', async ({ page }) => {
     // The focus-into-dialog effect once shared its dependency list with
     // the Escape listener's, which the Figure re-creates on every render;

@@ -14,7 +14,7 @@
 // moving shimmer and an aria label.
 
 import { useId, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { ColumnConfig } from '@/lib/config'
 import type { FigureValue } from '@/lib/types'
 import { formatValue } from '@/lib/format'
@@ -85,20 +85,27 @@ export function Figure({ figure, column, parentheses, phase, now, entityName, co
         )}
       </button>
       {p.age && !compact && <span className={`${styles.age} type-micro`}>{p.age}</span>}
-      {(hover || open) && (
-        <ProvenancePopover
-          id={id}
-          mode={open ? 'dialog' : 'tooltip'}
-          sources={p.sources}
-          status={p.status}
-          updatedAt={figure.updatedAt}
-          onClose={() => {
-            setOpen(false)
-            setHover(false)
-            triggerRef.current?.focus()
-          }}
-        />
-      )}
+      {/* The popover leaves on transitions.exit (contract, "Provenance popover
+          enter / exit"). One key for both modes: a click turns the tooltip
+          into the dialog in place, and a hover back during the exit takes
+          the leaving panel back instead of mounting a second one. */}
+      <AnimatePresence>
+        {(hover || open) && (
+          <ProvenancePopover
+            key="provenance"
+            id={id}
+            mode={open ? 'dialog' : 'tooltip'}
+            sources={p.sources}
+            status={p.status}
+            updatedAt={figure.updatedAt}
+            onClose={() => {
+              setOpen(false)
+              setHover(false)
+              triggerRef.current?.focus()
+            }}
+          />
+        )}
+      </AnimatePresence>
     </span>
   )
 }

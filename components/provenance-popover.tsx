@@ -71,6 +71,7 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
       className={styles.panel}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4, transition: transitions.exit }}
       transition={transitions.enter}
     >
       <p className={`${styles.head} type-eyebrow`}>
