@@ -230,6 +230,48 @@ test.describe('every status has a screenshot', () => {
   }
 })
 
+test.describe('the stale fade', () => {
+  test('a figure fades to stale on base / standard, not on the decay\'s timing', async ({ page }) => {
+    // Stale once rode the color transition the direction decay was thought
+    // to use, slower / exit, and took 600 ms (adversarial pass, finding 3).
+    // Turn a current figure stale in place and sample its ink each frame.
+    await page.goto('/embed/figure?status=current')
+    const figure = page.locator('[data-status]').first()
+    await expect(figure).toHaveAttribute('data-status', 'current')
+    await page.waitForTimeout(700)
+    const r = await page.evaluate(async () => {
+      // The stage carries a data-status too; the figure is the span inside.
+      const fig = document.querySelector<HTMLElement>('span[data-status]')!
+      const trigger = fig.querySelector('button')!
+      const from = getComputedStyle(trigger).color
+      // Read the stale ink with the transition off, then snap back.
+      trigger.style.transition = 'none'
+      fig.setAttribute('data-status', 'stale')
+      const target = getComputedStyle(trigger).color
+      fig.setAttribute('data-status', 'current')
+      void trigger.offsetWidth // flush the snap back before the transition returns
+      trigger.style.transition = ''
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+      const t0 = performance.now()
+      fig.setAttribute('data-status', 'stale')
+      let landed: number | null = null
+      let between = 0
+      for (let i = 0; i < 60 && landed === null; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        const c = getComputedStyle(trigger).color
+        if (c === target) landed = performance.now() - t0
+        else if (c !== from) between++
+      }
+      return { from, target, landed, between }
+    })
+    expect(r.target).not.toBe(r.from)
+    expect(r.between).toBeGreaterThan(0)
+    expect(r.landed).not.toBeNull()
+    // base is 200 ms on Standard; slower, the old timing, is 600.
+    expect(r.landed!).toBeLessThan(350)
+  })
+})
+
 test.describe('the interruption banner, from fixtures', () => {
   test('one source failing', async ({ page, request }) => {
     await request.post('/api/refresh?fail=noaa-coops')

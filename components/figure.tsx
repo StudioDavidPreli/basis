@@ -5,9 +5,9 @@
 // contract's assignment table, all through useMotionTokens():
 //
 //   value tick              slow / standard      useAnimatedNumber
-//   direction color decay   slower / exit        CSS transition on --figure-ink
+//   direction color decay   slower / exit        CSS animation, .fresh
 //   shimmer (refreshing)    slower, looped       CSS animation, linear
-//   stale desaturate        base / standard      CSS transition
+//   stale desaturate        base / standard      CSS transition on color
 //
 // The status marks never rely on color alone: stale carries an age label,
 // agent-updated an arrow glyph, unverified a hollow mark, refreshing the

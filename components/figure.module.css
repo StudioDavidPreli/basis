@@ -13,8 +13,11 @@
   display: inline-flex;
   align-items: baseline;
   gap: 2px;
-  transition: color var(--cadence-duration-slower) var(--cadence-ease-exit),
-    opacity var(--cadence-duration-base) var(--cadence-ease-standard),
+  /* The ink moves only between ink and stale's muted ink, so its color
+     runs on the stale row, base / standard. The direction decay is not
+     this transition: it is the .fresh animation on the value below, on
+     slower / exit (adversarial pass, finding 3). */
+  transition: color var(--cadence-duration-base) var(--cadence-ease-standard),
     border-color var(--cadence-duration-fast) var(--cadence-ease-standard);
 }
 
