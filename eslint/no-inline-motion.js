@@ -157,6 +157,42 @@ function children(node) {
   return Array.isArray(c) ? c : c.toArray()
 }
 
+const isCadenceVar = node =>
+  node.type === 'Function' && node.name === 'var' && (children(node)[0]?.name ?? '').startsWith('--cadence-')
+const containsCadence = node => isCadenceVar(node) || children(node).some(containsCadence)
+
+// A derived timing (decisions/2026-10-21-derived-timings.md): inside calc(),
+// a factor from the data may scale a Cadence token, as in
+// calc(var(--cadence-delay-short) * var(--rank)). The data's var() must be a
+// factor, beside * or /, of a Cadence token or of a group that holds one, so
+// it cannot carry a time of its own in by + or -. A typed number there is a
+// tuned value and an error, which plain walking never caught: a Number is
+// not a time.
+function walkCalc(context, node) {
+  const items = children(node).filter(c => c.type !== 'WhiteSpace')
+  items.forEach((item, i) => {
+    if (item.type === 'Number') {
+      context.report({ loc: item.loc, messageId: 'factor', data: { value: item.value } })
+    } else if (item.type === 'Dimension') {
+      walkValue(context, { children: [item] })
+    } else if (item.type === 'Parentheses' || (item.type === 'Function' && item.name === 'calc')) {
+      walkCalc(context, item)
+    } else if (item.type === 'Function' && item.name === 'var') {
+      if (isCadenceVar(item)) return
+      const scales = side => {
+        const op = items[i + side]
+        const other = items[i + 2 * side]
+        return op?.type === 'Operator' && ['*', '/'].includes(op.value.trim()) && other !== undefined && containsCadence(other)
+      }
+      if (!scales(-1) && !scales(1)) {
+        context.report({ loc: item.loc, messageId: 'foreignVar', data: { value: children(item)[0]?.name ?? '' } })
+      }
+    } else {
+      walkValue(context, { children: [item] })
+    }
+  })
+}
+
 function walkValue(context, node) {
   for (const child of children(node)) {
     switch (child.type) {
@@ -173,6 +209,8 @@ function walkValue(context, node) {
       case 'Function':
         if (EASING_FUNCTIONS.has(child.name)) {
           context.report({ loc: child.loc, messageId: 'easing', data: { value: `${child.name}()` } })
+        } else if (child.name === 'calc') {
+          walkCalc(context, child)
         } else if (child.name === 'var') {
           const first = children(child)[0]
           const name = first && first.type === 'Identifier' ? first.name : ''
@@ -200,7 +238,8 @@ const css = {
       time: '`{{value}}` is a typed time. Use var(--cadence-duration-*) or var(--cadence-delay-*).',
       easing: '`{{value}}` is a typed curve. Use var(--cadence-ease-*).',
       foreignVar:
-        '`var({{value}})` is not a Cadence token. Only --cadence-* properties carry motion here.',
+        '`var({{value}})` is not a Cadence token. Only --cadence-* properties carry motion here; a value from the data may only scale one, inside calc() beside * or /.',
+      factor: '`{{value}}` is a typed factor. A timing scales a Cadence token by a value from the data, never by a constant.',
     },
     schema: [],
   },

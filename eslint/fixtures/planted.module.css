@@ -1,4 +1,4 @@
-/* Expected: 5 errors. */
+/* Expected: 9 errors. */
 .a {
   transition: opacity 200ms ease; /* 1: time, 2: keyword */
 }
@@ -10,4 +10,14 @@
 }
 .d {
   transition: opacity var(--cadence-duration-base) var(--cadence-ease-standard);
+}
+/* Derived timings (decisions/2026-10-21-derived-timings.md). */
+.e {
+  transition-delay: calc(var(--cadence-delay-short) * 3); /* 6: a typed factor */
+}
+.f {
+  transition-delay: calc(var(--cadence-delay-short) + var(--x)); /* 7: a var added, not scaling */
+}
+.g {
+  animation-delay: calc(var(--rank) * var(--x)); /* 8, 9: scaling nothing of Cadence's */
 }

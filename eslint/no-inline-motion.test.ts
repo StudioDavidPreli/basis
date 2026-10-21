@@ -76,10 +76,10 @@ describe('no-inline-motion/jsx', () => {
 describe('no-inline-motion/css', () => {
   it('fails on typed times and curves', async () => {
     const found = await errors(cssLinter, 'planted.module.css')
-    expect(found.map(m => m.messageId)).toEqual(['time', 'easing', 'time', 'time', 'easing'])
+    expect(found.map(m => m.messageId)).toEqual(['time', 'easing', 'time', 'time', 'easing', 'factor', 'foreignVar', 'foreignVar', 'foreignVar'])
   })
 
-  it('passes var(--cadence-*) reads', async () => {
+  it('passes var(--cadence-*) reads, and a token scaled or interpolated by the data', async () => {
     expect(await errors(cssLinter, 'clean.module.css')).toEqual([])
   })
 })
