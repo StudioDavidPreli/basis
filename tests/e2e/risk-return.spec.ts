@@ -136,3 +136,94 @@ test.describe('the hero views', () => {
     expect(opacity).toBe(1)
   })
 })
+
+// Every marker arrives (M14 step 6; decisions/2026-10-21-markers-arrive-by-
+// rank.md). David saw markers that never arrived; each way into the view is
+// walked here and every drawn point must reach opacity 1. On the view's
+// arrival the points come in the ledger's order.
+test.describe('every Risk / return marker arrives', () => {
+  const settle = (page: import('@playwright/test').Page, ms = 1200) => page.waitForTimeout(ms)
+  const drawnOpacities = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-risk-return] [data-point]')].map(p => ({ id: p.dataset['point']!, o: Number(getComputedStyle(p).opacity) })))
+  const allArrived = async (page: import('@playwright/test').Page, how: string) => {
+    const drawn = await drawnOpacities(page)
+    expect(drawn.length, how).toBeGreaterThan(0)
+    for (const d of drawn) expect(d.o, `${how}: ${d.id}`).toBe(1)
+  }
+  const view = (page: import('@playwright/test').Page, name: string) => views(page).getByRole('button', { name })
+
+  test('on arrival, in the ledger\'s order, and by every other way in', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+
+    // Chart four rows bottom-up, so selection order is the ledger's reversed
+    // and the two orders cannot be confused.
+    await page.evaluate(async () => {
+      const boxes = () => [...document.querySelectorAll<HTMLInputElement>('tbody input[type=checkbox]')]
+      for (const b of boxes()) if (b.checked) b.click()
+      await new Promise(r => setTimeout(r, 100))
+      for (const i of [7, 5, 3, 1]) {
+        boxes()[i]!.click()
+        await new Promise(r => setTimeout(r, 50))
+      }
+    })
+    await expect(page.locator('tbody input[type=checkbox]:checked')).toHaveCount(4)
+
+    // Arrival: each charted point reaches full opacity, in ledger order.
+    const order = await page.evaluate(async () => {
+      ;([...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => /risk/i.test(b.textContent ?? '')) as HTMLButtonElement).click()
+      const full = new Map<string, number>()
+      const t0 = performance.now()
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => requestAnimationFrame(r))
+        for (const p of document.querySelectorAll<HTMLElement>('[data-risk-return] [data-point]'))
+          if (!full.has(p.dataset['point']!) && Number(getComputedStyle(p).opacity) >= 0.99) full.set(p.dataset['point']!, performance.now() - t0)
+      }
+      const ledger = [...document.querySelectorAll<HTMLElement>('tbody tr')]
+        .filter(tr => tr.querySelector<HTMLInputElement>('input[type=checkbox]')?.checked)
+        .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+        .map(tr => tr.querySelector('th a')?.getAttribute('href')?.split('/').pop() ?? '')
+      return ledger.map(id => full.get(id) ?? -1)
+    })
+    expect(order.length).toBeGreaterThan(1)
+    for (const t of order) expect(t).toBeGreaterThan(0)
+    for (let i = 1; i < order.length; i++) expect(order[i]!).toBeGreaterThanOrEqual(order[i - 1]!)
+    await allArrived(page, 'arrival')
+
+    // A row charted while the view is open.
+    await page.locator('tbody input[type=checkbox]:not(:checked)').first().click()
+    await settle(page)
+    await allArrived(page, 'charted while open')
+
+    // A row unticked and ticked again two frames later.
+    const box = page.locator('tbody input[type=checkbox]:checked').nth(1)
+    await box.evaluate(async el => {
+      ;(el as HTMLInputElement).click()
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+      ;(el as HTMLInputElement).click()
+    })
+    await settle(page)
+    await allArrived(page, 'unticked and ticked again')
+
+    // Away and straight back, mid-exit; and from Heat.
+    await page.evaluate(async () => {
+      const pick = (n: string) => [...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => new RegExp(n, 'i').test(b.textContent ?? '')) as HTMLButtonElement
+      for (const v of ['trend', 'risk', 'trend', 'risk']) {
+        pick(v).click()
+        for (let i = 0; i < 3; i++) await new Promise(r => requestAnimationFrame(r))
+      }
+    })
+    await settle(page)
+    await allArrived(page, 'away and back mid-exit')
+    await view(page, 'Heat').click()
+    await settle(page, 600)
+    await page.evaluate(() => ([...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => /risk/i.test(b.textContent ?? '')) as HTMLButtonElement).click())
+    await settle(page)
+    await allArrived(page, 'from Heat')
+
+    // Landing on the view.
+    await page.goto('/?view=risk')
+    await settle(page)
+    await allArrived(page, 'landing on the view')
+  })
+})

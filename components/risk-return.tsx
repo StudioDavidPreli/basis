@@ -12,7 +12,7 @@
 // styles), so the views are one box. Timing per the contract, through
 // useMotionTokens():
 //
-//   a charted row's point appears              base / enter      short stagger by selection order on arrival, capped at 8; none for one charted later
+//   a charted row's point appears              base / enter      short stagger by table rank on arrival, capped at 8; none for one charted later
 //   an unticked row's point leaves             fast / exit
 //   points answer a window set or reset        base / standard
 //   points answer a range change (rescale)     slow / standard
@@ -62,9 +62,11 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
   const median = medianVol(points)
   // What is drawn: the charted rows that could be placed, in selection order.
   const drawn = charted.map(id => byId.get(id)).filter((p): p is RiskPoint => p !== undefined)
-  // The rows charted when the view arrived take the arrival's stagger; a row
-  // charted afterwards appears at once. Decided from the ids themselves.
+  // The rows charted when the view arrived take the arrival's stagger, in
+  // the ledger's order (decisions/2026-10-21-markers-arrive-by-rank.md); a
+  // row charted afterwards appears at once. Decided from the ids themselves.
   const [arrivedWith] = useState(() => charted)
+  const arrivalOrder = rows.map(r => r.id).filter(id => arrivedWith.includes(id))
 
   // The box's width, for placing labels only: points are percentages.
   const box = useRef<HTMLDivElement>(null)
@@ -170,7 +172,7 @@ export function RiskReturn({ rows, points, charted, window: win, range, hoveredI
                 const row = rows.find(r => r.id === p.id)!
                 // The gate flags a literal inside a timing value, so the index
                 // math stays out of the transition objects.
-                const arrival = arrivedWith.indexOf(p.id)
+                const arrival = arrivalOrder.indexOf(p.id)
                 const appearDelay = arrival < 0 ? 0 : Math.min(arrival, STAGGER_CAP - 1) * delays.short
                 const side = sides[p.id] ?? null
                 return (
