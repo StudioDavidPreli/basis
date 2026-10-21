@@ -39,7 +39,9 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
-| Chart line draw-in / out; on a metric switch every charted ribbon draws in again; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
+| Chart line draw-in: the ribbons drawing together (landing, Trend's return, a metric switch, rows charted at once), each by its rank in the ledger among them, t = rank / (n − 1); on the sheet, Cinematic on landing, Trend's return, and a metric switch, Standard when rows are charted; an embed keeps its own preset | `slow` + (`slower` − `slow`) × t | `standard` | `slow` × t |
+| Chart line draw-out | `base` | `exit` | `none` |
+| Heat grid reveal, left to right by a widening cover | `slower` | `enter` | `none` |
 | Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
 | Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |
 | Chart metric switch: the new y ticks and gridlines arrive at their places, a fade; the y domain is set, not animated | `base` | `enter` | `none` |
@@ -70,7 +72,7 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Ledger bar: first show, growing from zero (the sort or the column's keep box brings it in) | `slow` | `enter` | the row's reorder stagger |
 | Ledger bar: the bars return when the ledger widens again (the drawer closes), a fade | `base` | `enter` | `none` |
 | Ledger bar: a column loses its bars (the sort leaves an unkept column, or its keep box is cleared); the new column grows as on first show | `fast` | `exit` | `none` |
-| Projection fan opens from today, left to right (the 50% band) | `slow` | `enter` | starts on the line draw-in's completion |
+| Projection fan opens from today, left to right (the 50% band), on the draw's preset | `slow` | `enter` | starts as the last arriving line lands |
 | Projection fan: the 90% tint follows | `slow` | `enter` | `short` |
 | Projection fan closes into the today rule (toggle off) | `base` | `exit` | `none` |
 | Waterfall: steps build in order, each from the last step's level, its connector with it | `base` | `enter` | `medium` stagger, on the card's entry only |

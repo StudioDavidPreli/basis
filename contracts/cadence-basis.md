@@ -37,7 +37,7 @@ a module or an attribute. Reduced motion flattens every preset: the override
 in `app/globals.css` is restated at `:root[data-reduce-motion='1']`
 specificity, after the presets.
 
-One scoped exception, the tool's introduction
+Two scoped exceptions. The first is the tool's introduction
 (`decisions/2026-10-16-the-introduction-runs-cinematic.md`): the welcome
 dialog runs Cinematic while the sheet around it runs Standard, because the
 preset belongs to the use, not the product. `styles/presets.css` therefore
@@ -47,6 +47,15 @@ only (`:root[data-reduce-motion='0'] [data-preset]`), so the element and its
 flattens them through the root. The hook takes the preset as its one
 argument there, `useMotionTokens('cinematic')`, and reads the root
 everywhere else. Still no module and no value in component code.
+The second is the line draw on the sheet
+(`decisions/2026-10-21-the-draw-runs-cinematic.md`): when every ribbon
+draws together, on landing, on Trend's return from another view, and on a
+metric switch, the draw, its endpoints, and the fan run Cinematic, a new
+picture given room, behind the welcome on a first visit. Rows charted
+into a drawn chart run Standard, an answer to a click. The draw is Framer
+only, so the chart takes `useMotionTokens('cinematic')` for those timings
+and needs no `data-preset`. The embeds keep the preset in their URL: the In
+Practice stage is where presets are compared.
 
 ## What Basis does not import
 
@@ -247,7 +256,9 @@ adding a row, in its own commit.
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
-| Chart line draw-in / out; on a metric switch every charted ribbon draws in again; the heat grid reveals left to right by the same clip | `slower` / `base` | `enter` / `exit` | `short` stagger by selection order |
+| Chart line draw-in: the ribbons drawing together (landing, Trend's return, a metric switch, rows charted at once), each by its rank in the ledger among them, t = rank / (n − 1); on the sheet, Cinematic on landing, Trend's return, and a metric switch, Standard when rows are charted; an embed keeps its own preset | `slow` + (`slower` − `slow`) × t | `standard` | `slow` × t |
+| Chart line draw-out | `base` | `exit` | `none` |
+| Heat grid reveal, left to right by a widening cover | `slower` | `enter` | `none` |
 | Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
 | Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |
 | Chart metric switch: the new y ticks and gridlines arrive at their places, a fade; the y domain is set, not animated | `base` | `enter` | `none` |
@@ -278,7 +289,7 @@ adding a row, in its own commit.
 | Ledger bar: first show, growing from zero (the sort or the column's keep box brings it in) | `slow` | `enter` | the row's reorder stagger |
 | Ledger bar: the bars return when the ledger widens again (the drawer closes), a fade | `base` | `enter` | `none` |
 | Ledger bar: a column loses its bars (the sort leaves an unkept column, or its keep box is cleared); the new column grows as on first show | `fast` | `exit` | `none` |
-| Projection fan opens from today, left to right (the 50% band) | `slow` | `enter` | starts on the line draw-in's completion |
+| Projection fan opens from today, left to right (the 50% band), on the draw's preset | `slow` | `enter` | starts as the last arriving line lands |
 | Projection fan: the 90% tint follows | `slow` | `enter` | `short` |
 | Projection fan closes into the today rule (toggle off) | `base` | `exit` | `none` |
 | Waterfall: steps build in order, each from the last step's level, its connector with it | `base` | `enter` | `medium` stagger, on the card's entry only |
@@ -306,7 +317,7 @@ and endpoints leave together on `fast` / `exit`, on the domain they were
 drawn on; the domain is made new at the new metric's window, as a first
 domain is, never animated; the new ticks and gridlines fade in at their
 places on `base` / `enter`; and every charted ribbon draws in again from
-the left on the draw-in row, staggered by selection order, its endpoint
+the left on the draw-in row, each by its rank in the ledger, its endpoint
 landing as the draw reaches it. A range change within a metric still
 rescales.
 The chart's cursor (docs/spec.md, Chart): the rule, the dots, and the point
@@ -405,8 +416,8 @@ charted, and the window takes that bucket; the window's shade lands on
 `base` while the line draws on `slower`, so the week is framed before the
 line fills it. Re-bucketing on a range change is a crossfade, because a
 week's cell cannot become a month's.
-**The fan waits for today.** It opens only once the line's draw-in has
-reached the last point, the 50% band first and the 90% tint `short` after.
+**The fan waits for today.** It opens only once the last arriving line's
+draw-in has reached its last point, the 50% band first and the 90% tint `short` after.
 Toggled off, it closes into the today rule. It never loops.
 **The waterfall builds once.** On the card's entry the steps build start
 to end, each from the last step's level, `medium` apart. A window change
