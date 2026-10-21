@@ -25,7 +25,14 @@
   color: var(--muted);
   border: var(--hairline) solid transparent;
   transition: color var(--cadence-duration-fast) var(--cadence-ease-standard),
-    border-color var(--cadence-duration-fast) var(--cadence-ease-standard);
+    border-color var(--cadence-duration-fast) var(--cadence-ease-standard),
+    scale var(--cadence-duration-fast) var(--cadence-ease-standard);
+}
+
+/* Press feedback (contract, "Press feedback on buttons"): the individual
+   scale property, so it composes with any transform Framer writes. */
+.tab:active {
+  scale: var(--cadence-scale-press-subtle);
 }
 
 .tab:hover {
