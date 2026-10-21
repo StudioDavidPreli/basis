@@ -118,7 +118,6 @@
 
 .dontShow input {
   margin: 0;
-  accent-color: var(--ink);
 }
 
 .close {

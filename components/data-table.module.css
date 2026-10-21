@@ -174,7 +174,6 @@
 }
 
 .check input {
-  accent-color: var(--ink);
   width: 14px;
   height: 14px;
   margin: 0;
@@ -283,7 +282,6 @@
 }
 
 .keep {
-  accent-color: var(--ink);
   width: 13px;
   height: 13px;
   margin: 0 auto 0 0;

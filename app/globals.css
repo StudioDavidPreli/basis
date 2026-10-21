@@ -127,6 +127,67 @@ button {
   outline-offset: 2px;
 }
 
+/* Checkboxes drawn on the paper (M14). The browser's own box was white on
+   the passbook's sage and black on Operate's, off both stocks. Still the
+   real input, so its states, keyboard, and label are the browser's; only
+   the drawing is Basis's. The border is --muted: --rule is 1.8:1 on the
+   paper and 1.6:1 on a band, under the 3:1 a control's boundary needs
+   (WCAG 1.4.11); --muted is 5.7:1 and 4.9:1. The check and the mixed bar
+   are --ink, masked, so they follow the stock. Focus is the page's own
+   ring, which shows on a band where a band-colored halo would not.
+   Checking stays instant: the contract has no row for it. */
+input[type='checkbox'] {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  border: 1px solid var(--muted);
+  border-radius: 2px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+input[type='checkbox']::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  background: var(--ink);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 5.2 4 7.6 8.6 2.4' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  visibility: hidden;
+}
+
+input[type='checkbox']:checked,
+input[type='checkbox']:indeterminate {
+  border-color: var(--ink);
+}
+
+input[type='checkbox']:checked::before {
+  visibility: visible;
+}
+
+input[type='checkbox']:indeterminate::before {
+  visibility: visible;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='2' y='4.2' width='6' height='1.6' rx='0.8'/%3E%3C/svg%3E");
+}
+
+input[type='checkbox']:disabled {
+  border-color: var(--rule);
+  cursor: default;
+}
+
+/* Forced colors repaint backgrounds, which would erase the masked check:
+   hand the drawing back to the system there. */
+@media (forced-colors: active) {
+  input[type='checkbox'] {
+    appearance: auto;
+  }
+  input[type='checkbox']::before {
+    display: none;
+  }
+}
+
 /* Screen-reader-only, for the live region and hidden labels. */
 .sr-only {
   position: absolute;

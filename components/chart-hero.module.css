@@ -64,7 +64,6 @@
 }
 
 .toggle input {
-  accent-color: var(--ink);
   width: 13px;
   height: 13px;
   margin: 0;

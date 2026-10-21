@@ -668,3 +668,41 @@ test.describe('the ledger bar', () => {
     expect(results.violations).toEqual([])
   })
 })
+
+// Checkboxes on the paper (M14 step 7): the real input, drawn in the
+// stock's own paper and ink, with a boundary a reader can see.
+test.describe('checkboxes on the paper', () => {
+  for (const theme of ['passbook', 'operate']) {
+    test(`are drawn in the ${theme} stock and still behave as checkboxes`, async ({ page }) => {
+      // The sheet takes its stock from the header's switch, not the URL.
+      await page.goto('/')
+      if (theme === 'operate') await page.getByRole('button', { name: 'Switch to the dark stock' }).click()
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await page.waitForTimeout(400)
+      const r = await page.evaluate(() => {
+        const lum = (c: string) => {
+          const [r, g, b] = c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number).map(v => v / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+          return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+        }
+        const ratio = (a: string, b: string) => {
+          const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m)
+          return (x! + 0.05) / (y! + 0.05)
+        }
+        const paper = getComputedStyle(document.body).backgroundColor
+        const box = [...document.querySelectorAll<HTMLInputElement>('tbody input[type=checkbox]')].find(b => !b.checked)!
+        const cs = getComputedStyle(box)
+        return { appearance: cs.appearance, fill: cs.backgroundColor, paper, boundary: ratio(cs.borderTopColor, paper) }
+      })
+      expect(r.appearance).toBe('none')
+      expect(r.fill).toBe(r.paper)
+      expect(r.boundary).toBeGreaterThanOrEqual(3)
+      const box = page.locator('tbody tr').nth(1).getByRole('checkbox')
+      const was = await box.isChecked()
+      await box.focus()
+      await page.keyboard.press('Space')
+      await expect(box).toBeChecked({ checked: !was })
+      const results = await new AxeBuilder({ page }).include('table').analyze()
+      expect(results.violations).toEqual([])
+    })
+  }
+})
