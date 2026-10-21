@@ -115,6 +115,20 @@ motion without its bounce (the drawer) takes this derived one. If Cadence
 grows a damped spring token, this field reads it instead. Under reduced
 motion it takes the same 10 ms branch as `spring`.
 
+**Derived timings** (`decisions/2026-10-21-derived-timings.md`). A timing
+may be a token, a token times a fraction or count from the data, or an
+interpolation between two tokens by such a fraction: a row's rank, a
+column's place, a count of entries, a move's size. Never a typed constant:
+the ends are tokens and the position between them is the data's, as
+`springDamped`'s numbers are the token's own and only the relation is
+derived. In JS the arithmetic is done before the transition object, as the
+ledger's stagger is (`stagger * delays.short`), so the object holds no
+literal. In CSS it is `calc()` on `var(--cadence-*)` scaled by a custom
+property the component sets from the data, e.g.
+`calc(var(--cadence-delay-short) * var(--rank))`. Everything derived this
+way flattens under reduced motion and follows a preset switch with the
+tokens it is made of.
+
 `transitions` is the same trap one level up. The module evaluates
 `transitions.enter = { duration: durations.base, ... }` at load, so the object
 holds 0.2 no matter what the hook did to `durations`, and `transitions.spring`
@@ -439,7 +453,11 @@ a string or an array literal.
 
 CSS Modules: the time components of `transition`, `transition-duration`,
 `transition-delay`, `animation`, `animation-duration`, `animation-delay`, and
-any `cubic-bezier()` or keyword easing in those declarations.
+any `cubic-bezier()` or keyword easing in those declarations. Inside a
+`calc()` there, a typed number is an error, and a `var()` that is not
+`--cadence-*` is allowed only as a factor of one: beside `*` or `/`, its
+other operand a Cadence var or a group that holds one (derived timings,
+above).
 
 Allowed identifiers resolve to `useMotionTokens()` fields or `var(--cadence-*)`.
 This is the Cadence gate (`src/tokens/tokenIntegrity.test.js` there) in its
