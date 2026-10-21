@@ -47,6 +47,21 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
     return () => document.removeEventListener('keydown', onKey)
   }, [mode, onClose])
 
+  // The panel's row rises over the rows after it while the panel is here,
+  // its exit included (data-table.module.css, .row[data-raised]). Set on
+  // every run and cleared by the last panel to leave the row, so Strict
+  // Mode's replay and a hover that arrives while another panel exits both
+  // end with the mark where a panel is.
+  useLayoutEffect(() => {
+    const el = panel.current
+    const row = el?.closest('tr')
+    if (!el || !row) return
+    row.setAttribute('data-raised', '')
+    return () => {
+      if (![...row.querySelectorAll('[data-provenance]')].some(other => other !== el)) row.removeAttribute('data-raised')
+    }
+  }, [])
+
   // Below the figure, unless that would make the document longer: in a
   // frame of fixed height (the embeds) the bottom rows' panels would
   // otherwise scroll the frame, so there they open above. On the sheet the
@@ -69,6 +84,7 @@ export function ProvenancePopover({ id, mode, sources, status, updatedAt, onClos
       aria-label={dialog ? 'Provenance' : undefined}
       tabIndex={dialog ? -1 : undefined}
       className={styles.panel}
+      data-provenance
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 4, transition: transitions.exit }}

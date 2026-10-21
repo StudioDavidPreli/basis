@@ -151,6 +151,46 @@ test.describe('the ledger', () => {
     expect(await page.evaluate(() => (window as unknown as { __tip: { most: number } }).__tip.most)).toBe(1)
   })
 
+  test('the provenance panel draws over the rows after it', async ({ page }) => {
+    // Rows are opaque and stack for the sort, so a panel inside one was
+    // painted under the rows below (David, 2026-10-21).
+    await page.goto('/')
+    const trigger = page.locator('tbody tr').nth(3).getByRole('button', { name: /^Level for/ })
+    await trigger.hover()
+    const tip = page.getByRole('tooltip')
+    await expect(tip).toBeVisible()
+    const onTop = await tip.evaluate(el => {
+      const r = el.getBoundingClientRect()
+      const points = [0.25, 0.5, 0.75].flatMap(fx => [0.25, 0.5, 0.75].map(fy => [r.left + r.width * fx, r.top + r.height * fy] as const))
+      return points.every(([x, y]) => el.contains(document.elementFromPoint(x, y)))
+    })
+    expect(onTop).toBe(true)
+  })
+
+  test('× and Escape close the provenance panel and leave no tooltip behind', async ({ page }) => {
+    // Closing handed focus to the trigger, whose focus showed the tooltip:
+    // the panel went and another came straight back (David, 2026-10-21).
+    await page.goto('/')
+    const trigger = page.locator('tbody tr').first().getByRole('button', { name: /^Level for/ })
+    const panels = page.locator('[role="tooltip"], [role="dialog"][aria-label="Provenance"]')
+    for (const close of ['×', 'Escape']) {
+      await trigger.click()
+      const dialog = page.getByRole('dialog', { name: 'Provenance' })
+      await expect(dialog).toBeVisible()
+      await page.mouse.move(0, 0)
+      if (close === '×') await dialog.getByRole('button', { name: 'Close provenance' }).click()
+      else await page.keyboard.press('Escape')
+      await expect(panels, close).toHaveCount(0)
+      await expect(trigger, close).toBeFocused()
+      await page.waitForTimeout(300)
+      await expect(panels, `${close}, after a moment`).toHaveCount(0)
+      await page.mouse.move(0, 0)
+    }
+    // The next hover shows the tooltip as before.
+    await trigger.hover()
+    await expect(page.getByRole('tooltip')).toBeVisible()
+  })
+
   test('the provenance dialog keeps focus where the reader put it', async ({ page }) => {
     // The focus-into-dialog effect once shared its dependency list with
     // the Escape listener's, which the Figure re-creates on every render;

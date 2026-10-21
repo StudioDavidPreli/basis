@@ -43,6 +43,13 @@ export function Figure({ figure, column, parentheses, phase, now, entityName, co
   const triggerRef = useRef<HTMLButtonElement>(null)
   const [hover, setHover] = useState(false)
   const [open, setOpen] = useState(false)
+  // Closing the pinned panel (× or Escape) hands focus back to the trigger,
+  // and the trigger's focus shows the tooltip: the panel went and another
+  // came straight back (David, 2026-10-21). The focus that a close sends is
+  // marked, and shows nothing; the next hover or focus does. A ref, read
+  // only in event handlers, because the focus lands inside the same handler
+  // that closed the panel, before any state from it has rendered.
+  const closing = useRef(false)
 
   // Fresh ink: on an agent update the value takes the accent and decays
   // back to ink over duration.slower (a one-shot CSS animation on
@@ -66,7 +73,9 @@ export function Figure({ figure, column, parentheses, phase, now, entityName, co
         aria-controls={open ? `${id}-dialog` : undefined}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        onFocus={() => setHover(true)}
+        onFocus={() => {
+          if (!closing.current) setHover(true)
+        }}
         onBlur={() => setHover(false)}
         onClick={() => setOpen(o => !o)}
       >
@@ -101,7 +110,9 @@ export function Figure({ figure, column, parentheses, phase, now, entityName, co
             onClose={() => {
               setOpen(false)
               setHover(false)
+              closing.current = true
               triggerRef.current?.focus()
+              closing.current = false
             }}
           />
         )}

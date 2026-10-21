@@ -88,6 +88,17 @@
   background: var(--paper);
 }
 
+/* A row holding an open provenance panel, hover or pinned, rises over every
+   other row: rows are opaque and stack by --row-z for the sort, so a panel
+   inside one was painted under the rows after it (David, 2026-10-21). The
+   panel marks its row while it is mounted, its exit included
+   (provenance-popover.tsx); a :has() rule here cost WebKit its lane timing
+   during a sort. The largest --row-z for twelve rows is 506; the body is
+   isolated, so this never reaches the sticky header or the drawer. */
+.row[data-raised] {
+  z-index: 10000;
+}
+
 .row:nth-child(even) {
   background: var(--band);
 }
