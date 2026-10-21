@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { landEmpty } from './land'
+import { takeDraws, watchDraws } from './draw-frames'
 
 // M6 acceptance on the Worker runtime, fixtures mode: toggling a row draws
 // or removes its ribbon; a range change animates the domain; keyboard focus
@@ -125,7 +126,11 @@ test.describe('the chart', () => {
       const svg = document.querySelector('svg path[data-series]')!.closest('svg')!
       const frames: { past: number; clips: number[]; fading: boolean }[] = []
       chip.click()
-      for (let i = 0; i < 60; i++) {
+      // Long enough for the whole redraw, which runs Cinematic: the last
+      // line lands at slower + slow, 2.3 s (decisions/2026-10-21-the-draw-
+      // runs-cinematic.md).
+      const t0 = performance.now()
+      while (performance.now() - t0 < 2600) {
         await new Promise(r => requestAnimationFrame(r))
         const box = svg.getBoundingClientRect()
         const paths = [...svg.querySelectorAll('path[data-series]')]
@@ -424,5 +429,43 @@ test.describe('the x axis', () => {
       })
       expect(over, range).toEqual([])
     }
+  })
+})
+
+// The draw by rank (M15 step 2; decisions/2026-10-21-the-draw-runs-
+// cinematic.md): on landing every line draws together on Cinematic, each
+// timed by its rank in the ledger, so they land in table order, the last
+// at slower + slow (2300 ms); a row charted into the drawn chart draws on
+// Standard, alone, on slow.
+test.describe('the draw by rank', () => {
+  test('landing lands in the ledger\'s order on Cinematic; a row charted later draws on Standard', async ({ page }) => {
+    await watchDraws(page)
+    await page.goto('/')
+    await page.waitForTimeout(3200)
+    const landing = await takeDraws(page)
+    expect(landing.draws.length).toBeGreaterThan(1)
+    const lands = landing.ledger.map(id => landing.draws.find(d => d.id === id)!.land)
+    for (let i = 1; i < lands.length; i++) expect(lands[i]!, landing.ledger[i]).toBeGreaterThan(lands[i - 1]!)
+    // The first line's clip shows a frame or few after it starts, so the
+    // span measured is a little under 2300.
+    expect(lands[lands.length - 1]!).toBeGreaterThan(2000)
+    expect(lands[lands.length - 1]!).toBeLessThan(2500)
+
+    await page.locator('tbody input[type=checkbox]:not(:checked)').first().click()
+    await page.waitForTimeout(1200)
+    const later = await takeDraws(page)
+    expect(later.draws).toHaveLength(1)
+    // slow on Standard is 400 ms.
+    expect(later.draws[0]!.land).toBeLessThan(550)
+  })
+
+  test('the In Practice stage draws on its own preset, not the sheet\'s Cinematic', async ({ page }) => {
+    await watchDraws(page)
+    await page.goto('/embed/in-practice')
+    await page.waitForTimeout(2600)
+    const { draws } = await takeDraws(page)
+    expect(draws.length).toBeGreaterThan(1)
+    // Standard: the last lands at slower + slow, 1000 ms.
+    expect(Math.max(...draws.map(d => d.land))).toBeLessThan(1300)
   })
 })

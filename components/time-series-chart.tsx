@@ -3,7 +3,8 @@
 // The hero's plot (docs/spec.md, TimeSeriesChart). SVG, scales and paths
 // from lib/chart.ts, transitions from Framer through useMotionTokens():
 //
-//   ribbon draw-in / out     slower / base   enter / exit   short stagger by selection order
+//   ribbon draw-in           slow to slower by rank, standard, starting slow × the rank's fraction (lib/draw.ts)
+//   ribbon draw-out          base            exit
 //   domain rescale           slow            standard
 //   ribbon hover highlight   fast            standard       (CSS, the stylesheet)
 //
@@ -20,7 +21,15 @@
 // group leaves on fast / exit with the props it was last drawn with, its own
 // domain and points; the domain is made new at the new window, as a first
 // domain is; the new ticks and gridlines fade in on base / enter; and every
-// ribbon draws in again from the left, staggered by selection order.
+// ribbon draws in again from the left, by its rank in the ledger.
+//
+// The draw by rank (decisions/2026-10-21-the-draw-runs-cinematic.md): the
+// ribbons drawing together are ranked by the ledger, and each one's start
+// and length come from its rank (lib/draw.ts), so they land in table order.
+// When every ribbon draws together, on landing, on Trend's return, and on a
+// metric switch, the draw, its endpoints, and the fan take the hero's
+// drawPreset, Cinematic on the sheet; rows charted into a drawn chart, and
+// the In Practice stage, which passes no drawPreset, take the root's.
 //
 // A domain after none (the first row charted, or the first after a clear)
 // is set, not animated, and it is set by making four new values at the
@@ -75,7 +84,8 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
-import { useMotionTokens } from '@/lib/motion/tokens'
+import { useMotionTokens, type MotionTokens, type Preset } from '@/lib/motion/tokens'
+import { drawTimings, type DrawTiming } from '@/lib/draw'
 import { anchorAt, dateMs, domainFor, extendDomain, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
 import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
 import type { Range } from './surface-state'
@@ -120,7 +130,16 @@ type Props = {
   // While present the domain widens to take it in, on the rescale's pair.
   fans?: Record<string, FanPoint[]>
   fanReach?: { toMs: number; lo: number; hi: number } | null
+  // The ledger's order, which ranks the draw; absent, the rows' own order.
+  ledger?: string[]
+  // The preset a whole-chart draw runs on (contract, the second scoped
+  // exception). The sheet passes Cinematic; absent, the root's.
+  drawPreset?: Preset
 }
+
+// The previous draw key on a chart's first render: a metric no chart has,
+// so landing counts as every ribbon arriving together.
+const LANDING = 'landing'
 
 // A measurement debounce, not a motion value: the frame is committed once
 // the box's width has held still this long, which is after the drawer's
@@ -138,8 +157,9 @@ function domainValues(d: Domain | null): DomainValues {
   return { x0: motionValue(d?.[0] ?? 0), x1: motionValue(d?.[1] ?? 1), y0: motionValue(d?.[2] ?? 0), y1: motionValue(d?.[3] ?? 1) }
 }
 
-export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', fans, fanReach = null }: Props) {
-  const { durations, easings } = useMotionTokens()
+export function TimeSeriesChart({ rows, range, format, tickFormat = format, provisionalFrom, hoveredId, openId, onHover, summary, readout, window: win, onWindow, metric = '', fans, fanReach = null, ledger, drawPreset }: Props) {
+  const { durations, easings, delays } = useMotionTokens()
+  const scoped = useMotionTokens(drawPreset)
   const viewTarget = domainFor(
     rows.map(r => r.points),
     range,
@@ -298,17 +318,30 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
     onWindow?.({ from: isoDate(a), to: isoDate(b) })
   }
 
-  // Draw-in stagger by selection order among the ribbons arriving together:
-  // a single toggle draws at once, a Shift-range or select-all cascades.
-  // The previous committed set is kept beside the current one, as the
-  // ledger keeps its previous order, so an arrival is a ribbon that was not
-  // in the last render. On a metric switch every ribbon arrives.
+  // The ribbons arriving together draw by rank: a single toggle draws at
+  // once, a Shift-range or select-all in the ledger's order. The previous
+  // committed set is kept beside the current one, as the ledger keeps its
+  // previous order, so an arrival is a ribbon that was not in the last
+  // render. The first render's previous set is a metric no chart has, so on
+  // landing, as on a metric switch, every ribbon arrives together, and that
+  // draw takes the drawPreset.
   const key = `${metric}#${rows.map(r => r.id).join('|')}`
-  const [keys, setKeys] = useState({ prev: key, current: key })
+  const [keys, setKeys] = useState({ prev: `${LANDING}#`, current: key })
   if (keys.current !== key) setKeys({ prev: keys.current, current: key })
   const [prevMetric, prevList = ''] = (keys.current === key ? keys.prev : keys.current).split('#')
-  const prevIds = new Set(prevMetric === metric ? prevList.split('|').filter(Boolean) : [])
+  const together = prevMetric !== metric
+  const prevIds = new Set(together ? [] : prevList.split('|').filter(Boolean))
   const arriving = rows.map(r => r.id).filter(id => !prevIds.has(id))
+  const draw = together ? scoped : { durations, easings, delays }
+  const drawn = drawTimings(ledger ?? rows.map(r => r.id), arriving, draw.durations)
+  const AT_ONCE: DrawTiming = { delay: draw.delays.none, duration: draw.durations.slow }
+  const timingOf = (id: string) => drawn.each.get(id) ?? AT_ONCE
+  // Which lines have finished drawing, per metric: a fan over a drawn line
+  // opens after the rescale its reach starts; a fan whose line is still
+  // drawing waits for the last line of that draw.
+  const [linesDrawn, setLinesDrawn] = useState<ReadonlySet<string>>(() => new Set())
+  const lineKey = (id: string) => `${metric}|${id}`
+  const onDrawn = (id: string) => setLinesDrawn(s => (s.has(lineKey(id)) ? s : new Set(s).add(lineKey(id))))
   // The metric's groups: leave on fast / exit, arrive on base / enter. The
   // outer presences skip the arrival on the first render, so landing draws
   // as it always has.
@@ -342,7 +375,16 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
                 fans &&
                 rows.map(r =>
                   fans[r.id] && fans[r.id]!.length > 1 ? (
-                    <Fan key={`fan-${r.id}`} row={r} fan={fans[r.id]!} dom={dom} frame={frame} arriving={arriving.includes(r.id)} delayIndex={Math.max(0, arriving.indexOf(r.id))} hover={hoveredId === r.id} />
+                    <Fan
+                      key={`fan-${r.id}`}
+                      row={r}
+                      fan={fans[r.id]!}
+                      dom={dom}
+                      frame={frame}
+                      start={linesDrawn.has(lineKey(r.id)) ? durations.slow : drawn.lands}
+                      tokens={linesDrawn.has(lineKey(r.id)) ? undefined : draw}
+                      hover={hoveredId === r.id}
+                    />
                   ) : null,
                 )}
             </AnimatePresence>
@@ -360,7 +402,9 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
                       row={r}
                       dom={dom}
                       frame={frame}
-                      delayIndex={Math.max(0, arriving.indexOf(r.id))}
+                      timing={timingOf(r.id)}
+                      ease={draw.easings.standard}
+                      onDrawn={onDrawn}
                       hover={hoveredId === r.id}
                       muted={openId !== null && openId !== r.id}
                     />
@@ -372,7 +416,7 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
           <AnimatePresence initial={false}>
             <motion.div key={metric} className={styles.layer} initial={false} animate={{ opacity: 1 }} exit={leave}>
               {rows.map(r => (
-                <Endpoint key={r.id} row={r} dom={dom} frame={frame} delayIndex={Math.max(0, arriving.indexOf(r.id))} />
+                <Endpoint key={r.id} row={r} dom={dom} frame={frame} at={timingOf(r.id).delay + timingOf(r.id).duration} fade={{ duration: draw.durations.base, ease: draw.easings.enter }} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -426,17 +470,18 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
 // ── Parts. Each reads the animated domain and writes one attribute. ────
 
 type Part = { dom: DomainValues; frame: Frame }
+type Ease = MotionTokens['easings']['standard']
 
 function domainList(dom: DomainValues) {
   return [dom.x0, dom.x1, dom.y0, dom.y1]
 }
 
-function Ribbon({ row, dom, frame, delayIndex, hover, muted }: Part & { row: ChartRow; delayIndex: number; hover: boolean; muted: boolean }) {
-  const { durations, easings, delays } = useMotionTokens()
+function Ribbon({ row, dom, frame, timing, ease, onDrawn, hover, muted }: Part & { row: ChartRow; timing: DrawTiming; ease: Ease; onDrawn: (id: string) => void; hover: boolean; muted: boolean }) {
+  const { durations, easings } = useMotionTokens()
   const d = useTransform(domainList(dom), (v: number[]) => pathFor(row.points, v as Domain, frame))
   const [drawn, setDrawn] = useState(false)
   const [present, safeToRemove] = usePresence()
-  const delay = delayIndex * delays.short
+  const { delay, duration } = timing
 
   // The reveal: a clip rectangle from the ribbon's first visible point to
   // its last, so a series shorter than the window (the fixtures' three
@@ -458,14 +503,17 @@ function Ribbon({ row, dom, frame, delayIndex, hover, muted }: Part & { row: Cha
     if (present) {
       // To 1 from wherever it is: the mount, and the second run under
       // development Strict Mode after the first was stopped.
-      const controls = animate(progress, 1, { duration: durations.slower, ease: easings.enter, delay })
-      controls.then(() => setDrawn(true))
+      const controls = animate(progress, 1, { duration, ease, delay })
+      controls.then(() => {
+        setDrawn(true)
+        onDrawn(row.id)
+      })
       return () => controls.stop()
     }
     const controls = animate(progress, 0, { duration: durations.base, ease: easings.exit })
     controls.then(() => safeToRemove())
     return () => controls.stop()
-  }, [present, safeToRemove, progress, durations.slower, durations.base, easings.enter, easings.exit, delay])
+  }, [present, safeToRemove, progress, duration, ease, delay, durations.base, easings.exit, onDrawn, row.id])
 
   // Unique per instance: on a metric switch the leaving ribbon and the
   // arriving one are the same row, and a shared id would hand the arriving
@@ -497,8 +545,14 @@ function Ribbon({ row, dom, frame, delayIndex, hover, muted }: Part & { row: Cha
 // one already drawn; the 90% tint follows short after. Toggled off it
 // closes back into today on base / exit. The paths read the animated
 // domain, so they follow the rescale the fan's reach starts.
-function Fan({ row, fan, dom, frame, arriving, delayIndex, hover }: Part & { row: ChartRow; fan: FanPoint[]; arriving: boolean; delayIndex: number; hover: boolean }) {
-  const { durations, easings, delays } = useMotionTokens()
+function Fan({ row, fan, dom, frame, start, tokens, hover }: Part & { row: ChartRow; fan: FanPoint[]; start: number; tokens?: Pick<MotionTokens, 'durations' | 'easings' | 'delays'>; hover: boolean }) {
+  const root = useMotionTokens()
+  // A fan arriving with its line opens on the draw's preset; one toggled on
+  // over a drawn line, on the root's. Both are taken at the fan's mount: its
+  // line finishing later must not restart an opening already timed.
+  const [mountTokens] = useState(() => tokens)
+  const [mountStart] = useState(start)
+  const { durations, easings, delays } = mountTokens ?? root
   const [present, safeToRemove] = usePresence()
   const outer = useTransform(domainList(dom), (v: number[]) => bandPath(fan, 'p05', 'p95', v as Domain, frame))
   const inner = useTransform(domainList(dom), (v: number[]) => bandPath(fan, 'p25', 'p75', v as Domain, frame))
@@ -514,12 +568,11 @@ function Fan({ row, fan, dom, frame, arriving, delayIndex, hover }: Part & { row
     const scale = xScale([a!, b!, 0, 1], frame)
     return Math.max(0, scale(fan[fan.length - 1]!.ms) - scale(fan[0]!.ms)) * p!
   })
-  const start = arriving ? durations.slower + delayIndex * delays.short : durations.slow
-  const later = start + delays.short
+  const later = mountStart + delays.short
   useEffect(() => {
     if (present) {
       // To open from wherever it is: the mount, and Strict Mode's second run.
-      const a = animate(progress, 1, { duration: durations.slow, ease: easings.enter, delay: start })
+      const a = animate(progress, 1, { duration: durations.slow, ease: easings.enter, delay: mountStart })
       const b = animate(tint, 1, { duration: durations.slow, ease: easings.enter, delay: later })
       return () => {
         a.stop()
@@ -529,7 +582,7 @@ function Fan({ row, fan, dom, frame, arriving, delayIndex, hover }: Part & { row
     const a = animate(progress, 0, { duration: durations.base, ease: easings.exit })
     a.then(() => safeToRemove())
     return () => a.stop()
-  }, [present, safeToRemove, progress, tint, start, later, durations.slow, durations.base, easings.enter, easings.exit])
+  }, [present, safeToRemove, progress, tint, mountStart, later, durations.slow, durations.base, easings.enter, easings.exit])
   const clipId = `fan-clip-${row.id}-${useId().replace(/[^\w-]/g, '')}`
   return (
     <g className="entity" style={entityStyle(row.colors)} data-fan={row.id} data-hover={hover || undefined}>
@@ -672,13 +725,11 @@ function XTag({ ms, dom, frame }: Part & { ms: number }) {
 // The endpoint's marker is Trend's own: it arrives as its line's draw-in
 // reaches it and leaves with Trend; nothing travels between views
 // (decisions/2026-10-20-each-view-keeps-its-own-markers.md).
-function Endpoint({ row, dom, frame, delayIndex }: Part & { row: ChartRow; delayIndex: number }) {
-  const { durations, easings, delays } = useMotionTokens()
+function Endpoint({ row, dom, frame, at, fade }: Part & { row: ChartRow; at: number; fade: { duration: number; ease: Ease } }) {
   const last = row.points[row.points.length - 1] ?? null
   const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(last?.[0] ?? 0), frame.width))
   const top = useTransform([dom.y0, dom.y1], ([a, b]: number[]) => pct(yScale([0, 1, a!, b!], frame)(last?.[1] ?? 0), frame.height))
   // The marker lands as its ribbon's draw-in reaches it.
-  const delay = delayIndex * delays.short + durations.slower
   if (!last) return null
   return (
     <motion.span
@@ -687,7 +738,7 @@ function Endpoint({ row, dom, frame, delayIndex }: Part & { row: ChartRow; delay
       data-endpoint={row.id}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: durations.base, ease: easings.enter, delay }}
+      transition={{ ...fade, delay: at }}
     >
       {/* The marker is the shared element; the span above places and
           centres it, so Framer's layout transform never fights the centring. */}

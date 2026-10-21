@@ -565,7 +565,9 @@ test.describe('the row stack during a move', () => {
     // falling one (adversarial pass, finding 2).
     await page.goto('/')
     await expect(page.locator('tbody tr')).toHaveCount(12)
-    await page.waitForTimeout(500)
+    // The landing draw runs 2.3 s on Cinematic; sort once it has landed, so
+    // the sort is measured alone.
+    await expect(page.locator('path[data-series]:not([data-drawn])')).toHaveCount(0)
     const frames = await sortFrames(page, 'Level')
     expect(frames.length).toBeGreaterThan(2)
     for (const f of frames) {

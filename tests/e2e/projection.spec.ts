@@ -58,6 +58,29 @@ test.describe('the projection fan', () => {
     expect(widths.filter(w => w > 0 && w < final).length).toBeGreaterThan(5)
   })
 
+  test('on landing with the fan on, it waits for the last line to land', async ({ page }) => {
+    // The draw runs Cinematic and the last line lands at slower + slow,
+    // 2300 ms (decisions/2026-10-21-the-draw-runs-cinematic.md); the fan
+    // opens only after it.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __fan: { first: number | null; open: number | null } }
+      w.__fan = { first: null, open: null }
+      const tick = () => {
+        const now = performance.now()
+        if (w.__fan.first === null && document.querySelector('[data-reveal]')) w.__fan.first = now
+        const r = document.querySelector('[data-fan-reveal]')
+        if (w.__fan.open === null && r && parseFloat(r.getAttribute('width') ?? '0') > 0.5) w.__fan.open = now
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    await page.goto('/?proj=1')
+    await expect(page.locator('[data-fan]')).toHaveCount(4)
+    await page.waitForTimeout(3200)
+    const { first, open } = await page.evaluate(() => (window as unknown as { __fan: { first: number; open: number } }).__fan)
+    expect(open - first).toBeGreaterThan(2000)
+  })
+
   test('is Level\'s only: another metric hides the checkbox and the fan', async ({ page }) => {
     await page.goto('/?proj=1')
     await expect(page.locator('[data-fan]')).toHaveCount(4)

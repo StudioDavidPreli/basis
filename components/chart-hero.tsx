@@ -320,6 +320,8 @@ export function ChartHero({ columns, metric, onMetric, range, onRange, rows, ord
                   metric={column.key}
                   fans={fanOn ? fans : undefined}
                   fanReach={fanReach}
+                  ledger={order}
+                  drawPreset="cinematic"
                 />
               </motion.div>
             ) : heroView === 'heat' ? (

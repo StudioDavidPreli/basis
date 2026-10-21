@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { pairs, sortFrames } from '../e2e/sort-frames'
+import { takeDraws, watchDraws } from '../e2e/draw-frames'
 
 // What the built-output suite cannot see: `next dev` runs React's Strict
 // Mode, which runs every effect twice on mount, and reports hydration
@@ -525,13 +526,32 @@ test.describe('the sort under Strict Mode', () => {
     const errors = collectErrors(page)
     await page.goto('/')
     await expect(page.locator('tbody tr')).toHaveCount(12)
-    await page.waitForTimeout(500)
+    // The landing draw runs 2.3 s on Cinematic; sort once it has landed, so
+    // the sort is measured alone.
+    await expect(page.locator('path[data-series]:not([data-drawn])')).toHaveCount(0)
     const frames = await sortFrames(page, 'Level')
     expect(frames.length).toBeGreaterThan(2)
     for (const f of frames) expect(Math.abs(f.travel! - f.lane!), f.name).toBeLessThanOrEqual(34)
     const crossing = pairs(frames)
     expect(crossing.length).toBeGreaterThan(0)
     for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(17)
+    expect(errors).toEqual([])
+  })
+})
+
+// M15 step 2 (decisions/2026-10-21-the-draw-runs-cinematic.md): Strict Mode
+// replays each ribbon's draw effect on the same clip; the draw continues
+// from where it is, so the lines still land in the ledger's order.
+test.describe('the draw by rank under Strict Mode', () => {
+  test('lands in the ledger\'s order, and nothing reaches the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    await watchDraws(page)
+    await page.goto('/')
+    await page.waitForTimeout(3200)
+    const { ledger, draws } = await takeDraws(page)
+    expect(draws.length).toBeGreaterThan(1)
+    const lands = ledger.map(id => draws.find(d => d.id === id)!.land)
+    for (let i = 1; i < lands.length; i++) expect(lands[i]!, ledger[i]).toBeGreaterThan(lands[i - 1]!)
     expect(errors).toEqual([])
   })
 })
