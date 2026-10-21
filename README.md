@@ -34,8 +34,8 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Refresh arrow turn (while a refresh runs) | `slower`, looped | `linear` | `none` |
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
-| Table row reorder on sort; the heat view's rows follow the same sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
-| Row lane step as its reorder starts (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | `none` |
+| Table row reorder on sort; the heat view's rows follow the same sort | `slow` | `standard` (layout) | `short` stagger by the top of each move, `min(from, to)`, capped at 8 rows |
+| Row lane step as its travel starts, after its stagger (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | the row's reorder stagger |
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
@@ -56,14 +56,14 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
-| Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
+| Welcome dialog enter / exit, on Cinematic; the backdrop fades with the panel | `slow` / `fast` | `enter` / `exit` | `none` |
 | Analysis window dialog enter / exit (phone) | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 | Hero view switch: the selected marker slides | `base` | `standard` | `none` |
 | Hero view switch: the outgoing view leaves, and its row of options (Trend's metric chips and projection, or a view's caption) with it | `fast` | `exit` | `none` |
 | Hero view switch: the arriving view's row of options appears under the switch | `base` | `enter` | `none` |
-| Scatter and Heat: a charted row's point (or its heat row) appears, on the view's arrival or as the row is charted; each view's markers are its own and nothing travels between views | `base` | `enter` | `short` stagger by selection order, capped at 8, on arrival; `none` for a row charted later |
+| Scatter and Heat: a charted row's point (or its heat row) appears, on the view's arrival or as the row is charted; each view's markers are its own and nothing travels between views | `base` | `enter` | `short` stagger by table rank among the charted rows, capped at 8, on arrival; `none` for a row charted later |
 | Scatter and Heat: a row unticked in the ledger, its point or heat row leaves | `fast` | `exit` | `none` |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
 | Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |

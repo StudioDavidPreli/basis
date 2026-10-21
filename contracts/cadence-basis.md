@@ -161,7 +161,13 @@ passes over the drivers losing it, and Scott Logic's ranking tables, where
 rising and falling rows step into separate lanes before they travel. On
 each sort a rising row steps a lane to the left and lifts to `scale.lift`, a
 falling row steps a lane to the right, and both step back as they land
-(the two rows above; the lane is Basis spacing, `--space-2`). Rows stack
+(the two rows above; the lane is Basis spacing, `--space-2`). A row steps
+into its lane as its own travel starts, at the end of its stagger, never
+while it waits for it; a row that sat sideways before moving read as a
+stall (2026-10-21). The stagger reads the top of each move, the smaller of
+a row's old and new index, so two rows that trade places start together
+and cross, the F1 pass, instead of all the rising rows going before any
+falling one (`decisions/2026-10-21-the-sort-crosses-in-pairs.md`). Rows stack
 rising over still over falling, and within each group the shortest move on
 top, ties broken by name, so the rows that barely move stay legible. Text
 stays visible throughout: the fade of 2026-10-05 is withdrawn, because the
@@ -222,8 +228,8 @@ adding a row, in its own commit.
 | Refresh arrow turn (while a refresh runs) | `slower`, looped | `linear` | `none` |
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
 | Provenance popover enter / exit | `transitions.enter` / `transitions.exit` | | |
-| Table row reorder on sort; the heat view's rows follow the same sort | `slow` | `standard` (layout) | `short` stagger, capped at 8 rows |
-| Row lane step as its reorder starts (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | `none` |
+| Table row reorder on sort; the heat view's rows follow the same sort | `slow` | `standard` (layout) | `short` stagger by the top of each move, `min(from, to)`, capped at 8 rows |
+| Row lane step as its travel starts, after its stagger (a rising row steps left and lifts to `scale.lift`; a falling row steps right) | `fast` | `standard` | the row's reorder stagger |
 | Row lane step back as it lands | `base` | `standard` | `none` |
 | Row hover / line hover highlight | `fast` | `standard` | `none` |
 | Row selection swatch appear | `base` | `enter` | `none` |
@@ -244,14 +250,14 @@ adding a row, in its own commit.
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
-| Welcome dialog enter / exit | `transitions.enter` / `transitions.exit` | | |
+| Welcome dialog enter / exit, on Cinematic; the backdrop fades with the panel | `slow` / `fast` | `enter` / `exit` | `none` |
 | Analysis window dialog enter / exit (phone) | `transitions.enter` / `transitions.exit` | | |
 | Press feedback on buttons | `fast` | `standard`, `scale.pressSubtle` | `none` |
 | Theme switch crossfade | `base` | `standard` | `none` |
 | Hero view switch: the selected marker slides | `base` | `standard` | `none` |
 | Hero view switch: the outgoing view leaves, and its row of options (Trend's metric chips and projection, or a view's caption) with it | `fast` | `exit` | `none` |
 | Hero view switch: the arriving view's row of options appears under the switch | `base` | `enter` | `none` |
-| Scatter and Heat: a charted row's point (or its heat row) appears, on the view's arrival or as the row is charted; each view's markers are its own and nothing travels between views | `base` | `enter` | `short` stagger by selection order, capped at 8, on arrival; `none` for a row charted later |
+| Scatter and Heat: a charted row's point (or its heat row) appears, on the view's arrival or as the row is charted; each view's markers are its own and nothing travels between views | `base` | `enter` | `short` stagger by table rank among the charted rows, capped at 8, on arrival; `none` for a row charted later |
 | Scatter and Heat: a row unticked in the ledger, its point or heat row leaves | `fast` | `exit` | `none` |
 | Heat: re-bucket on a range change (day, week, month), a crossfade | `base` | `standard` | `none` |
 | Heat: the 2σ dot appears / clears | `base` | `enter` / `exit` | `none` |
@@ -309,11 +315,12 @@ onset or settle moment, so the churn ramps in, settles mostly in the
 middle, and the last characters resolve in a tail rather than at once.
 Under reduced motion both flatten and the text simply changes.
 
-The welcome dialog (`decisions/2026-10-15-a-welcome-on-landing.md`) enters
-and exits as the command palette does, on `transitions.enter` /
-`transitions.exit`, and its backdrop is there for as long as the element is
-open, with no fade of its own. The Basis title inside it holds its own
-timing, as the logos do.
+The welcome dialog (`decisions/2026-10-15-a-welcome-on-landing.md`) runs
+Cinematic. It enters on `slow` / `enter` and exits on `fast` / `exit`, and
+its backdrop fades with the panel, one object, from a `@starting-style` of
+transparent (`decisions/2026-10-16-the-backdrop-arrives-with-the-panel.md`,
+its timing as coded: `decisions/2026-10-21-the-welcome-runs-as-coded.md`).
+The Basis title inside it holds its own timing, as the logos do.
 
 On a phone (`decisions/2026-10-20-the-ledger-is-a-sheet-on-a-phone.md`)
 the ledger opens as the Inputs sheet, a modal dialog at the bottom of the
@@ -322,8 +329,7 @@ viewport. It is the drawer's motion turned a quarter: the drawer's spring,
 It is the second user of that spring, and the reason it is a spring holds:
 an instant close read as no exit, the raw spring as too springy. Nothing
 reflows beside the sheet, so only the sheet moves. Its backdrop is there
-for as long as the dialog is open, with no fade of its own, as the
-welcome's is. A name tapped in the sheet opens the drawer, and the sheet
+for as long as the dialog is open, with no fade of its own. A name tapped in the sheet opens the drawer, and the sheet
 lowers as the drawer opens: it leaves the top layer first (closed, then
 shown without a modal), so the drawer under it is not inert, and lowers
 above it. A cut there read as the sheet vanishing (David, 2026-10-20).
@@ -331,7 +337,8 @@ A previous run's translate is where the open continues from,
 read from the element and never from a first-run flag, so Strict Mode's
 mount replay continues the lift instead of restarting it
 (`decisions/2026-10-19-the-drawer-open-continues-mid-flight.md`). The
-analysis window's dialog enters and exits as the welcome does. Under
+analysis window's dialog enters and exits as the command palette does, on
+`transitions.enter` / `transitions.exit`. Under
 reduced motion the spring switches to instant through the `reducedMotion`
 flag and the sheet is simply there. The two breakpoints add no motion of
 their own: a control that wraps to a second row is laid out there, not
@@ -349,11 +356,17 @@ The analysis views (M12; `docs/notes/2026-10-19-new-charts-motion.md`).
 **Each view's markers are its own.** Trend's endpoint markers belong to
 Trend and leave with it, on the outgoing view's `fast` / `exit`; they never
 move on a switch. Risk / return's markers belong to it and appear at their
-points on `base` / `enter`, a `short` stagger by selection order. Back on
+points on `base` / `enter`, a `short` stagger by table rank among the
+charted rows (`decisions/2026-10-21-markers-arrive-by-rank.md`). Back on
 Trend the endpoints arrive as on any draw-in, as each line reaches them
 (`decisions/2026-10-20-each-view-keeps-its-own-markers.md`; the marker that
-travelled between views read as an error, David, 2026-10-20). Nothing in
-Basis runs `overshoot`. (David, 2026-10-19.)
+travelled between views read as an error, David, 2026-10-20). Basis never
+asks for `overshoot` (David, 2026-10-19). A preset may supply it: Snappy's
+`standard` is the overshoot curve, so on `/embed/*?preset=snappy` rows
+land past their slot, figures tick past their value, and axes rescale past
+the data's range before they settle. That is the preset being shown as
+Cadence defines it, and Basis does not correct it
+(`decisions/2026-10-21-snappy-overshoots-on-the-embeds.md`).
 **Every view draws the selection.** Trend, Risk / return, and Heat show the
 charted rows and only those (`decisions/2026-10-20-the-views-draw-the-selection.md`).
 Risk / return's axes and its median volatility come from every row of the
