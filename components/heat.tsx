@@ -12,7 +12,7 @@
 //
 //   reveal, left to right by a widening clip     slower / enter   (the draw-in's row)
 //   re-bucket on a range change, a crossfade     base / standard
-//   rows follow the ledger's sort                slow / standard  short stagger, capped at 8
+//   rows follow the ledger's sort                slow / standard  short stagger by the top of each move, capped at 8
 //   a cell's tint on refresh                     slow / standard  (CSS, the figure tick's pair)
 //   the 2σ dot appears / clears                  base / enter / exit
 //   row and column pick-out                      fast / standard  (CSS, row hover)
@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
+import { staggerSlot } from '@/lib/stagger'
 import { formatValue } from '@/lib/format'
 import { bucketLabel, headEvery, heatShare, shortLabel, type HeatGrid } from '@/lib/heat'
 import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
@@ -46,6 +47,14 @@ const MOST_HEADS_PHONE = 5
 export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Props) {
   const { durations, easings, delays } = useMotionTokens()
   const [cursor, setCursor] = useState<{ row: number; col: number } | null>(null)
+  // The order of the previous render beside the current one, as the ledger
+  // keeps it, so a row's sort stagger reads the top of its move and the
+  // rows trade places as the ledger's do. Set while rendering, from the
+  // values.
+  const ids = rows.map(r => r.id).join(' ')
+  const [orders, setOrders] = useState({ prev: ids, current: ids })
+  if (orders.current !== ids) setOrders({ prev: orders.current, current: ids })
+  const prevIds = (orders.current === ids ? orders.prev : orders.current).split(' ')
   // The one tab stop: the cell last reached, else the first with a value.
   const [stop, setStop] = useState<{ row: number; col: number } | null>(null)
   const buttons = useRef(new Map<string, HTMLButtonElement>())
@@ -179,7 +188,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                     const cells = grid.cells[r.id] ?? []
                     // The gate flags a literal inside a timing value, so the
                     // index math stays out of the transition object.
-                    const stagger = Math.min(ri, STAGGER_CAP - 1) * delays.short
+                    const stagger = staggerSlot(prevIds.indexOf(r.id), ri, STAGGER_CAP) * delays.short
                     return (
                       <motion.tr
                         key={r.id}

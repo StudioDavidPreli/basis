@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { landEmpty } from './land'
+import { pairs, sortFrames } from './sort-frames'
 
 // M4 acceptance on the Worker runtime, fixtures mode: sort via keyboard with
 // aria-sort updating, Shift-range select, the provenance popover on hover
@@ -474,6 +475,30 @@ test.describe('the row stack during a move', () => {
     expect(r.clipBack).toBe(true)
     expect(r.offLane).toBe(0)
     expect(r.moving).toBe(0)
+  })
+
+  test('a row steps into its lane as its travel starts, and rows that trade places start together', async ({ page }) => {
+    // The lane step once fired before the stagger delay: the last row sat
+    // sideways 384 ms before it moved, and every rising row went before any
+    // falling one (adversarial pass, finding 2).
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.waitForTimeout(500)
+    const frames = await sortFrames(page, 'Level')
+    expect(frames.length).toBeGreaterThan(2)
+    for (const f of frames) {
+      expect(f.lane, f.name).not.toBeNull()
+      expect(f.travel, f.name).not.toBeNull()
+      // Within a frame or two: the lane's first sub-pixel shows a frame
+      // before the travel's.
+      expect(Math.abs(f.travel! - f.lane!), f.name).toBeLessThanOrEqual(34)
+    }
+    const crossing = pairs(frames)
+    expect(crossing.length).toBeGreaterThan(0)
+    for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(17)
+    // The first wave holds a rising row and a falling one.
+    const first = (dir: string) => Math.min(...frames.filter(f => f.dir === dir).map(f => f.travel!))
+    expect(Math.abs(first('up') - first('down'))).toBeLessThanOrEqual(17)
   })
 })
 

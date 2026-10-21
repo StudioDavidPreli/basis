@@ -5,8 +5,9 @@
 // checkboxes with Shift-range and a tri-state header, one Figure per value
 // cell, dotted leaders so every row is a full line, row numbers in the first
 // column aligned to the margin. Row reorder on sort is a layout animation on
-// slow / standard with a short stagger capped at eight
-// (decisions/2026-09-16-row-reorder-not-spring.md). A figure column carries
+// slow / standard with a short stagger capped at eight, slotted by the top
+// of each move (decisions/2026-09-16-row-reorder-not-spring.md,
+// decisions/2026-10-21-the-sort-crosses-in-pairs.md). A figure column carries
 // a bar per row, drawn from zero, while it is sorted or kept (M12,
 // lib/bars.ts, decisions/2026-10-19-bars-can-be-kept.md).
 
@@ -20,6 +21,7 @@ import { sparkPath, toPoints } from '@/lib/chart'
 import { barDomain, barGeometry, type BarDomain } from '@/lib/bars'
 import { seriesFor } from '@/lib/series'
 import { useMotionTokens } from '@/lib/motion/tokens'
+import { staggerSlot } from '@/lib/stagger'
 import type { AgentPhase } from '@/worker/refresh'
 import type { Range, Sort } from './surface-state'
 import { Figure } from './figure'
@@ -264,8 +266,9 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
               const row = byId.get(id)!
               const selected = selection.includes(id)
               // The gate flags a literal inside a timing value, so the index math
-              // stays out of the transition object.
-              const stagger = Math.min(i, STAGGER_CAP - 1)
+              // stays out of the transition object. The slot is the top of the
+              // row's move, so a pair that trades places starts together.
+              const stagger = staggerSlot(prevOrder.indexOf(id), i, STAGGER_CAP)
               return (
                 <motion.tr
                   key={id}
@@ -287,12 +290,27 @@ export function DataTable({ rows, order, columns, sort, onSort, selection, onTog
                   // lifted (contracts/cadence-basis.md): written straight to
                   // the element, so a move never re-renders the ledger. A row
                   // that does not move has no layout animation and no lane.
+                  // Framer reports the start before the row's stagger delay,
+                  // so the step into the lane carries the same delay and
+                  // starts with the travel, never while the row waits for it
+                  // (the adversarial pass measured a 384 ms wait sideways).
+                  // The step back has none: the delay is cleared first.
                   ref={(el: HTMLTableRowElement | null) => {
                     if (el) rowEls.current.set(id, el)
                     else rowEls.current.delete(id)
                   }}
-                  onLayoutAnimationStart={() => rowEls.current.get(id)?.setAttribute('data-moving', '')}
-                  onLayoutAnimationComplete={() => rowEls.current.get(id)?.removeAttribute('data-moving')}
+                  onLayoutAnimationStart={() => {
+                    const el = rowEls.current.get(id)
+                    if (!el) return
+                    el.style.transitionDelay = `${stagger * delays.short}s`
+                    el.setAttribute('data-moving', '')
+                  }}
+                  onLayoutAnimationComplete={() => {
+                    const el = rowEls.current.get(id)
+                    if (!el) return
+                    el.style.transitionDelay = ''
+                    el.removeAttribute('data-moving')
+                  }}
                   transition={{ duration: durations.slow, ease: easings.standard, delay: stagger * delays.short }}
                   className={styles.row}
                   data-selected={selected || undefined}

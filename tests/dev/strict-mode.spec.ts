@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { pairs, sortFrames } from '../e2e/sort-frames'
 
 // What the built-output suite cannot see: `next dev` runs React's Strict
 // Mode, which runs every effect twice on mount, and reports hydration
@@ -511,6 +512,26 @@ test.describe('the Inputs sheet under Strict Mode', () => {
     expect(Math.abs(landed)).toBeLessThanOrEqual(1)
     await page.keyboard.press('Escape')
     await expect(sheet).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+})
+
+// M14 (decisions/2026-10-21-the-sort-crosses-in-pairs.md): each row steps
+// into its lane as its own travel starts, and rows that trade places start
+// together. The lane is written from Framer's callbacks, which Strict Mode
+// must not double into an early step.
+test.describe('the sort under Strict Mode', () => {
+  test('steps into the lane with the travel, crosses in pairs, and nothing reaches the console', async ({ page }) => {
+    const errors = collectErrors(page)
+    await page.goto('/')
+    await expect(page.locator('tbody tr')).toHaveCount(12)
+    await page.waitForTimeout(500)
+    const frames = await sortFrames(page, 'Level')
+    expect(frames.length).toBeGreaterThan(2)
+    for (const f of frames) expect(Math.abs(f.travel! - f.lane!), f.name).toBeLessThanOrEqual(34)
+    const crossing = pairs(frames)
+    expect(crossing.length).toBeGreaterThan(0)
+    for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(17)
     expect(errors).toEqual([])
   })
 })
