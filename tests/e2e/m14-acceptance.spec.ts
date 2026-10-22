@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M14's acceptance check, the parts no step's own spec covered (plan.md,
 // M14): the popover's exit on blur, the press on the controls the press
@@ -128,18 +128,18 @@ test.describe('M14 acceptance', () => {
         // The ledger after a sort, its checkboxes drawn on the paper.
         await page.locator('thead').getByRole('button', { name: /^Level/ }).click()
         await settle()
-        expect((await new AxeBuilder({ page }).analyze()).violations, 'the sorted ledger').toEqual([])
+        expect((await (await axe(page)).analyze()).violations, 'the sorted ledger').toEqual([])
         // A pinned provenance dialog.
         await page.locator('tbody tr').first().getByRole('button', { name: /^Level for/ }).click()
         await expect(page.getByRole('dialog', { name: 'Provenance' })).toBeVisible()
         await settle()
-        expect((await new AxeBuilder({ page }).analyze()).violations, 'the provenance dialog').toEqual([])
+        expect((await (await axe(page)).analyze()).violations, 'the provenance dialog').toEqual([])
         await page.keyboard.press('Escape')
         // Risk / return with its markers arrived.
         await page.goto('/?view=risk')
         await expect(page.locator('[data-point]').first()).toBeVisible()
         await settle()
-        expect((await new AxeBuilder({ page }).analyze()).violations, 'Risk / return').toEqual([])
+        expect((await (await axe(page)).analyze()).violations, 'Risk / return').toEqual([])
       })
     }
   }

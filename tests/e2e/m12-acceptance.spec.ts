@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M12's acceptance check, the parts no step's own spec covered (plan.md,
 // M12): ⌘K switches the hero's view and the projection, and every new
@@ -67,7 +67,7 @@ test.describe('M12 acceptance', () => {
           await ready(page)
           // Let the entries land, so axe reads the settled page.
           await page.waitForTimeout(reduce === '1' ? 100 : 1200)
-          const results = await new AxeBuilder({ page }).analyze()
+          const results = await (await axe(page)).analyze()
           expect(results.violations, name).toEqual([])
         }
       })

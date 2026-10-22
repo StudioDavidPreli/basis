@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
-import { ledgerArrived } from './land'
+import { axe } from './land'
 
 // M13's tablet tier (decisions/2026-10-20-two-breakpoints-640-and-900.md):
 // from 640 to 900px the chart keeps every control, wrapped to two rows, and
@@ -42,8 +41,7 @@ test.describe('a tablet, 820px', () => {
       const fits = await ledger.evaluate(t => t.getBoundingClientRect().right <= t.parentElement!.getBoundingClientRect().right + 0.5)
       expect(fits).toBe(true)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-      await ledgerArrived(page)
-      const results = await new AxeBuilder({ page }).analyze()
+      const results = await (await axe(page)).analyze()
       expect(results.violations).toEqual([])
     })
   }

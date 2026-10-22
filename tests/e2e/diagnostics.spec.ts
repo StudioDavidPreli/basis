@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
-import { landEmpty } from './land'
+import { axe, landEmpty } from './land'
 
 // M11 acceptance on the Worker runtime, fixtures mode (plan.md): hovering
 // a tool raises its card and clicking pins it, Escape unpins; typing two
@@ -143,7 +142,7 @@ test.describe('the diagnostics strip', () => {
     await expect(panel).toHaveAttribute('data-pinned', '')
     await expect(panel).toHaveCSS('opacity', '1')
     await expect(page.locator('[data-window-shade]')).toHaveCSS('opacity', '1')
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 })

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M12 step 3 on the Worker runtime, fixtures mode: the hero's Heat view
 // (decisions/2026-10-19-heat-measures-moves-in-sigma.md,
@@ -150,7 +150,7 @@ test.describe('the Heat view', () => {
     for (const theme of ['passbook', 'operate']) {
       await page.goto(`/?view=heat&theme=${theme}`)
       await expect(page.locator('[data-cell]')).toHaveCount(52)
-      const results = await new AxeBuilder({ page }).analyze()
+      const results = await (await axe(page)).analyze()
       expect(results.violations, theme).toEqual([])
     }
   })

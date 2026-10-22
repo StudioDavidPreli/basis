@@ -1,6 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
-import { landEmpty } from './land'
+import { axe, landEmpty } from './land'
 
 // M5 acceptance on the Worker runtime, fixtures mode: a deep link renders
 // the same state server-side with no hydration error; the back button
@@ -233,7 +232,7 @@ test.describe('the drawer', () => {
     await expect(dialog).toContainText('Brooklyn is a region series')
     await expect(dialog).toContainText('Region · Regions')
     await page.screenshot({ path: 'test-results/drawer-region.png' })
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 })
@@ -249,7 +248,7 @@ test.describe('the full page', () => {
     await expect(page.getByRole('link', { name: /Basis/ })).toHaveAttribute('href', '/')
     await expect(page).toHaveTitle(/Anchor Kaze/)
     await page.screenshot({ path: 'test-results/company-page.png' })
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
     expect(errors).toEqual([])
   })
@@ -333,7 +332,7 @@ test.describe('the drawer scroll cue', () => {
   test('axe is clean with the cue up', async ({ page }) => {
     const dialog = await openDrawer(page)
     await expect(dialog.locator('[data-drawer-scroll-cue]')).toHaveAttribute('data-more', 'true')
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 })

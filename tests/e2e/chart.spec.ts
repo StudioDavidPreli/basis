@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
-import { landEmpty } from './land'
+import { axe, landEmpty } from './land'
 import { takeDraws, watchDraws } from './draw-frames'
 
 // M6 acceptance on the Worker runtime, fixtures mode: toggling a row draws
@@ -315,7 +314,7 @@ test.describe('the chart', () => {
     await page.getByRole('checkbox', { name: 'Chart Anchor Kaze' }).focus()
     await expect(page.getByTestId('chart-readout')).toContainText('Anchor Kaze')
     await page.screenshot({ path: 'test-results/chart-eight.png' })
-    let results = await new AxeBuilder({ page }).analyze()
+    let results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
     // With the cursor up.
     const endpoint = (await page.locator('[data-endpoint="ou-tokyo"]').boundingBox())!
@@ -323,7 +322,7 @@ test.describe('the chart', () => {
     await expect(page.getByTestId('chart-card')).toBeVisible()
     // Landed, not mid-enter: axe reads contrast through the layer's opacity.
     await expect(page.locator('[data-cursor-layer]')).toHaveCSS('opacity', '1')
-    results = await new AxeBuilder({ page }).analyze()
+    results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
     await page.getByRole('link', { name: /Anchor Kaze/ }).click()
     await expect(page.getByRole('dialog', { name: /Anchor Kaze/ })).toBeVisible()
@@ -331,7 +330,7 @@ test.describe('the chart', () => {
     // way out; axe reads the card's contrast through the fade unless the
     // exit has landed.
     await expect(page.getByTestId('chart-card')).toHaveCount(0)
-    results = await new AxeBuilder({ page }).analyze()
+    results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 

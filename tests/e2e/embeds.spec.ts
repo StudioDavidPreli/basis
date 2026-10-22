@@ -1,5 +1,5 @@
 import { test, expect, type Page, type FrameLocator } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { adapters } from '@/sources'
@@ -77,7 +77,7 @@ test.describe('inside a frame, theme, reduced motion and preset are honored', ()
         const paper = await frame.locator('body').evaluate(e => getComputedStyle(e).backgroundColor)
         expect(paper).not.toBe('rgba(0, 0, 0, 0)')
         expect(paper).not.toBe('rgb(255, 255, 255)')
-        const results = await new AxeBuilder({ page }).include('iframe').analyze()
+        const results = await (await axe(page)).include('iframe').analyze()
         expect(results.violations).toEqual([])
       })
     }
@@ -157,7 +157,7 @@ test.describe('the Cadence stocks, framed only', () => {
       await expect(body).toHaveCSS('background-image', 'none')
       expect(await html.evaluate(e => getComputedStyle(e).colorScheme)).toBe(stock.tone)
       expect(await html.evaluate(() => localStorage.getItem('basis-theme'))).toBeNull()
-      const results = await new AxeBuilder({ page }).include('iframe').analyze()
+      const results = await (await axe(page)).include('iframe').analyze()
       expect(results.violations).toEqual([])
     })
   }

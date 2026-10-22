@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // The welcome on landing (decisions/2026-10-15-a-welcome-on-landing.md) and
 // the four rows the sheet lands with
@@ -140,7 +140,7 @@ test.describe('the welcome', () => {
   test('axe is clean with it open', async ({ page }) => {
     await page.goto('/')
     await expect(welcome(page)).toBeVisible()
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 

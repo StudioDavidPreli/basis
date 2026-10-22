@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M13's phone tier (decisions/2026-10-20-two-breakpoints-640-and-900.md,
 // decisions/2026-10-20-the-ledger-is-a-sheet-on-a-phone.md): under 640px
@@ -52,7 +52,7 @@ test.describe('a phone, 390px', () => {
       const label = { time: 'Trend', risk: 'Risk / return', heat: 'Heat' }[view]
       await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-      const results = await new AxeBuilder({ page }).analyze()
+      const results = await (await axe(page)).analyze()
       expect(results.violations).toEqual([])
     })
   }
@@ -166,7 +166,7 @@ test.describe('a phone, 390px', () => {
         await page.getByRole('button', { name: /^Inputs/ }).click()
         await expect(page.getByRole('dialog', { name: 'Inputs' })).toBeVisible()
         await page.waitForTimeout(800)
-        const results = await new AxeBuilder({ page }).analyze()
+        const results = await (await axe(page)).analyze()
         expect(results.violations).toEqual([])
       })
     }
@@ -246,7 +246,7 @@ test.describe('the window on a phone, 390px', () => {
         await page.getByRole('button', { name: /^Analysis window, / }).click()
         await expect(page.getByRole('dialog', { name: 'Analysis window' })).toBeVisible()
         await page.waitForTimeout(600)
-        const results = await new AxeBuilder({ page }).analyze()
+        const results = await (await axe(page)).analyze()
         expect(results.violations).toEqual([])
       })
     }

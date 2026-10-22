@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M7 acceptance, the half that does not need an artboard
 // (contracts/agent-presence.md, "Acceptance"): the label on every phase, and
@@ -26,7 +26,7 @@ test.describe('the agent mark, one phase at a time', () => {
       // The label names the phase and never a count of sources
       // (decisions/2026-09-18-coarse-agent-progress.md).
       expect(label).not.toMatch(/\d/)
-      const results = await new AxeBuilder({ page }).analyze()
+      const results = await (await axe(page)).analyze()
       expect(results.violations).toEqual([])
     })
   }

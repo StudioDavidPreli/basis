@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // The hero's view switch and the Risk / return view on the Worker runtime,
 // fixtures mode (decisions/2026-10-19-views-in-the-hero.md,
@@ -122,7 +122,7 @@ test.describe('the hero views', () => {
   test('passes axe in Risk / return', async ({ page }) => {
     await page.goto('/?view=risk')
     await expect(page.locator('[data-point]')).toHaveCount(4)
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M8 acceptance on the Worker runtime, fixtures mode: every palette action
 // reachable by keyboard; axe clean in both themes, with the palette open,
@@ -170,7 +170,7 @@ test.describe('axe with the palette open', () => {
         await expect(input(page)).toBeFocused()
         // Let the enter finish, so axe reads the settled colors.
         await expect(palette(page).locator('> div')).toHaveCSS('opacity', '1')
-        const results = await new AxeBuilder({ page }).analyze()
+        const results = await (await axe(page)).analyze()
         expect(results.violations).toEqual([])
       })
     }
@@ -209,7 +209,7 @@ test.describe('the narrow viewport', () => {
       await expect(page.getByRole('group', { name: 'Metric' })).toBeVisible()
       await expect(page.getByRole('group', { name: 'Chart view' })).toBeVisible()
       await page.screenshot({ path: `test-results/narrow-${theme}.png`, fullPage: true })
-      const results = await new AxeBuilder({ page }).analyze()
+      const results = await (await axe(page)).analyze()
       expect(results.violations).toEqual([])
     })
   }

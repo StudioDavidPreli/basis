@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
-import { landEmpty, ledgerArrived } from './land'
+import { axe, landEmpty } from './land'
 import { ONE_FRAME_MS, pairs, sortFrames } from './sort-frames'
 
 // M4 acceptance on the Worker runtime, fixtures mode: sort via keyboard with
@@ -20,8 +19,7 @@ test.describe('the ledger', () => {
     await expect(rows).toHaveCount(12)
     await expect(rows.first()).toContainText('01')
     await expect(page.getByRole('rowheader', { name: /Anchor Kaze/ })).toBeVisible()
-    await ledgerArrived(page)
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 
@@ -265,7 +263,7 @@ test.describe('every status has a screenshot', () => {
       await expect(figure).toHaveAttribute('data-status', status)
       await page.waitForTimeout(700)
       await page.screenshot({ path: `test-results/status-${status}.png` })
-      const results = await new AxeBuilder({ page }).analyze()
+      const results = await (await axe(page)).analyze()
       expect(results.violations).toEqual([])
     })
   }
@@ -707,7 +705,7 @@ test.describe('the ledger bar', () => {
   test('the ledger with bars passes axe', async ({ page }) => {
     await page.goto('/?sort=level&dir=desc&bars=change')
     await expect(page.locator('tbody [data-bar="on"]')).toHaveCount(24)
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 })
@@ -744,7 +742,7 @@ test.describe('checkboxes on the paper', () => {
       await box.focus()
       await page.keyboard.press('Space')
       await expect(box).toBeChecked({ checked: !was })
-      const results = await new AxeBuilder({ page }).include('table').analyze()
+      const results = await (await axe(page)).include('table').analyze()
       expect(results.violations).toEqual([])
     })
   }

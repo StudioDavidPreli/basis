@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
+import { axe } from './land'
 
 // M1 acceptance: "hello" builds and serves through the Worker runtime, axe
 // passes on the empty page, and the two attributes the inline script sets
@@ -9,7 +9,7 @@ test.describe('the empty page', () => {
   test('serves the sheet and passes axe', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Basis')
-    const results = await new AxeBuilder({ page }).analyze()
+    const results = await (await axe(page)).analyze()
     expect(results.violations).toEqual([])
   })
 
