@@ -264,7 +264,7 @@ adding a row, in its own commit.
 | Interaction | Duration | Easing / transition | Delay |
 |---|---|---|---|
 | Figure value tick (`useAnimatedNumber`); on refresh, a heat cell's tint, a scatter point's position, and a ledger bar's length move with their number | `slow` | `standard` | `none` |
-| Figure direction color decay | `slower` | `exit` | `none` |
+| Figure direction color decay, from `--accent` for a rise and `--down` for a fall, as the heat view colours a move | `slower` | `exit` | `none` |
 | Figure shimmer (refreshing) | `slower`, looped | `linear` | `none` |
 | Refresh arrow turn (while a refresh runs) | `slower`, looped | `linear` | `none` |
 | Figure → stale (desaturate) | `base` | `standard` | `none` |
