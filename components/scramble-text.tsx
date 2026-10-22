@@ -17,15 +17,9 @@
 // `persistKey` keeps the store in a module map, so a text whose component
 // remounts (the drawer's, on every entity switch) still comes FROM what
 // was on screen. The owner resets its keys when the run is over.
-//
-// `beat` scrambles a text into itself: each time it changes (never on the
-// mount) the same text runs the same transition with every character
-// churning, where a change of text holds the characters it shares. The
-// margin's "Basis" beats on each whole minute of the data's age
-// (decisions/2026-10-21-the-margin-counts-the-datas-age.md).
 
 import { useLayoutEffect, useMemo, useState, useSyncExternalStore, type ElementType } from 'react'
-import { useMotionTokens, type Preset } from '@/lib/motion/tokens'
+import { useMotionTokens } from '@/lib/motion/tokens'
 import { bezier, measureCharset, scrambleFrame, synthesizeFrom, type Spans } from '@/lib/scramble'
 
 // The schedule's spans (lib/scramble.ts, Spans): onsets spread over the
@@ -41,10 +35,8 @@ type State = {
   target: string // the text it goes to
 }
 
-function createStore(text: string, initialBeat?: number) {
+function createStore(text: string) {
   let state: State = { progress: 1, tick: 0, from: text, target: text }
-  // The beat last run, so a mount is not a beat and each change is one.
-  let beat = initialBeat
   const server: State = state
   // Whether a clock is driving progress right now. The effect below asks
   // this before trusting the store's target: under React's development
@@ -67,11 +59,6 @@ function createStore(text: string, initialBeat?: number) {
     get: () => state,
     getServer: () => server,
     isRunning: () => running,
-    beatIs: (b: number) => beat === b,
-    hasBeat: () => beat !== undefined,
-    setBeat(b: number | undefined) {
-      beat = b
-    },
     // No transition: the text just is.
     settle(text: string) {
       if (state.progress < 1 || state.target !== text) set({ progress: 1, tick: 0, from: text, target: text })
@@ -126,11 +113,11 @@ type Store = ReturnType<typeof createStore>
 const stores = new Map<string, Store>()
 const onServer = typeof window === 'undefined'
 
-function storeFor(key: string | undefined, text: string, beat?: number): Store {
-  if (!key || onServer) return createStore(text, beat)
+function storeFor(key: string | undefined, text: string): Store {
+  if (!key || onServer) return createStore(text)
   let s = stores.get(key)
   if (!s) {
-    s = createStore(text, beat)
+    s = createStore(text)
     stores.set(key, s)
   }
   return s
@@ -141,40 +128,20 @@ export function resetScrambleStores(prefix: string): void {
   for (const key of [...stores.keys()]) if (key.startsWith(prefix)) stores.delete(key)
 }
 
-type Props = { text: string; as?: ElementType; className?: string; persistKey?: string; beat?: number; preset?: Preset; schedule?: 'standard' | 'linear' }
+type Props = { text: string; as?: ElementType; className?: string; persistKey?: string }
 
-export function ScrambleText({ text, as: Tag = 'span', className, persistKey, beat, preset, schedule = 'standard' }: Props) {
-  // A scoped preset where the use asks for one (the margin's title, on
-  // Cinematic); the root's otherwise, as the drawer's does.
-  const { durations, delays, easings, reducedMotion } = useMotionTokens(preset)
-  const [store] = useState(() => storeFor(persistKey, text, beat))
+export function ScrambleText({ text, as: Tag = 'span', className, persistKey }: Props) {
+  const { durations, delays, easings, reducedMotion } = useMotionTokens()
+  const [store] = useState(() => storeFor(persistKey, text))
   const { progress, tick, from, target } = useSyncExternalStore(store.subscribe, store.get, store.getServer)
-  // The schedule's curve: standard, or linear where the preset's standard
-  // would settle the churn too early (the margin's title, on Cinematic).
-  const curve = easings[schedule]
-  const ease = useMemo(() => bezier(curve), [curve])
+  const ease = useMemo(() => bezier(easings.standard), [easings.standard])
 
   useLayoutEffect(() => {
     if (reducedMotion) {
-      store.setBeat(beat)
       store.settle(text)
       return
     }
     const s = store.get()
-    // A beat: the text into itself. A beat's run that Strict Mode's replay
-    // stopped part-way names the text at both ends with no clock; it starts
-    // again rather than reading as arrived.
-    // The first beat seen is adopted, not run: a beat that is only known
-    // on the client (the margin's age) arrives a render after the mount,
-    // and that is not a change.
-    if (beat !== undefined && !store.beatIs(beat)) {
-      const first = !store.hasBeat()
-      store.setBeat(beat)
-      if (!first) return store.start(text, text, durations.slower * 1000, delays.short * 1000)
-    }
-    if (beat !== undefined && s.from === text && s.target === text && s.progress < 1 && !store.isRunning()) {
-      return store.start(text, text, durations.slower * 1000, delays.short * 1000)
-    }
     // Already there, or already on its way there. A store that names this
     // target at partial progress with no clock is a stopped transition (the
     // Strict Mode double run, above) and restarts from what is on screen.
@@ -191,7 +158,7 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey, be
       return
     }
     return store.start(start, text, durations.slower * 1000, delays.short * 1000)
-  }, [text, beat, reducedMotion, durations.slower, delays.short, ease, store])
+  }, [text, reducedMotion, durations.slower, delays.short, ease, store])
 
   const charset = useMemo(() => measureCharset([from, target]), [from, target])
   if (progress >= 1 && (target === text || reducedMotion)) return <Tag className={className}>{text}</Tag>
@@ -201,8 +168,7 @@ export function ScrambleText({ text, as: Tag = 'span', className, persistKey, be
   // the old text, not the new one: the store's subscription is passive, so
   // the render that starts the transition would otherwise paint the new
   // name settled for a frame and then scramble it from nothing.
-  // A text into itself churns every character; a change holds what it shares.
-  const shown = progress >= 1 ? target : scrambleFrame({ from, target, progress, tick, spans: SPANS, charset, holdMatching: from !== target, ease })
+  const shown = progress >= 1 ? target : scrambleFrame({ from, target, progress, tick, spans: SPANS, charset, holdMatching: true, ease })
   return (
     <Tag className={className}>
       <span className="sr-only">{text}</span>

@@ -1,8 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { ageMinutes, formatAge } from '@/lib/age'
-import { ScrambleText } from './scramble-text'
+import { formatAge } from '@/lib/age'
 import styles from './margin.module.css'
 
 // The left margin: the document label and the date, rotated, the way the
@@ -12,8 +11,8 @@ import styles from './margin.module.css'
 // Under the date it counts the data's age to the second, from the
 // snapshot's own time (decisions/2026-10-21-the-margin-counts-the-datas-
 // age.md); a refresh starts it again from zero, and with no snapshot it
-// shows nothing. "Basis" scrambles into itself each time the count passes a
-// whole minute, on Cinematic: the period is the clock's.
+// shows nothing. The title stays still for now
+// (decisions/2026-10-22-the-margin-title-is-static-for-now.md).
 
 // A seconds clock as an external store, ticking on the wall clock's
 // seconds. The server snapshot is null, so the server's HTML and hydration
@@ -39,10 +38,7 @@ export function Margin({ date, dataset, at }: { date: string; dataset: string; a
   return (
     <aside className={styles.margin} aria-hidden="true">
       <span className={`${styles.label} type-eyebrow`}>
-        {/* Keyed on the snapshot: a refresh starts the count again, and a
-            reset is not a minute passing, so it mounts a fresh scramble
-            rather than beating one. */}
-        <ScrambleText key={at ?? 'none'} text="Basis" beat={age === null ? undefined : ageMinutes(age)} preset="cinematic" schedule="linear" /> · {dataset}
+        Basis · {dataset}
       </span>
       <span className={styles.foot}>
         <span className={`${styles.date} type-eyebrow`}>{day}</span>

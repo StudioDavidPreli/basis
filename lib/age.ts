@@ -13,8 +13,3 @@ export function formatAge(ms: number): string {
   if (h > 0) return `+${h}:${two(m)}:${two(s)}`
   return `+${two(m)}:${two(s)}`
 }
-
-// The whole minutes of the age: the beat the margin's title scrambles on.
-export function ageMinutes(ms: number): number {
-  return Math.max(0, Math.floor(ms / 60_000))
-}

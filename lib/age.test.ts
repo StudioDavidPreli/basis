@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ageMinutes, formatAge } from './age'
+import { formatAge } from './age'
 
 const S = 1000
 const M = 60 * S
@@ -24,14 +24,5 @@ describe('formatAge', () => {
 
   it('shows zero for a clock read behind the snapshot', () => {
     expect(formatAge(-5 * S)).toBe('+00:00')
-  })
-})
-
-describe('ageMinutes', () => {
-  it('turns on each whole minute', () => {
-    expect(ageMinutes(59 * S)).toBe(0)
-    expect(ageMinutes(M)).toBe(1)
-    expect(ageMinutes(35 * D)).toBe(35 * 24 * 60)
-    expect(ageMinutes(-M)).toBe(0)
   })
 })
