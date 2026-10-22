@@ -37,7 +37,7 @@ a module or an attribute. Reduced motion flattens every preset: the override
 in `app/globals.css` is restated at `:root[data-reduce-motion='1']`
 specificity, after the presets.
 
-Three scoped exceptions. The first is the tool's introduction
+Two scoped exceptions. The first is the tool's introduction
 (`decisions/2026-10-16-the-introduction-runs-cinematic.md`): the welcome
 dialog runs Cinematic while the sheet around it runs Standard, because the
 preset belongs to the use, not the product. `styles/presets.css` therefore
@@ -62,9 +62,7 @@ drawn, its clock run while nothing was shown (David, 2026-10-21). Frames
 run only while the page is presented, so the wait ends on the first frames
 a reader sees and never stalls on a slow machine. The lines, their
 endpoints, and the fan wait for it together; under reduced motion there is
-nothing to wait for. The third is the margin's title, which scrambles on
-the minute on Cinematic (below; `ScrambleText` takes the preset as the
-hook does).
+nothing to wait for.
 The ledger waits for the graph (`decisions/2026-10-21-the-ledger-waits-for-
 the-draw.md`): on landing it is held at 0.1% opacity, too little to move a
 pixel off the paper, laid out and read by a screen reader as ever, until the page is presented and the series has
@@ -295,7 +293,6 @@ adding a row, in its own commit.
 | Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
-| The margin's "Basis" scrambles into itself each time the data's age passes a whole minute, every letter churning, on Cinematic | `slower`; glyphs re-roll every `delays.short` | `linear` on the onsets and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Welcome dialog enter / exit, on Cinematic; the backdrop fades with the panel | `slow` / `fast` | `enter` / `exit` | `none` |
 | Analysis window dialog enter / exit (phone) | `transitions.enter` / `transitions.exit` | | |
@@ -397,21 +394,13 @@ snapshot was written, to the second (`+04:12`, `+3:04:12`, `+35 d 04:12:05`),
 from the snapshot's own time and nothing else: with no snapshot it shows
 nothing. A refresh landing starts it again from zero. It is the clock, not a
 motion: the seconds change as text, under reduced motion too, and it starts
-on the client after mount, so the server's HTML and hydration agree. Each
-time the count passes a whole minute, "Basis" in the margin's label
-scrambles into itself on the drawer's scramble with every letter churning,
-where the drawer's holds the letters it shares; the period is the clock's,
-not a timing of Basis's. It runs on Cinematic, `slower` 1.4 s with the
-glyphs re-rolling every 100 ms, a third scoped preset exception: at
-Standard's 0.6 s it read as a flicker (David, 2026-10-22,
-`decisions/2026-10-22-the-margin-title-scrambles-on-cinematic.md`). Its
-schedule runs on `linear`, not `standard`: Cinematic's `standard` is the
-ease-out curve, which settles every letter a fifth of the way in, and the
-churn stayed about as short as Standard's (347 ms measured); on `linear`
-the letters settle at 65% of the length, about 0.9 s. The
-date and its count read bottom to top, as the title does. Under reduced motion the scramble flattens and the
-word simply stays. The margin stays `aria-hidden`: it repeats what the
-footnotes say.
+on the client after mount, so the server's HTML and hydration agree. The
+date and its count read bottom to top, as the title does. "Basis" in the
+label stays still: a scramble on each whole minute, tried on Standard and
+on Cinematic, read as a glitch, and the title's motion is to be revisited
+(David, 2026-10-22, `decisions/2026-10-22-the-margin-title-is-static-for-
+now.md`). The margin stays `aria-hidden`: it repeats what the footnotes
+say.
 The drawer's scroll cue (`decisions/2026-10-15-drawer-scroll-cue.md`)
 stands in for the drawer's hidden scrollbar: a ↓ that bounces vertically
 while the drawer has more below and clears at the bottom. It is not a
