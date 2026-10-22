@@ -265,7 +265,7 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in: the ribbons drawing together (landing, Trend's return, a metric switch, rows charted at once), each by its rank in the ledger among them, t = rank / (n − 1); on the sheet, Cinematic on landing, Trend's return, and a metric switch, Standard when rows are charted; an embed keeps its own preset | `slow` + (`slower` − `slow`) × t | `standard` | `slow` × t |
 | Chart line draw-out | `base` | `exit` | `none` |
-| Heat grid reveal, left to right by a widening cover | `slower` | `enter` | `none` |
+| Heat grid arrival: each cell's tint pours from the paper, its row by table rank, its week by column, oldest to newest; its outline is there from the first frame; the 2σ dot with it | `slow` + (`slower` − `slow`) × the cell's `heatShare` | `standard` | row rank × `short`, capped at 8, plus `slower` × the column's share through `standard` |
 | Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
 | Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |
 | Chart metric switch: the new y ticks and gridlines arrive at their places, a fade; the y domain is set, not animated | `base` | `enter` | `none` |
@@ -413,11 +413,20 @@ switch, and Risk / return's and Heat's captions take the same row
 height whatever it holds, so a switch never moves the plot; its contents
 leave with the outgoing view on `fast` / `exit` and arrive on `base` /
 `enter`. (David, 2026-10-20.)
-**Time arrives from the left.** The heat grid and the projection fan
-reveal as the line draws in, by a clip widening across the plot, so every
-view reads time in one direction. Line to heat carries nothing across,
-since heat has rows and no markers: the ribbons leave on the outgoing
-view's `fast` / `exit` and the grid reveals on the draw-in row. A cell
+**Time arrives from the left.** The projection fan reveals as the line
+draws in, by a clip widening across the plot, and the heat grid pours in
+oldest week to newest, so every view reads time in one direction. Line to
+heat carries nothing across, since heat has rows and no markers: the
+ribbons leave on the outgoing view's `fast` / `exit` and the grid pours in
+(`decisions/2026-10-21-heat-cells-pour-in.md`). Each row starts on its
+rank in the ledger; within it each week starts at its column's share of
+`slower`, run through `standard`, so the sweep gathers and settles; each
+cell's tint pours from the paper over a length from `slow` to `slower` by
+the size of its move, so the strongest weeks land last and heaviest. The
+cells' outlines are there from the first frame, and the tint is held at
+the paper from that frame too, so Safari's whole-grid flash cannot recur.
+The pour is CSS, its delays and lengths `calc()` on the tokens scaled by
+the cell's own values (derived timings, above). A cell
 click goes the other way: the view switches to Trend, the row is
 charted, and the window takes that bucket; the window's shade lands on
 `base` while the line draws on `slower`, so the week is framed before the
