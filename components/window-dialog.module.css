@@ -47,7 +47,6 @@
   border-radius: var(--radius);
   background: transparent;
   color: var(--ink);
-  color-scheme: inherit;
 }
 
 /* No window set: the view's dates, muted and dashed, as in the strip. */

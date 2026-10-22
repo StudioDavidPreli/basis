@@ -55,7 +55,6 @@
   border-radius: var(--radius);
   background: transparent;
   color: var(--ink);
-  color-scheme: inherit;
   transition: border-color var(--cadence-duration-fast) var(--cadence-ease-standard),
     color var(--cadence-duration-fast) var(--cadence-ease-standard);
 }

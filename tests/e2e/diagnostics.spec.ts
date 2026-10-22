@@ -195,3 +195,31 @@ test.describe('the attribution waterfall', () => {
     expect(order[order.length - 1]!).toBeGreaterThan(order[0]!)
   })
 })
+
+// The date fields follow the stock (M15 step 4). They read white in both
+// stocks (David): the build rewrote their `color-scheme: inherit` to
+// `normal`, so the browser drew its own light field, icon, and picker on
+// either paper. color-scheme is inherited; the fields now take the stock's.
+test.describe('the date fields follow the stock', () => {
+  for (const [theme, scheme] of [['passbook', 'light'], ['operate', 'dark']] as const) {
+    test(`on ${theme} the window's date fields are ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.goto('/')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      for (const name of ['Window from', 'Window to']) await expect(page.getByLabel(name)).toHaveCSS('color-scheme', scheme)
+    })
+
+    test(`on ${theme} the phone's window dialog fields are ${scheme}`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.goto('/')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await page.getByRole('button', { name: /^Analysis window/ }).click()
+      const dialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: /Done/ }) })
+      await expect(dialog).toBeVisible()
+      const fields = dialog.locator('input[type="date"]')
+      await expect(fields).toHaveCount(2)
+      for (const field of await fields.all()) await expect(field).toHaveCSS('color-scheme', scheme)
+    })
+  }
+})
