@@ -21,15 +21,19 @@
   transform: rotate(180deg);
 }
 
-/* The date and, under it, the data's age, counting. Tabular, so the seconds
-   tick in place. */
+/* The date and the data's age, counting. Turned as the title is, so the
+   whole margin reads bottom to top and the age reads on from the date
+   (David, 2026-10-22). Tabular, so the seconds tick in place. */
 .foot {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
+  transform: rotate(180deg);
 }
 
 .age {
   font-variant-numeric: tabular-nums;
 }
+
+

@@ -25,7 +25,7 @@
 // (decisions/2026-10-21-the-margin-counts-the-datas-age.md).
 
 import { useLayoutEffect, useMemo, useState, useSyncExternalStore, type ElementType } from 'react'
-import { useMotionTokens } from '@/lib/motion/tokens'
+import { useMotionTokens, type Preset } from '@/lib/motion/tokens'
 import { bezier, measureCharset, scrambleFrame, synthesizeFrom, type Spans } from '@/lib/scramble'
 
 // The schedule's spans (lib/scramble.ts, Spans): onsets spread over the
@@ -141,13 +141,18 @@ export function resetScrambleStores(prefix: string): void {
   for (const key of [...stores.keys()]) if (key.startsWith(prefix)) stores.delete(key)
 }
 
-type Props = { text: string; as?: ElementType; className?: string; persistKey?: string; beat?: number }
+type Props = { text: string; as?: ElementType; className?: string; persistKey?: string; beat?: number; preset?: Preset; schedule?: 'standard' | 'linear' }
 
-export function ScrambleText({ text, as: Tag = 'span', className, persistKey, beat }: Props) {
-  const { durations, delays, easings, reducedMotion } = useMotionTokens()
+export function ScrambleText({ text, as: Tag = 'span', className, persistKey, beat, preset, schedule = 'standard' }: Props) {
+  // A scoped preset where the use asks for one (the margin's title, on
+  // Cinematic); the root's otherwise, as the drawer's does.
+  const { durations, delays, easings, reducedMotion } = useMotionTokens(preset)
   const [store] = useState(() => storeFor(persistKey, text, beat))
   const { progress, tick, from, target } = useSyncExternalStore(store.subscribe, store.get, store.getServer)
-  const ease = useMemo(() => bezier(easings.standard), [easings.standard])
+  // The schedule's curve: standard, or linear where the preset's standard
+  // would settle the churn too early (the margin's title, on Cinematic).
+  const curve = easings[schedule]
+  const ease = useMemo(() => bezier(curve), [curve])
 
   useLayoutEffect(() => {
     if (reducedMotion) {

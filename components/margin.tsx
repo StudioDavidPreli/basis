@@ -13,7 +13,7 @@ import styles from './margin.module.css'
 // snapshot's own time (decisions/2026-10-21-the-margin-counts-the-datas-
 // age.md); a refresh starts it again from zero, and with no snapshot it
 // shows nothing. "Basis" scrambles into itself each time the count passes a
-// whole minute: the period is the clock's.
+// whole minute, on Cinematic: the period is the clock's.
 
 // A seconds clock as an external store, ticking on the wall clock's
 // seconds. The server snapshot is null, so the server's HTML and hydration
@@ -42,7 +42,7 @@ export function Margin({ date, dataset, at }: { date: string; dataset: string; a
         {/* Keyed on the snapshot: a refresh starts the count again, and a
             reset is not a minute passing, so it mounts a fresh scramble
             rather than beating one. */}
-        <ScrambleText key={at ?? 'none'} text="Basis" beat={age === null ? undefined : ageMinutes(age)} /> · {dataset}
+        <ScrambleText key={at ?? 'none'} text="Basis" beat={age === null ? undefined : ageMinutes(age)} preset="cinematic" schedule="linear" /> · {dataset}
       </span>
       <span className={styles.foot}>
         <span className={`${styles.date} type-eyebrow`}>{day}</span>

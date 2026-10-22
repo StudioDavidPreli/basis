@@ -566,14 +566,25 @@ test.describe('the margin under Strict Mode', () => {
       while (!age().endsWith(':58')) await new Promise(res => setTimeout(res, 200))
       const label = document.querySelector('aside span')!
       const shown = new Set<string>()
+      let first: number | null = null
+      let last = 0
       const t0 = performance.now()
       while (performance.now() - t0 < 4000) {
         await new Promise(res => requestAnimationFrame(res))
-        shown.add(label.querySelector('[aria-hidden="true"]')?.textContent ?? 'Basis')
+        const s = label.querySelector('[aria-hidden="true"]')?.textContent ?? 'Basis'
+        shown.add(s)
+        if (s !== 'Basis') {
+          first ??= performance.now()
+          last = performance.now()
+        }
       }
-      return { shown: [...shown], settled: label.textContent }
+      return { shown: [...shown], settled: label.textContent, churn: first === null ? 0 : last - first }
     })
     expect(r.shown.some(s => s !== 'Basis')).toBe(true)
+    // On Cinematic with a linear schedule the letters churn for about 0.9 s
+    // (decisions/2026-10-22-the-margin-title-scrambles-on-cinematic.md);
+    // Standard's ran about 0.35 s.
+    expect(r.churn).toBeGreaterThan(700)
     expect(r.settled).toMatch(/^Basis · /)
     expect(errors).toEqual([])
   })
