@@ -58,6 +58,7 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
+| The margin's "Basis" scrambles into itself each time the data's age passes a whole minute, every letter churning | `slower`; glyphs re-roll every `delays.short` | `standard` on the onsets and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Welcome dialog enter / exit, on Cinematic; the backdrop fades with the panel | `slow` / `fast` | `enter` / `exit` | `none` |
 | Analysis window dialog enter / exit (phone) | `transitions.enter` / `transitions.exit` | | |
