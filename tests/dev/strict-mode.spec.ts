@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { pairs, sortFrames } from '../e2e/sort-frames'
+import { ONE_FRAME_MS, pairs, sortFrames } from '../e2e/sort-frames'
 import { takeDraws, watchDraws } from '../e2e/draw-frames'
 
 // What the built-output suite cannot see: `next dev` runs React's Strict
@@ -529,7 +529,7 @@ test.describe('the sort under Strict Mode', () => {
     for (const f of frames) expect(Math.abs(f.travel! - f.lane!), f.name).toBeLessThanOrEqual(34)
     const crossing = pairs(frames)
     expect(crossing.length).toBeGreaterThan(0)
-    for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(17)
+    for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(ONE_FRAME_MS)
     expect(errors).toEqual([])
   })
 })

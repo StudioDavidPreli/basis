@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { landEmpty } from './land'
-import { pairs, sortFrames } from './sort-frames'
+import { ONE_FRAME_MS, pairs, sortFrames } from './sort-frames'
 
 // M4 acceptance on the Worker runtime, fixtures mode: sort via keyboard with
 // aria-sort updating, Shift-range select, the provenance popover on hover
@@ -579,10 +579,10 @@ test.describe('the row stack during a move', () => {
     }
     const crossing = pairs(frames)
     expect(crossing.length).toBeGreaterThan(0)
-    for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(17)
+    for (const [a, b] of crossing) expect(Math.abs(a.travel! - b.travel!), `${a.name} and ${b.name}`).toBeLessThanOrEqual(ONE_FRAME_MS)
     // The first wave holds a rising row and a falling one.
     const first = (dir: string) => Math.min(...frames.filter(f => f.dir === dir).map(f => f.travel!))
-    expect(Math.abs(first('up') - first('down'))).toBeLessThanOrEqual(17)
+    expect(Math.abs(first('up') - first('down'))).toBeLessThanOrEqual(ONE_FRAME_MS)
   })
 })
 

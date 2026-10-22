@@ -6,6 +6,12 @@ import type { Page } from '@playwright/test'
 // first frame its Framer offset differs from the one it was put at (the
 // offset itself is there from the first frame, so its presence says
 // nothing). Shared by the built-output suite and tests/dev.
+
+// One frame at 60 Hz with room for the timer's jitter: two rows that start
+// "together" may land a frame apart in the sampling, 16.7 ms, read as 17 or
+// 18 (the dev suite saw 18 on 2026-10-21).
+export const ONE_FRAME_MS = 20
+
 export type SortFrame = { name: string; dir: string; from: number; to: number; lane: number | null; travel: number | null }
 
 export async function sortFrames(page: Page, column: string): Promise<SortFrame[]> {
