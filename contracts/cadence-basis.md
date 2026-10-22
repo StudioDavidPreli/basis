@@ -295,7 +295,7 @@ adding a row, in its own commit.
 | Drawer scroll cue stills and lifts under a hovering pointer, and back | `fast` | `standard`, `scale.lift` | `none` |
 | Drawer scroll cue appear / clear | `base` | `standard` | `none` |
 | Drawer entity switch (text scramble) | `slower`; glyphs re-roll every `delays.short` | `standard` on the length, the onsets, and the settle schedule | `none` |
-| The margin's "Basis" scrambles into itself each time the data's age passes a whole minute, every letter churning, on Cinematic | `slower`; glyphs re-roll every `delays.short` | `standard` on the onsets and the settle schedule | `none` |
+| The margin's "Basis" scrambles into itself each time the data's age passes a whole minute, every letter churning, on Cinematic | `slower`; glyphs re-roll every `delays.short` | `linear` on the onsets and the settle schedule | `none` |
 | Command palette enter / exit | `transitions.enter` / `transitions.exit` | | |
 | Welcome dialog enter / exit, on Cinematic; the backdrop fades with the panel | `slow` / `fast` | `enter` / `exit` | `none` |
 | Analysis window dialog enter / exit (phone) | `transitions.enter` / `transitions.exit` | | |
@@ -404,7 +404,11 @@ where the drawer's holds the letters it shares; the period is the clock's,
 not a timing of Basis's. It runs on Cinematic, `slower` 1.4 s with the
 glyphs re-rolling every 100 ms, a third scoped preset exception: at
 Standard's 0.6 s it read as a flicker (David, 2026-10-22,
-`decisions/2026-10-22-the-margin-title-scrambles-on-cinematic.md`). The
+`decisions/2026-10-22-the-margin-title-scrambles-on-cinematic.md`). Its
+schedule runs on `linear`, not `standard`: Cinematic's `standard` is the
+ease-out curve, which settles every letter a fifth of the way in, and the
+churn stayed about as short as Standard's (347 ms measured); on `linear`
+the letters settle at 65% of the length, about 0.9 s. The
 date and its count read bottom to top, as the title does. Under reduced motion the scramble flattens and the
 word simply stays. The margin stays `aria-hidden`: it repeats what the
 footnotes say.
