@@ -397,10 +397,9 @@ motion: the seconds change as text, under reduced motion too, and it starts
 on the client after mount, so the server's HTML and hydration agree. The
 date and its count read bottom to top, as the title does. "Basis" in the
 label stays still: a scramble on each whole minute, tried on Standard and
-on Cinematic, read as a glitch, and the title's motion is to be revisited
-(David, 2026-10-22, `decisions/2026-10-22-the-margin-title-is-static-for-
-now.md`). The margin stays `aria-hidden`: it repeats what the footnotes
-say.
+on Cinematic, read as a glitch, and the title has no motion (David,
+2026-10-22, `decisions/2026-10-22-the-margin-title-stays-still.md`). The
+margin stays `aria-hidden`: it repeats what the footnotes say.
 The drawer's scroll cue (`decisions/2026-10-15-drawer-scroll-cue.md`)
 stands in for the drawer's hidden scrollbar: a ↓ that bounces vertically
 while the drawer has more below and clears at the bottom. It is not a
