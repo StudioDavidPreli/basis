@@ -41,6 +41,7 @@ Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in: the ribbons drawing together (landing, Trend's return, a metric switch, rows charted at once), each by its rank in the ledger among them, t = rank / (n − 1); on the sheet, Cinematic on landing, Trend's return, and a metric switch, Standard when rows are charted; an embed keeps its own preset | `slow` + (`slower` − `slow`) × t | `standard` | `slow` × t |
 | Chart line draw-out | `base` | `exit` | `none` |
+| The ledger on landing: held until the graph's first line starts, then in, so the two arrive together (wide only; the phone's ledger is the Inputs sheet) | `base` | `enter` | `none` |
 | Heat grid arrival: each cell's tint pours from the paper, its row by table rank, its week by column, oldest to newest; its outline is there from the first frame; the 2σ dot with it | `slow` + (`slower` − `slow`) × the cell's `heatShare` | `standard` | row rank × `short`, capped at 8, plus `slower` × the column's share through `standard` |
 | Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
 | Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |

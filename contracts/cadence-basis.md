@@ -64,6 +64,14 @@ a reader sees and never stalls on a slow machine. The lines, their
 endpoints, and the fan wait for it together, and the heat grid's pour waits
 the same way, held paused at the paper until then (David, 2026-10-21);
 under reduced motion there is nothing to wait for.
+The ledger waits for the graph (`decisions/2026-10-21-the-ledger-waits-for-
+the-draw.md`): on landing it is held at no opacity, laid out and read by a
+screen reader as ever, until the page is presented and the series has
+loaded, the moment the first line starts; then it comes in on `base` /
+`enter`, so the table and the graph arrive together. With nothing charted
+it comes in as soon as the page is presented, and if the series cannot be
+read it comes in anyway: the hold never outlasts the reason for it. It
+happens once per landing; nothing later holds the ledger.
 
 ## What Basis does not import
 
@@ -266,6 +274,7 @@ adding a row, in its own commit.
 | Row selection swatch appear | `base` | `enter` | `none` |
 | Chart line draw-in: the ribbons drawing together (landing, Trend's return, a metric switch, rows charted at once), each by its rank in the ledger among them, t = rank / (n − 1); on the sheet, Cinematic on landing, Trend's return, and a metric switch, Standard when rows are charted; an embed keeps its own preset | `slow` + (`slower` − `slow`) × t | `standard` | `slow` × t |
 | Chart line draw-out | `base` | `exit` | `none` |
+| The ledger on landing: held until the graph's first line starts, then in, so the two arrive together (wide only; the phone's ledger is the Inputs sheet) | `base` | `enter` | `none` |
 | Heat grid arrival: each cell's tint pours from the paper, its row by table rank, its week by column, oldest to newest; its outline is there from the first frame; the 2σ dot with it | `slow` + (`slower` − `slow`) × the cell's `heatShare` | `standard` | row rank × `short`, capped at 8, plus `slower` × the column's share through `standard` |
 | Chart domain rescale (time range; never a metric switch); the scatter's axes, and the projection fan inside the time domain | `slow` | `standard` | `none` |
 | Chart metric switch: the old ribbons, gridlines, y ticks, and endpoints leave, a fade | `fast` | `exit` | `none` |
