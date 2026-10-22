@@ -13,3 +13,11 @@ export async function landEmpty(page: Page, url = '/') {
   }).toPass()
   await expect(page.locator('path[data-series]')).toHaveCount(0)
 }
+
+// The ledger waits for the graph on landing and fades in
+// (decisions/2026-10-21-the-ledger-waits-for-the-draw.md). A spec that reads
+// its contrast, axe above all, waits until it is whole: mid-fade its text
+// is at part opacity and fails a contrast it does not have at rest.
+export async function ledgerArrived(page: Page) {
+  await expect(page.locator('[data-ledger]')).toHaveCSS('opacity', '1')
+}

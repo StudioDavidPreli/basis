@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { ledgerArrived } from './land'
 
 // M12 step 4 on the Worker runtime, fixtures mode: the projection fan
 // (decisions/2026-10-19-the-projection-runs-the-config-forward.md).
@@ -92,6 +93,7 @@ test.describe('the projection fan', () => {
   test('passes axe with the fan showing', async ({ page }) => {
     await page.goto('/?proj=1')
     await expect(page.locator('[data-fan]')).toHaveCount(4)
+    await ledgerArrived(page)
     const results = await new AxeBuilder({ page }).analyze()
     expect(results.violations).toEqual([])
   })

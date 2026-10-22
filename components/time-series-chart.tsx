@@ -86,6 +86,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, animate, motion, motionValue, useMotionValue, usePresence, useTransform, type MotionValue } from 'framer-motion'
 import { useMotionTokens, type MotionTokens, type Preset } from '@/lib/motion/tokens'
 import { drawTimings, type DrawTiming } from '@/lib/draw'
+import { usePresented } from '@/lib/motion/usePresented'
 import { anchorAt, dateMs, domainFor, extendDomain, formatDateTick, nearestIndex, NOMINAL, PAD, pathFor, pct, xScale, xTicks, yScale, yTicks, type Anchor, type Domain, type Frame, type Point } from '@/lib/chart'
 import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
 import type { Range } from './surface-state'
@@ -341,22 +342,9 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
   // drawing waits for the last line of that draw.
   const [linesDrawn, setLinesDrawn] = useState<ReadonlySet<string>>(() => new Set())
   const lineKey = (id: string) => `${metric}|${id}`
-  // The draw waits for two animation frames after the mount: started at
-  // mount, its clock ran while Safari had painted nothing, and the first
-  // frame shown had the top line half drawn (David, 2026-10-21). Frames run
-  // only while the page is presented, so two of them, however far apart,
-  // mean the reader is seeing it, and the wait never stalls. Set once, and
-  // decided from the value, so Strict Mode's second run finds it set or
-  // starts its own wait. Under reduced motion nothing waits.
-  const [presenting, setPresenting] = useState(false)
-  const ready = presenting || scoped.reducedMotion
-  useEffect(() => {
-    if (ready) return
-    let id = requestAnimationFrame(() => {
-      id = requestAnimationFrame(() => setPresenting(true))
-    })
-    return () => cancelAnimationFrame(id)
-  }, [ready])
+  // The draw waits until the page is presented (lib/motion/usePresented.ts):
+  // started at mount, its clock ran while Safari had painted nothing.
+  const ready = usePresented(scoped.reducedMotion)
   const onDrawn = (id: string) => setLinesDrawn(s => (s.has(lineKey(id)) ? s : new Set(s).add(lineKey(id))))
   // The metric's groups: leave on fast / exit, arrive on base / enter. The
   // outer presences skip the arrival on the first render, so landing draws

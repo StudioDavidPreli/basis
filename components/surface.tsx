@@ -16,6 +16,8 @@ import { entityRows, rowOrder } from './rows'
 import { defaultMetric, encodeUrlState, mergeUrlSearch, type UrlState } from './surface-url'
 import { useNow } from './use-now'
 import { agentPhase } from '@/lib/agent'
+import { useReducedMotion } from '@/lib/motion/tokens'
+import { usePresented } from '@/lib/motion/usePresented'
 import { Header } from './header'
 import { Margin } from './margin'
 import { InterruptionBanner } from './interruption-banner'
@@ -69,14 +71,18 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
   // is cancelled and the second's lands, never a first-run flag. A failed
   // read leaves the chart empty until the poll or a tab switch reads again.
   const openedOn = initial.dataset
+  const [seriesFailed, setSeriesFailed] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     fetch(`/api/series?dataset=${encodeURIComponent(openedOn)}`, { cache: 'no-store', signal: controller.signal })
       .then(res => (res.ok ? (res.json() as Promise<SeriesSnapshot>) : null))
       .then(next => {
         if (next) setSeriesByDataset(prev => ({ ...prev, [openedOn]: next }))
+        else setSeriesFailed(true)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!controller.signal.aborted) setSeriesFailed(true)
+      })
     return () => controller.abort()
   }, [openedOn])
   const latestAt = useRef(served?.at ?? null)
@@ -345,6 +351,17 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
     },
   ]
 
+  // On landing the ledger waits for the graph's first line
+  // (decisions/2026-10-21-the-ledger-waits-for-the-draw.md): the line starts
+  // once the page is presented and the series has loaded, so the ledger is
+  // let in at that same moment. With nothing charted there is nothing to
+  // wait for, and a series that cannot be read lets it in too. Once in, it
+  // stays in. Decided from the values while rendering.
+  const presented = usePresented(useReducedMotion())
+  const seriesSettled = seriesByDataset[openedOn] !== undefined || seriesFailed
+  const [ledgerIn, setLedgerIn] = useState(false)
+  if (!ledgerIn && presented && (seriesSettled || state.selection.length === 0)) setLedgerIn(true)
+
   const ledger = (
     <DataTable
       rows={rows}
@@ -434,7 +451,11 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
             total: rows.length,
           }}
         />
-        {phone ? null : <div className={styles.ledger}>{ledger}</div>}
+        {phone ? null : (
+          <div className={styles.ledger} data-ledger data-held={!ledgerIn || undefined}>
+            {ledger}
+          </div>
+        )}
         {phone && (
           <InputsSheet
             open={inputsOpen}

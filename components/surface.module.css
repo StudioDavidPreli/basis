@@ -31,3 +31,17 @@
     display: none;
   }
 }
+
+/* On landing the ledger waits for the graph's first line, then comes in,
+   so the two arrive together (decisions/2026-10-21-the-ledger-waits-for-
+   the-draw.md). Held from the server's render, so it never shows first;
+   laid out and read the whole time. Held at 0.1%, not zero: at zero WebKit
+   paints nothing, and the whole table then painted on the frame the top
+   line started, which jumped. 0.1% cannot move a pixel off the paper. */
+.ledger {
+  transition: opacity var(--cadence-duration-base) var(--cadence-ease-enter);
+}
+
+.ledger[data-held] {
+  opacity: 0.001;
+}

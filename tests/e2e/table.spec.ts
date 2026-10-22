@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { landEmpty } from './land'
+import { landEmpty, ledgerArrived } from './land'
 import { ONE_FRAME_MS, pairs, sortFrames } from './sort-frames'
 
 // M4 acceptance on the Worker runtime, fixtures mode: sort via keyboard with
@@ -20,6 +20,7 @@ test.describe('the ledger', () => {
     await expect(rows).toHaveCount(12)
     await expect(rows.first()).toContainText('01')
     await expect(page.getByRole('rowheader', { name: /Anchor Kaze/ })).toBeVisible()
+    await ledgerArrived(page)
     const results = await new AxeBuilder({ page }).analyze()
     expect(results.violations).toEqual([])
   })
@@ -747,4 +748,49 @@ test.describe('checkboxes on the paper', () => {
       expect(results.violations).toEqual([])
     })
   }
+})
+
+// The ledger waits for the draw (decisions/2026-10-21-the-ledger-waits-for-
+// the-draw.md): held from the server's render, so it never shows before the
+// graph, and let in as the first line starts, so the two arrive together.
+test.describe('the ledger on landing', () => {
+  const watch = (page: import('@playwright/test').Page) =>
+    page.addInitScript(() => {
+      const w = window as unknown as { __l: { first: number | null; shown: number | null; line: number | null } }
+      w.__l = { first: null, shown: null, line: null }
+      const t0 = performance.now()
+      const tick = () => {
+        const t = performance.now() - t0
+        const wrap = document.querySelector('[data-ledger]')
+        if (wrap) {
+          const o = parseFloat(getComputedStyle(wrap).opacity)
+          if (w.__l.first === null) w.__l.first = o
+          if (o > 0.02 && w.__l.shown === null) w.__l.shown = t
+        }
+        const r = document.querySelector('[data-reveal]')
+        if (r && parseFloat(r.getAttribute('width') ?? '0') > 0.5 && w.__l.line === null) w.__l.line = t
+        if (t < 3000) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+
+  test('is held from its first frame and comes in as the first line starts', async ({ page }) => {
+    await watch(page)
+    await page.goto('/')
+    await page.waitForTimeout(3200)
+    const l = await page.evaluate(() => (window as unknown as { __l: { first: number; shown: number; line: number } }).__l)
+    // Held at 0.1% (surface.module.css), never shown before the graph.
+    expect(l.first).toBeLessThan(0.01)
+    expect(l.shown).not.toBeNull()
+    expect(l.line).not.toBeNull()
+    // Together: within a couple of frames of each other.
+    expect(Math.abs(l.shown - l.line)).toBeLessThanOrEqual(50)
+    await expect(page.locator('[data-ledger]')).toHaveCSS('opacity', '1')
+  })
+
+  test('comes in even when the series cannot be read', async ({ page }) => {
+    await page.route('**/api/series**', route => route.fulfill({ status: 503, body: '' }))
+    await page.goto('/')
+    await expect(page.locator('[data-ledger]')).toHaveCSS('opacity', '1', { timeout: 3000 })
+  })
 })
