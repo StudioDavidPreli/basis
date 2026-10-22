@@ -61,9 +61,8 @@ not at the mount: Safari painted its first frame with the top line half
 drawn, its clock run while nothing was shown (David, 2026-10-21). Frames
 run only while the page is presented, so the wait ends on the first frames
 a reader sees and never stalls on a slow machine. The lines, their
-endpoints, and the fan wait for it together, and the heat grid's pour waits
-the same way, held paused at the paper until then (David, 2026-10-21);
-under reduced motion there is nothing to wait for.
+endpoints, and the fan wait for it together; under reduced motion there is
+nothing to wait for.
 The ledger waits for the graph (`decisions/2026-10-21-the-ledger-waits-for-
 the-draw.md`): on landing it is held at 0.1% opacity, too little to move a
 pixel off the paper, laid out and read by a screen reader as ever, until the page is presented and the series has
