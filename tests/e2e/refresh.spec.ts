@@ -80,3 +80,32 @@ test.describe('the refresh handler', () => {
     })
   }
 })
+
+// The fresh flash takes direction (decisions/2026-10-22-the-fresh-flash-
+// takes-direction.md): a rise flashes the accent, a fall --down, as the
+// heat view colours a move. Each flash is pinned at its first frame and its
+// ink compared with the stock's own colour, read off a probe.
+test.describe('the fresh flash', () => {
+  for (const theme of ['passbook', 'operate']) {
+    for (const [dir, token] of [['up', '--accent'], ['down', '--down']] as const) {
+      test(`on ${theme}, a ${dir === 'up' ? 'rise' : 'fall'} flashes ${token}`, async ({ page }) => {
+        await page.goto(`/embed/figure?status=agent-updated${dir === 'down' ? '&direction=down' : ''}&theme=${theme}`)
+        const fig = page.locator('span[data-status="agent-updated"]')
+        await expect(fig).toHaveAttribute('data-direction', dir)
+        const r = await fig.evaluate((el, token) => {
+          const probe = document.createElement('span')
+          probe.style.color = `var(${token})`
+          el.append(probe)
+          const want = getComputedStyle(probe).color
+          probe.remove()
+          const value = el.querySelector('button span')!
+          const a = value.getAnimations().find(x => (x as CSSAnimation).animationName?.includes('fresh'))!
+          a.pause()
+          a.currentTime = 0
+          return { want, got: getComputedStyle(value).color }
+        }, token)
+        expect(r.got).toBe(r.want)
+      })
+    }
+  }
+})

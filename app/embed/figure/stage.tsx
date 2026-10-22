@@ -31,7 +31,7 @@ function source(over: Partial<Source> = {}): Source {
   }
 }
 
-function compose(status: string): { figure: FigureValue; phase: AgentPhase; now: Date } {
+function compose(status: string, down: boolean): { figure: FigureValue; phase: AgentPhase; now: Date } {
   const base: FigureValue = { value: 104.21, source: [source()], status: 'current', updatedAt: NOW.toISOString() }
   switch (status as FigureStatus) {
     case 'stale':
@@ -39,7 +39,8 @@ function compose(status: string): { figure: FigureValue; phase: AgentPhase; now:
     case 'refreshing':
       return { figure: base, phase: 'reading', now: NOW }
     case 'agent-updated':
-      return { figure: { ...base, prev: 101.9, status: 'agent-updated' }, phase: 'done', now: NOW }
+      // A rise by default; with ?direction=down the same move, fallen.
+      return { figure: { ...base, prev: down ? 106.52 : 101.9, status: 'agent-updated' }, phase: 'done', now: NOW }
     case 'unverified':
       return { figure: { ...base, source: [], status: 'unverified' }, phase: 'done', now: NOW }
     default:
@@ -47,8 +48,8 @@ function compose(status: string): { figure: FigureValue; phase: AgentPhase; now:
   }
 }
 
-export function FigureStage({ status }: { status: string }) {
-  const composed = compose(status)
+export function FigureStage({ status, down = false }: { status: string; down?: boolean }) {
+  const composed = compose(status, down)
   // agent-updated is a transition: the figure arrives at its previous value
   // and ticks to the new one after mount, so the screenshot and the eye
   // both see the fresh-ink decay the board shows. Until the tick, the

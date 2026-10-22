@@ -38,15 +38,28 @@
   white-space: nowrap;
 }
 
-/* Fresh ink: the accent, decaying back to ink. One shot per new value: the
-   span is keyed on the value, so it remounts and the animation runs once. */
+/* Fresh ink: the move's colour, decaying back to ink. One shot per new
+   value: the span is keyed on the value, so it remounts and the animation
+   runs once. A rise flashes the accent and a fall --down, as the heat view
+   colours a move (decisions/2026-10-22-the-fresh-flash-takes-direction.md);
+   the Cadence stocks on the embeds have no --down, so a fall keeps the
+   accent there. The ▴ / ▾ mark beside the value is the cue that is not
+   colour. */
+.figure {
+  --flash: var(--accent);
+}
+
+.figure[data-direction='down'] {
+  --flash: var(--down, var(--accent));
+}
+
 .fresh {
   animation: fresh-ink var(--cadence-duration-slower) var(--cadence-ease-exit) both;
 }
 
 @keyframes fresh-ink {
   from {
-    color: var(--accent);
+    color: var(--flash);
   }
   to {
     color: var(--figure-ink);
