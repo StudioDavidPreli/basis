@@ -65,13 +65,16 @@ endpoints, and the fan wait for it together, and the heat grid's pour waits
 the same way, held paused at the paper until then (David, 2026-10-21);
 under reduced motion there is nothing to wait for.
 The ledger waits for the graph (`decisions/2026-10-21-the-ledger-waits-for-
-the-draw.md`): on landing it is held at no opacity, laid out and read by a
-screen reader as ever, until the page is presented and the series has
+the-draw.md`): on landing it is held at 0.1% opacity, too little to move a
+pixel off the paper, laid out and read by a screen reader as ever, until the page is presented and the series has
 loaded, the moment the first line starts; then it comes in on `base` /
 `enter`, so the table and the graph arrive together. With nothing charted
 it comes in as soon as the page is presented, and if the series cannot be
 read it comes in anyway: the hold never outlasts the reason for it. It
-happens once per landing; nothing later holds the ledger.
+happens once per landing; nothing later holds the ledger. Not zero: WebKit
+paints nothing at zero, so the frame the ledger appeared had to paint the
+whole table, and it was the frame the top line started on, which then
+jumped (13% of its width in a step; 6% held at 0.1%).
 
 ## What Basis does not import
 
