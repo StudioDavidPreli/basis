@@ -56,12 +56,13 @@ into a drawn chart run Standard, an answer to a click. The draw is Framer
 only, so the chart takes `useMotionTokens('cinematic')` for those timings
 and needs no `data-preset`. The embeds keep the preset in their URL: the In
 Practice stage is where presets are compared. The draw's clock starts once
-the page is presenting frames, two in a row on time, not when the chart
-mounts: Safari painted its first frame with the top line half drawn, its
-clock run while nothing was shown (David, 2026-10-21). The lines, their
-endpoints, and the fan wait for it together. The wait is a measurement,
-like the chart's resize debounce, not a motion value; under reduced motion
-there is nothing to wait for.
+two animation frames have run after the chart mounts, however far apart,
+not at the mount: Safari painted its first frame with the top line half
+drawn, its clock run while nothing was shown (David, 2026-10-21). Frames
+run only while the page is presented, so the wait ends on the first frames
+a reader sees and never stalls on a slow machine. The lines, their
+endpoints, and the fan wait for it together; under reduced motion there is
+nothing to wait for.
 
 ## What Basis does not import
 
