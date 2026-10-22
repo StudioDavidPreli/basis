@@ -459,6 +459,60 @@ test.describe('the draw by rank', () => {
     expect(later.draws[0]!.land).toBeLessThan(550)
   })
 
+  test('the top line draws from its start on frames the reader sees, with no jump', async ({ page }) => {
+    // The draw's clock ran from mount while the page was not yet shown, and
+    // the first frame Safari painted had the top line half drawn (David,
+    // 2026-10-21). That is made here on purpose: from the moment the chart
+    // is in the document, no animation frame runs for 400 ms while time
+    // passes, as Safari presented nothing. Then every frame of the top
+    // line's opening, as a share of its full width: no step between frames
+    // may exceed a tenth of it.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __top: number[] }
+      const raf = window.requestAnimationFrame.bind(window)
+      let holdUntil = 0
+      window.requestAnimationFrame = cb =>
+        raf(t => {
+          const wait = holdUntil - performance.now()
+          if (wait > 0) setTimeout(() => window.requestAnimationFrame(cb), wait)
+          else cb(t)
+        })
+      new MutationObserver((_, observer) => {
+        if (!document.querySelector('[data-reveal]')) return
+        holdUntil = performance.now() + 400
+        observer.disconnect()
+      }).observe(document, { childList: true, subtree: true })
+      w.__top = []
+      const tick = () => {
+        const r = document.querySelector('[data-reveal]')
+        if (r) w.__top.push(parseFloat(r.getAttribute('width') ?? '0'))
+        if (w.__top.length < 240) window.requestAnimationFrame(tick)
+      }
+      window.requestAnimationFrame(tick)
+    })
+    await page.goto('/')
+    await page.waitForTimeout(3200)
+    const widths = await page.evaluate(() => (window as unknown as { __top: number[] }).__top)
+    const full = Math.max(...widths)
+    const from = widths.findIndex(x => x > 0.5)
+    expect(from).toBeGreaterThan(0)
+    const opening = widths.slice(from - 1, from + 12).map(x => x / full)
+    const steps = opening.slice(1).map((x, i) => x - opening[i]!)
+    expect(Math.max(...steps)).toBeLessThanOrEqual(0.1)
+  })
+
+  test('on slow frames the draw still runs to the end', async ({ page }) => {
+    // Waiting for frames that arrive on time stalled the draw on a loaded
+    // machine (2026-10-21). Every frame here is 50 ms late, 20 a second.
+    await page.addInitScript(() => {
+      const raf = window.requestAnimationFrame.bind(window)
+      window.requestAnimationFrame = cb => raf(() => setTimeout(() => raf(cb), 50))
+    })
+    await page.goto('/')
+    await expect(page.locator('path[data-series]')).toHaveCount(4)
+    await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4, { timeout: 8000 })
+  })
+
   test('the In Practice stage draws on its own preset, not the sheet\'s Cinematic', async ({ page }) => {
     await watchDraws(page)
     await page.goto('/embed/in-practice')

@@ -341,6 +341,22 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
   // drawing waits for the last line of that draw.
   const [linesDrawn, setLinesDrawn] = useState<ReadonlySet<string>>(() => new Set())
   const lineKey = (id: string) => `${metric}|${id}`
+  // The draw waits for two animation frames after the mount: started at
+  // mount, its clock ran while Safari had painted nothing, and the first
+  // frame shown had the top line half drawn (David, 2026-10-21). Frames run
+  // only while the page is presented, so two of them, however far apart,
+  // mean the reader is seeing it, and the wait never stalls. Set once, and
+  // decided from the value, so Strict Mode's second run finds it set or
+  // starts its own wait. Under reduced motion nothing waits.
+  const [presenting, setPresenting] = useState(false)
+  const ready = presenting || scoped.reducedMotion
+  useEffect(() => {
+    if (ready) return
+    let id = requestAnimationFrame(() => {
+      id = requestAnimationFrame(() => setPresenting(true))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [ready])
   const onDrawn = (id: string) => setLinesDrawn(s => (s.has(lineKey(id)) ? s : new Set(s).add(lineKey(id))))
   // The metric's groups: leave on fast / exit, arrive on base / enter. The
   // outer presences skip the arrival on the first render, so landing draws
@@ -382,6 +398,7 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
                       dom={dom}
                       frame={frame}
                       start={linesDrawn.has(lineKey(r.id)) ? durations.slow : drawn.lands}
+                      ready={ready}
                       tokens={linesDrawn.has(lineKey(r.id)) ? undefined : draw}
                       hover={hoveredId === r.id}
                     />
@@ -405,6 +422,7 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
                       timing={timingOf(r.id)}
                       ease={draw.easings.standard}
                       onDrawn={onDrawn}
+                      ready={ready}
                       hover={hoveredId === r.id}
                       muted={openId !== null && openId !== r.id}
                     />
@@ -416,7 +434,7 @@ export function TimeSeriesChart({ rows, range, format, tickFormat = format, prov
           <AnimatePresence initial={false}>
             <motion.div key={metric} className={styles.layer} initial={false} animate={{ opacity: 1 }} exit={leave}>
               {rows.map(r => (
-                <Endpoint key={r.id} row={r} dom={dom} frame={frame} at={timingOf(r.id).delay + timingOf(r.id).duration} fade={{ duration: draw.durations.base, ease: draw.easings.enter }} />
+                <Endpoint key={r.id} row={r} dom={dom} frame={frame} at={timingOf(r.id).delay + timingOf(r.id).duration} fade={{ duration: draw.durations.base, ease: draw.easings.enter }} ready={ready} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -476,7 +494,7 @@ function domainList(dom: DomainValues) {
   return [dom.x0, dom.x1, dom.y0, dom.y1]
 }
 
-function Ribbon({ row, dom, frame, timing, ease, onDrawn, hover, muted }: Part & { row: ChartRow; timing: DrawTiming; ease: Ease; onDrawn: (id: string) => void; hover: boolean; muted: boolean }) {
+function Ribbon({ row, dom, frame, timing, ease, onDrawn, ready, hover, muted }: Part & { row: ChartRow; timing: DrawTiming; ease: Ease; onDrawn: (id: string) => void; ready: boolean; hover: boolean; muted: boolean }) {
   const { durations, easings } = useMotionTokens()
   const d = useTransform(domainList(dom), (v: number[]) => pathFor(row.points, v as Domain, frame))
   const [drawn, setDrawn] = useState(false)
@@ -501,6 +519,8 @@ function Ribbon({ row, dom, frame, timing, ease, onDrawn, hover, muted }: Part &
   })
   useEffect(() => {
     if (present) {
+      // Not before the page is presenting: the clip holds closed.
+      if (!ready) return
       // To 1 from wherever it is: the mount, and the second run under
       // development Strict Mode after the first was stopped.
       const controls = animate(progress, 1, { duration, ease, delay })
@@ -513,7 +533,7 @@ function Ribbon({ row, dom, frame, timing, ease, onDrawn, hover, muted }: Part &
     const controls = animate(progress, 0, { duration: durations.base, ease: easings.exit })
     controls.then(() => safeToRemove())
     return () => controls.stop()
-  }, [present, safeToRemove, progress, duration, ease, delay, durations.base, easings.exit, onDrawn, row.id])
+  }, [present, ready, safeToRemove, progress, duration, ease, delay, durations.base, easings.exit, onDrawn, row.id])
 
   // Unique per instance: on a metric switch the leaving ribbon and the
   // arriving one are the same row, and a shared id would hand the arriving
@@ -545,7 +565,7 @@ function Ribbon({ row, dom, frame, timing, ease, onDrawn, hover, muted }: Part &
 // one already drawn; the 90% tint follows short after. Toggled off it
 // closes back into today on base / exit. The paths read the animated
 // domain, so they follow the rescale the fan's reach starts.
-function Fan({ row, fan, dom, frame, start, tokens, hover }: Part & { row: ChartRow; fan: FanPoint[]; start: number; tokens?: Pick<MotionTokens, 'durations' | 'easings' | 'delays'>; hover: boolean }) {
+function Fan({ row, fan, dom, frame, start, tokens, ready, hover }: Part & { row: ChartRow; fan: FanPoint[]; start: number; tokens?: Pick<MotionTokens, 'durations' | 'easings' | 'delays'>; ready: boolean; hover: boolean }) {
   const root = useMotionTokens()
   // A fan arriving with its line opens on the draw's preset; one toggled on
   // over a drawn line, on the root's. Both are taken at the fan's mount: its
@@ -571,6 +591,7 @@ function Fan({ row, fan, dom, frame, start, tokens, hover }: Part & { row: Chart
   const later = mountStart + delays.short
   useEffect(() => {
     if (present) {
+      if (!ready) return
       // To open from wherever it is: the mount, and Strict Mode's second run.
       const a = animate(progress, 1, { duration: durations.slow, ease: easings.enter, delay: mountStart })
       const b = animate(tint, 1, { duration: durations.slow, ease: easings.enter, delay: later })
@@ -582,7 +603,7 @@ function Fan({ row, fan, dom, frame, start, tokens, hover }: Part & { row: Chart
     const a = animate(progress, 0, { duration: durations.base, ease: easings.exit })
     a.then(() => safeToRemove())
     return () => a.stop()
-  }, [present, safeToRemove, progress, tint, mountStart, later, durations.slow, durations.base, easings.enter, easings.exit])
+  }, [present, ready, safeToRemove, progress, tint, mountStart, later, durations.slow, durations.base, easings.enter, easings.exit])
   const clipId = `fan-clip-${row.id}-${useId().replace(/[^\w-]/g, '')}`
   return (
     <g className="entity" style={entityStyle(row.colors)} data-fan={row.id} data-hover={hover || undefined}>
@@ -725,7 +746,7 @@ function XTag({ ms, dom, frame }: Part & { ms: number }) {
 // The endpoint's marker is Trend's own: it arrives as its line's draw-in
 // reaches it and leaves with Trend; nothing travels between views
 // (decisions/2026-10-20-each-view-keeps-its-own-markers.md).
-function Endpoint({ row, dom, frame, at, fade }: Part & { row: ChartRow; at: number; fade: { duration: number; ease: Ease } }) {
+function Endpoint({ row, dom, frame, at, fade, ready }: Part & { row: ChartRow; at: number; fade: { duration: number; ease: Ease }; ready: boolean }) {
   const last = row.points[row.points.length - 1] ?? null
   const left = useTransform([dom.x0, dom.x1], ([a, b]: number[]) => pct(xScale([a!, b!, 0, 1], frame)(last?.[0] ?? 0), frame.width))
   const top = useTransform([dom.y0, dom.y1], ([a, b]: number[]) => pct(yScale([0, 1, a!, b!], frame)(last?.[1] ?? 0), frame.height))
@@ -737,7 +758,7 @@ function Endpoint({ row, dom, frame, at, fade }: Part & { row: ChartRow; at: num
       style={{ left, top }}
       data-endpoint={row.id}
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: ready ? 1 : 0 }}
       transition={{ ...fade, delay: at }}
     >
       {/* The marker is the shared element; the span above places and

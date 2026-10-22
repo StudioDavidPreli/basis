@@ -30,8 +30,10 @@ export default defineConfig({
     // stage's height, which Cadence sizes its frame to (2026-10-15); and the
     // hero's view switch, where WebKit alone laid both views out for a frame
     // (2026-10-19); and every Risk / return marker arriving, which David saw
-    // fail and which no engine has reproduced yet (2026-10-21).
-    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame|moves nothing below the hero|no marker moves on a switch|every Risk \/ return marker arrives/ },
+    // fail and which no engine has reproduced yet (2026-10-21); and the top
+    // line drawing from its start, which Safari painted half drawn
+    // (2026-10-21).
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame|moves nothing below the hero|no marker moves on a switch|every Risk \/ return marker arrives|with no jump/ },
   ],
   webServer: {
     command: 'npm run preview:fixtures',
