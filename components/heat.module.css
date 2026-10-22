@@ -26,17 +26,6 @@
   height: 100%;
 }
 
-/* The reveal's cover: the paper over the grid, sliding off to the right
-   (heat.tsx, Reveal). Painted as the sticky ledger header is, paper and
-   grain, so it reads as the page until it is gone. */
-.cover {
-  position: absolute;
-  inset: -2px;
-  z-index: 1;
-  background-color: var(--paper);
-  background-image: var(--grain);
-  pointer-events: none;
-}
 
 .table {
   width: 100%;
@@ -204,4 +193,39 @@
   .head[data-label-wide]:not([data-label-phone]) > .headLabel {
     visibility: hidden;
   }
+}
+
+/* The first grid pours in (decisions/2026-10-21-heat-cells-pour-in.md). A
+   cell's tint comes up from the paper; its outline is there throughout.
+   It starts at its row's slot times short plus its week's share of slower,
+   that share already run through standard (heat.tsx), and runs from slow
+   to slower by the size of its move, so the strongest weeks land last.
+   The backwards fill holds every cell at the paper from the first frame,
+   so no engine paints the grid whole first. The 2σ dot comes with it. */
+@keyframes pour {
+  from {
+    background-color: var(--paper);
+  }
+}
+
+@keyframes pour-dot {
+  from {
+    opacity: 0;
+  }
+}
+
+.table[data-pour] .swatch {
+  animation: pour
+    calc(var(--cadence-duration-slow) + (var(--cadence-duration-slower) - var(--cadence-duration-slow)) * var(--share))
+    var(--cadence-ease-standard)
+    calc(var(--cadence-delay-short) * var(--row-slot) + var(--cadence-duration-slower) * var(--col-share))
+    backwards;
+}
+
+.table[data-pour] .dot {
+  animation: pour-dot
+    calc(var(--cadence-duration-slow) + (var(--cadence-duration-slower) - var(--cadence-duration-slow)) * var(--share))
+    var(--cadence-ease-standard)
+    calc(var(--cadence-delay-short) * var(--row-slot) + var(--cadence-duration-slower) * var(--col-share))
+    backwards;
 }

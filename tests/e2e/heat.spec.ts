@@ -71,37 +71,50 @@ test.describe('the Heat view', () => {
     await expect(page.getByRole('list', { name: 'Selected rows' }).getByRole('listitem').first()).toContainText(await page.locator(`[data-entity-link="${id}"]`).innerText())
   })
 
-  // The grid is uncovered left to right: a cover in the paper, whole when
-  // the grid is first in the DOM, shrinks to its right edge. (A clip
-  // showed the grid whole for a frame in Safari; David, 2026-10-19.)
-  test('the grid is uncovered from the left, and covered from its first frame', async ({ page }) => {
+  // The grid pours in (decisions/2026-10-21-heat-cells-pour-in.md): held at
+  // the paper from the first frame it is in the DOM, so no engine paints
+  // it whole first (a clip did, in Safari; David, 2026-10-19); then each
+  // row on its rank and each week oldest to newest; then the pour is over.
+  test('the grid pours in by rank and week, held at the paper from its first frame', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('path[data-series][data-drawn]')).toHaveCount(4)
-    const { atInsert, scales } = await page.evaluate(async () => {
-      const scaleOf = () => {
-        const c = document.querySelector('[data-reveal-cover]')
-        if (!c) return null
-        const t = getComputedStyle(c).transform
-        return t === 'none' ? 1 : Number(t.match(/matrix\(([^,]+)/)![1])
+    const r = await page.evaluate(async () => {
+      const state = (c: Element) => {
+        const a = c.getAnimations().find(x => (x as CSSAnimation).animationName?.includes('pour'))
+        if (!a) return 'none'
+        return (a.currentTime as number) < (a.effect!.getTiming().delay ?? 0) ? 'held' : 'started'
       }
-      let atInsert: number | null = null
+      const seen: { atInsert: { held: number; total: number } | null } = { atInsert: null }
       const mo = new MutationObserver(() => {
-        if (atInsert === null && document.querySelector('[data-heat]')) atInsert = scaleOf()
+        const cells = [...document.querySelectorAll('[data-heat] [data-cell]')]
+        if (seen.atInsert === null && cells.length) seen.atInsert = { held: cells.filter(c => state(c) === 'held').length, total: cells.length }
       })
       mo.observe(document.body, { childList: true, subtree: true })
       ;([...document.querySelectorAll('[aria-label="Chart view"] button')].find(b => b.textContent === 'Heat') as HTMLButtonElement).click()
-      const scales: number[] = []
-      for (let i = 0; i < 60; i++) {
+      const started: Record<string, number> = {}
+      const t0 = performance.now()
+      for (let i = 0; i < 150; i++) {
         await new Promise(r => requestAnimationFrame(r))
-        const s = scaleOf()
-        if (s !== null) scales.push(s)
+        for (const c of document.querySelectorAll<HTMLElement>('[data-heat] [data-cell]'))
+          if (!(c.dataset['cell']! in started) && state(c) !== 'held') started[c.dataset['cell']!] = performance.now() - t0
       }
       mo.disconnect()
-      return { atInsert, scales }
+      const ids = Object.keys(started)
+      const rows = [...new Set(ids.map(k => k.split(':')[0]!))]
+      const cols = ids.filter(k => k.startsWith(`${rows[0]}:`)).length
+      return {
+        atInsert: seen.atInsert,
+        rowStarts: rows.map(row => started[`${row}:0`]!),
+        colStarts: Array.from({ length: cols }, (_, c) => started[`${rows[0]}:${c}`]!),
+        pourOver: !document.querySelector('[data-heat]')!.hasAttribute('data-pour'),
+      }
     })
-    expect(atInsert).toBe(1)
-    expect(scales.filter(v => v > 0.01 && v < 0.99).length).toBeGreaterThan(5)
-    expect(scales[scales.length - 1]).toBeLessThan(0.001)
+    // At insertion every cell but the first's is held at the paper.
+    expect(r.atInsert!.held).toBeGreaterThanOrEqual(r.atInsert!.total - 1)
+    for (let i = 1; i < r.rowStarts.length; i++) expect(r.rowStarts[i]!).toBeGreaterThan(r.rowStarts[i - 1]!)
+    for (let i = 1; i < r.colStarts.length; i++) expect(r.colStarts[i]!).toBeGreaterThanOrEqual(r.colStarts[i - 1]!)
+    expect(r.colStarts[r.colStarts.length - 1]!).toBeGreaterThan(r.colStarts[0]! + 300)
+    expect(r.pourOver).toBe(true)
   })
 
   // A switch never moves the sheet below the hero, and the heat rows land

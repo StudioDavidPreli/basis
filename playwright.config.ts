@@ -32,8 +32,9 @@ export default defineConfig({
     // (2026-10-19); and every Risk / return marker arriving, which David saw
     // fail and which no engine has reproduced yet (2026-10-21); and the top
     // line drawing from its start, which Safari painted half drawn
-    // (2026-10-21).
-    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame|moves nothing below the hero|no marker moves on a switch|every Risk \/ return marker arrives|with no jump/ },
+    // (2026-10-21); and the heat grid held at the paper from its first frame,
+    // which Safari once painted whole (2026-10-19, 2026-10-21).
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grep: /row reorder|row stack|one crossfade|in-practice frame|moves nothing below the hero|no marker moves on a switch|every Risk \/ return marker arrives|with no jump|pours in by rank and week/ },
   ],
   webServer: {
     command: 'npm run preview:fixtures',

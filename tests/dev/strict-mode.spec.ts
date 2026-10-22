@@ -410,25 +410,20 @@ test.describe('the hero views under Strict Mode', () => {
 
 // Heat keeps its tab stop and cursor in state and remounts a grid per bucket
 // size; a pick is one reducer action (decisions/2026-10-19-heat-measures-
-// moves-in-sigma.md). Under Strict Mode the grid must reveal whole, and a
+// moves-in-sigma.md). Under Strict Mode the grid must pour in whole, and a
 // pick must chart its row and land on Trend.
 test.describe('Heat under Strict Mode', () => {
-  test('reveals whole, picks a cell into Trend, with nothing in the console', async ({ page }) => {
+  test('pours in whole, picks a cell into Trend, with nothing in the console', async ({ page }) => {
     const errors = collectErrors(page)
     page.on('console', m => {
       if (m.type() === 'warning' && /not an animatable value/.test(m.text())) errors.push(m.text())
     })
     await page.goto('/?view=heat')
     await expect(page.locator('[data-cell][tabindex="0"]')).toHaveCount(1)
-    // Uncovered whole: the cover's scale runs to nothing.
-    await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const t = getComputedStyle(document.querySelector('[data-reveal-cover]')!).transform
-          return t === 'none' ? 1 : Math.abs(Number(t.match(/matrix\(([^,]+)/)![1]))
-        }),
-      )
-      .toBeLessThan(0.001)
+    // Poured whole: the pour ends, and no cell is left held at the paper.
+    await expect(page.locator('[data-heat]')).not.toHaveAttribute('data-pour', { timeout: 4000 })
+    const unfinished = await page.evaluate(() => document.querySelector('[data-heat]')!.getAnimations({ subtree: true }).filter(a => (a as CSSAnimation).animationName?.includes('pour') && a.playState !== 'finished').length)
+    expect(unfinished).toBe(0)
     await page.getByRole('group', { name: 'Time range' }).getByRole('button', { name: '1M' }).click()
     await expect(page.locator('[data-heat]')).toHaveCount(1)
     await expect(page.locator('[data-heat]')).toHaveAttribute('data-unit', 'day')

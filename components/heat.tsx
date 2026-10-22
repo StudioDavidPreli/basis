@@ -10,17 +10,19 @@
 // one tab stop, arrows between cells, a pick opens Trend on the row and
 // the bucket. Timing per the contract, through useMotionTokens():
 //
-//   reveal, left to right by a widening clip     slower / enter   (the draw-in's row)
+//   arrival, each cell's tint pours from paper   slow to slower by its move, standard; row rank × short,
+//                                                plus slower × the column's share through standard (CSS)
 //   re-bucket on a range change, a crossfade     base / standard
 //   rows follow the ledger's sort                slow / standard  short stagger by the top of each move, capped at 8
 //   a cell's tint on refresh                     slow / standard  (CSS, the figure tick's pair)
 //   the 2σ dot appears / clears                  base / enter / exit
 //   row and column pick-out                      fast / standard  (CSS, row hover)
 
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
-import { AnimatePresence, LayoutGroup, animate, motion, useMotionValue, useTransform } from 'framer-motion'
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { useMotionTokens } from '@/lib/motion/tokens'
 import { staggerSlot } from '@/lib/stagger'
+import { bezier } from '@/lib/scramble'
 import { formatValue } from '@/lib/format'
 import { bucketLabel, headEvery, heatShare, shortLabel, type HeatGrid } from '@/lib/heat'
 import { isoDate, type Window, type WindowMs } from '@/lib/diagnostics'
@@ -118,6 +120,19 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
   const gridKey = `${grid.unit}:${count}`
   const [firstKey] = useState(gridKey)
   const first = gridKey === firstKey
+  // The first grid pours in (decisions/2026-10-21-heat-cells-pour-in.md):
+  // CSS animations on each cell, timed by custom properties the cell
+  // carries, held at the paper from the first frame by a backwards fill.
+  // The pour is over once no cell is still pouring; after that a row
+  // charted later fades in as before, and does not pour.
+  const [pouring, setPouring] = useState(first)
+  const pour = first && pouring
+  const sweep = bezier(easings.standard)
+  const onPourEnd = (e: React.AnimationEvent<HTMLTableElement>) => {
+    if (!e.animationName.includes('pour')) return
+    const still = e.currentTarget.getAnimations({ subtree: true }).some(a => a instanceof CSSAnimation && a.animationName.includes('pour') && a.playState === 'running')
+    if (!still) setPouring(false)
+  }
 
   if (rows.length === 0) {
     return (
@@ -144,8 +159,8 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
             exit={{ opacity: 0, transition: fade }}
             transition={fade}
           >
-            <Reveal play={first}>
-              <table className={styles.table} style={{ '--rows': rows.length } as CSSProperties} onKeyDown={onKeyDown} onMouseLeave={leave} data-heat data-unit={grid.unit}>
+            <div className={styles.reveal}>
+              <table className={styles.table} style={{ '--rows': rows.length } as CSSProperties} onKeyDown={onKeyDown} onMouseLeave={leave} onAnimationEnd={onPourEnd} data-heat data-unit={grid.unit} data-pour={pour || undefined}>
                 <caption className="sr-only">
                   Heat: each row&apos;s Level move per {grid.unit}, measured in its own volatility. Activate a cell to open Trend on that row and {grid.unit}.
                 </caption>
@@ -216,9 +231,15 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                           const out = win !== null && (b.toMs < win.fromMs || b.fromMs > win.toMs)
                           if (!cell) return <td key={b.fromMs} className={styles.cell} data-empty />
                           const z = cell.z
+                          // The pour's factors (heat.module.css): the row's
+                          // slot, the week's place through standard, and the
+                          // move's size, which also sets the tint.
                           const tint: CSSProperties = {
                             '--tint': z === null ? '0%' : `${Math.round(heatShare(z) * 100)}%`,
                             '--toward': z !== null && z < 0 ? 'var(--down)' : 'var(--accent)',
+                            '--row-slot': Math.min(ri, STAGGER_CAP - 1),
+                            '--col-share': count > 1 ? sweep(ci / (count - 1)) : 0,
+                            '--share': z === null ? 0 : heatShare(z),
                           } as CSSProperties
                           const outlier = z !== null && Math.abs(z) >= 2
                           return (
@@ -264,7 +285,7 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
                 </tbody>
                 </LayoutGroup>
               </table>
-            </Reveal>
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -280,33 +301,6 @@ export function Heat({ rows, grid, window: win, hoveredId, onHover, onPick }: Pr
           </>
         )}
       </p>
-    </div>
-  )
-}
-
-// Time arrives from the left: the grid is uncovered left to right, on the
-// draw-in's row, as the line is. A cover in the paper slides off it rather
-// than a clip opening on it. Safari painted the grid whole for a frame
-// before either an animated `clipPath` or one bound to a value took hold,
-// most likely because the grid's rows and dots are composited layers an
-// ancestor's clip reaches a frame late; the map showed static, then
-// revealed (David, 2026-10-19, twice). A cover is painted with the grid in
-// its first frame, by any engine. Its scale is bound to a MotionValue
-// Framer steps; the effect runs it from wherever it is, so Strict Mode's
-// second run continues rather than restarts.
-function Reveal({ play, children }: { play: boolean; children: ReactNode }) {
-  const { durations, easings } = useMotionTokens()
-  const progress = useMotionValue(play ? 0 : 1)
-  const scaleX = useTransform(progress, p => 1 - p)
-  useEffect(() => {
-    if (!play) return
-    const controls = animate(progress, 1, { duration: durations.slower, ease: easings.enter })
-    return () => controls.stop()
-  }, [play, progress, durations.slower, easings.enter])
-  return (
-    <div className={styles.reveal}>
-      {children}
-      {play && <motion.div className={styles.cover} style={{ scaleX, originX: 1 }} aria-hidden="true" data-reveal-cover />}
     </div>
   )
 }
