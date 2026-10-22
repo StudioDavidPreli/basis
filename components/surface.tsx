@@ -393,7 +393,7 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
 
   return (
     <div className={styles.sheet} data-busy={busy || undefined}>
-      <Margin date={snapshot?.at ?? renderedAt} dataset={dataset.label} />
+      <Margin date={snapshot?.at ?? renderedAt} dataset={dataset.label} at={snapshot?.at ?? null} />
       <main className={styles.content}>
         <Header
           datasets={Object.entries(config.datasets).map(([id, d]) => ({ id, label: d.label }))}

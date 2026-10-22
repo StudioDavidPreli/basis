@@ -550,3 +550,31 @@ test.describe('the draw by rank under Strict Mode', () => {
     expect(errors).toEqual([])
   })
 })
+
+// M15 step 5 (decisions/2026-10-21-the-margin-counts-the-datas-age.md): each
+// time the data's age passes a whole minute, "Basis" scrambles into itself.
+// The beat's effect runs twice under Strict Mode; the churn must still run
+// and settle on the word, with nothing in the console.
+test.describe('the margin under Strict Mode', () => {
+  test('Basis scrambles as the age passes a minute, and settles', async ({ page }) => {
+    test.setTimeout(100_000)
+    const errors = collectErrors(page)
+    await page.goto('/')
+    await expect(page.locator('[data-age]')).toHaveText(/\d{2}$/)
+    const r = await page.evaluate(async () => {
+      const age = () => document.querySelector('[data-age]')!.textContent!
+      while (!age().endsWith(':58')) await new Promise(res => setTimeout(res, 200))
+      const label = document.querySelector('aside span')!
+      const shown = new Set<string>()
+      const t0 = performance.now()
+      while (performance.now() - t0 < 4000) {
+        await new Promise(res => requestAnimationFrame(res))
+        shown.add(label.querySelector('[aria-hidden="true"]')?.textContent ?? 'Basis')
+      }
+      return { shown: [...shown], settled: label.textContent }
+    })
+    expect(r.shown.some(s => s !== 'Basis')).toBe(true)
+    expect(r.settled).toMatch(/^Basis · /)
+    expect(errors).toEqual([])
+  })
+})
