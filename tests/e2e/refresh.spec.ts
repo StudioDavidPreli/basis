@@ -81,6 +81,21 @@ test.describe('the refresh handler', () => {
   }
 })
 
+// The cooldown itself is off on fixtures and held by app/api/refresh/route.test.ts
+// (decisions/2026-11-04-on-demand-refresh-cools-down.md); this is what the
+// reader is told when the route declines.
+test('a declined refresh says it was skipped, and the button comes back', async ({ page }) => {
+  await page.route('**/api/refresh', route => {
+    if (route.request().method() !== 'POST') return route.continue()
+    return route.fulfill({ status: 429, json: { phase: 'cooling', retryAfterSeconds: 600 } })
+  })
+  await page.goto('/')
+  const button = page.getByRole('button', { name: 'Refresh', exact: true })
+  await button.click()
+  await expect(page.getByTestId('live-region')).toContainText('Refresh skipped: the last run is under fifteen minutes old')
+  await expect(button).toBeEnabled()
+})
+
 // The fresh flash takes direction (decisions/2026-10-22-the-fresh-flash-
 // takes-direction.md): a rise flashes the accent, a fall --down, as the
 // heat view colours a move. Each flash is pinned at its first frame and its

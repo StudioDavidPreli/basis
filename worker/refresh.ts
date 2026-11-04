@@ -484,6 +484,26 @@ export async function refresh(deps: RefreshDeps): Promise<RefreshResult> {
 // The wrapper both triggers call. The spec's third interruption level: the
 // handler threw, nothing was written, the previous snapshot stays live, and
 // the phase says so. One write, to the agent key only.
+// An on-demand run spends the cron's budget, and the route has no auth, so a
+// run must be a quarter hour past the last one's start, failed runs included.
+// That caps a day at the 96 runs the budget above was sized for, and the cron
+// on the hour stays inside it. decisions/2026-11-04-on-demand-refresh-cools-down.md.
+export const REFRESH_COOLDOWN_MS = 15 * 60 * 1000
+
+export function cooldownRemainingMs(agentText: string | null, now: Date): number {
+  if (!agentText) return 0
+  let startedAt: string | undefined
+  try {
+    startedAt = (JSON.parse(agentText) as Partial<AgentState>).startedAt
+  } catch {
+    return 0
+  }
+  const age = now.getTime() - Date.parse(startedAt ?? '')
+  // An unreadable or future start must not hold the refresh shut.
+  if (!(age >= 0)) return 0
+  return Math.max(0, REFRESH_COOLDOWN_MS - age)
+}
+
 export async function runRefresh(deps: RefreshDeps): Promise<RefreshResult | { phase: 'error'; error: string }> {
   try {
     return await refresh(deps)

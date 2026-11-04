@@ -183,9 +183,10 @@ export function Surface({ snapshot: served, cold, renderedAt, initial }: Props) 
     setBusy(true)
     announce('Refresh started')
     try {
-      await fetch('/api/refresh', { method: 'POST' })
+      const res = await fetch('/api/refresh', { method: 'POST' })
       await load()
-      announce('Refresh finished')
+      // The route's cooldown: nothing ran, so nothing is said to have.
+      announce(res.status === 429 ? 'Refresh skipped: the last run is under fifteen minutes old' : 'Refresh finished')
     } finally {
       setBusy(false)
     }

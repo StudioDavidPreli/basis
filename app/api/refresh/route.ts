@@ -1,5 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { runRefresh, KEYS, type StoredSnapshot } from '@/worker/refresh'
+import { cooldownRemainingMs, runRefresh, KEYS, type StoredSnapshot } from '@/worker/refresh'
 import { depsFromEnv, type BasisEnv } from '@/worker/deps'
 import { fixtureFetchFor } from '@/worker/fixtureFetch'
 import { adapters } from '@/sources'
@@ -16,6 +16,10 @@ import { adapters } from '@/sources'
 // These run the real live code path against fixtures standing in for the
 // network, so the e2e suite reaches every interruption level from fixtures.
 // Outside the fixtures environment the parameter is ignored.
+//
+// Also outside it, a POST within REFRESH_COOLDOWN_MS of the last run's start
+// answers 429 without running. The fixtures environment skips the cooldown:
+// the suites refresh before every test, and none of it reaches a source.
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +31,13 @@ async function env(): Promise<BasisEnv> {
 export async function POST(request: Request) {
   const e = await env()
   const deps = depsFromEnv(e)
+  if (e.BASIS_FIXTURES !== '1') {
+    const remaining = cooldownRemainingMs(await e.BASIS_KV.get(KEYS.agent, 'text'), deps.now())
+    if (remaining > 0) {
+      const seconds = Math.ceil(remaining / 1000)
+      return Response.json({ phase: 'cooling', retryAfterSeconds: seconds }, { status: 429, headers: { 'Retry-After': String(seconds) } })
+    }
+  }
   const fail = new URL(request.url).searchParams.get('fail')
   if (fail && e.BASIS_FIXTURES === '1') {
     if (fail === 'handler') {
