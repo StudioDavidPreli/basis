@@ -23,7 +23,7 @@ Next.js 16 on Cloudflare Workers through OpenNext, with KV for the snapshot and 
 
 ## 03 · Motion tokens
 
-Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A lint rule fails the build on a numeric literal in any timing position. Each interaction is a row in `contracts/cadence-basis.md`; this copy is held to it by a test.
+Components read `useMotionTokens()` and `var(--cadence-*)`, never the package. A lint rule refuses a numeric literal in any timing position, and the pre-push gate refuses the push; a push to `main` is the deploy. Each interaction is a row in `contracts/cadence-basis.md`; this copy is held to it by a test.
 
 <!-- token-table:start -->
 | Interaction | Duration | Easing / transition | Delay |
@@ -116,7 +116,17 @@ Every suite but `test:live` runs on recorded fixtures. Decisions are in `decisio
 ## 07 · Limitations
 
 - The agent mark is still its text fallback: the twelve company logos are on Rive, but the presence artboard has not been drawn. Under reduced motion every logo is a still poster and the page loads no Rive at all.
-- The data refreshes hourly, inside the KV free tier's thousand writes a day.
+- The data refreshes hourly, inside the KV free tier's thousand writes a day. The refresh button runs at most once per fifteen minutes; the check reads KV, which is eventually consistent, so a burst of simultaneous requests can slip past it.
 - The last thirty days of tide data are NOAA's preliminary record, shaded provisional.
 - The chart draws at most 500 points per series at 5Y and Max; the diagnostics use every point.
 - Mobile Lighthouse performance was 92 on PageSpeed Insights on 2026-09-28, before the Rive runtime and the twelve logos landed; it has not been measured since.
+
+## 08 · How it was built
+
+I designed and directed Basis: the concept, the visual language, the naming grammar, the motion review, and the calls in `decisions/`. I drew eleven of the twelve company logos; the twelfth, Ember Shamal, is a tessellation drawn in code at my direction. Claude Code wrote most of the code and the first drafts of most records, to the written contracts in `contracts/`, which is why most commits carry its co-author line. There is no LLM in the running product.
+
+`archive/` holds my references and studies and is not in this repository, so paths into it in the docs lead nowhere here.
+
+## 09 · License
+
+The code is MIT. The company logos, the Basis title, the favicon, and the share cards are not; `LICENSE` lists the paths. The recorded data in `public/fixtures/` belongs to its providers, under their terms.
