@@ -12,4 +12,9 @@ playwright-report/
 cloudflare-env.d.ts
 archive/
 public/rive/rive.wasm
-docs/handoffs/
+docs/
+decisions/
+plan.md
+CLAUDE.md
+contracts/agent-presence.md
+contracts/cadence-consumer-reference.md

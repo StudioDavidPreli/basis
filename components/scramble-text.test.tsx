@@ -8,7 +8,7 @@ import { ScrambleText, resetScrambleStores } from './scramble-text'
 // same persisted store, and under development Strict Mode the new mount
 // runs its layout effect twice. The first cleanup stopped the clock at
 // progress zero and the second run once trusted the store's target and
-// returned, freezing the text on its first noise frame (commit cc72f46).
+// returned, freezing the text on its first noise frame (commit dffe9e2).
 
 const KEY = 'test:name'
 

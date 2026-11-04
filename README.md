@@ -111,7 +111,7 @@ npm run test:e2e:dev  # playwright on next dev (Strict Mode); run after, never b
 npm run test:live     # fixture-vs-live parity; the only suite that reaches the network
 ```
 
-Every suite but `test:live` runs on recorded fixtures. Decisions are in `decisions/`, one dated record each.
+Every suite but `test:live` runs on recorded fixtures.
 
 ## 07 · Limitations
 
@@ -123,9 +123,9 @@ Every suite but `test:live` runs on recorded fixtures. Decisions are in `decisio
 
 ## 08 · How it was built
 
-I designed and directed Basis: the concept, the visual language, the naming grammar, the motion review, and the calls in `decisions/`. I drew eleven of the twelve company logos; the twelfth, Ember Shamal, is a tessellation drawn in code at my direction. Claude Code wrote most of the code and the first drafts of most records, to the written contracts in `contracts/`, which is why most commits carry its co-author line. There is no LLM in the running product.
+I designed and directed Basis: the concept, the visual language, the naming grammar, the motion review, and the decisions. I drew eleven of the twelve company logos; the twelfth, Ember Shamal, is a tessellation drawn in code at my direction. Claude Code wrote most of the code, to written contracts, which is why most commits carry its co-author line. There is no LLM in the running product.
 
-`archive/` holds my references and studies and `docs/handoffs/` my working notes between sessions. Neither is in this repository, so paths into them in the docs lead nowhere here.
+The spec, the decision records, the other contracts and my working notes are not in this repository, so paths to them in code comments and in `contracts/cadence-basis.md` lead nowhere here.
 
 ## 09 · License
 
