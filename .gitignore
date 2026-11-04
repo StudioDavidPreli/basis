@@ -12,3 +12,4 @@ playwright-report/
 cloudflare-env.d.ts
 archive/
 public/rive/rive.wasm
+docs/handoffs/

@@ -125,7 +125,7 @@ Every suite but `test:live` runs on recorded fixtures. Decisions are in `decisio
 
 I designed and directed Basis: the concept, the visual language, the naming grammar, the motion review, and the calls in `decisions/`. I drew eleven of the twelve company logos; the twelfth, Ember Shamal, is a tessellation drawn in code at my direction. Claude Code wrote most of the code and the first drafts of most records, to the written contracts in `contracts/`, which is why most commits carry its co-author line. There is no LLM in the running product.
 
-`archive/` holds my references and studies and is not in this repository, so paths into it in the docs lead nowhere here.
+`archive/` holds my references and studies and `docs/handoffs/` my working notes between sessions. Neither is in this repository, so paths into them in the docs lead nowhere here.
 
 ## 09 · License
 
